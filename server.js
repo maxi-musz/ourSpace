@@ -1,9 +1,10 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import colors from 'colors';
 import cookieParser from "cookie-parser";
+
+import authRoutes from "./routes/authRoutes.js"
 
 dotenv.config();
 
@@ -11,12 +12,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 var corsOptions = {
-    origin: ['http://localhost:3000', 
-    "https://rac-client.vercel.app", 
-    "https://rac-frontend.vercel.app",
-    "https://127.0.0.1:8888",
-    "http://localhost:5173",
-    "https://rac-admin.netlify.app",
+    origin: ["*",
 ],
     methods: "GET, HEAD, PUT, PATCH, POST, DELETE",
     httpOnly: true,
@@ -34,6 +30,8 @@ app.get("/", (req, res) => {
     console.log("ourSPace Api is running".blue)
     res.send("ourSpace API is running")
 });
+
+app.use("/api/users", authRoutes)
 
 app.listen(port, () => {
     console.log(`Server 2 running on port ${port}`.blue)
