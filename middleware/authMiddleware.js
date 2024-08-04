@@ -5,52 +5,47 @@ import util from "util";
 
 // User must be authenticated
 const protect = asyncHandler(async (req, res, next) => {
+  // Read JWT from the 'accessToken' cookie
+  const token = req.cookies.accessToken;
 
-  // Read JWT from the 'jwt' cookie
-  const testToken = req.headers.authorization;
-  let token;
-
-  if (testToken && testToken.startsWith('Bearer')) {
-    token = testToken.split(' ')[1];
+  if (!token) {
+      res.status(401);
+      throw new Error("Not authorized, login required");
   }
 
-  if(!token) {
-    res.status(401);
-    throw new Error("Not authorized, login required")
+  try {
+      const decoded = await util.promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
+      const user = await User.findById(decoded.userId).select('-password');
+      if (!user) {
+          res.status(401);
+          throw new Error("User does not exist");
+      }
+
+      req.user = user;
+      next();
+  } catch (error) {
+      res.status(401);
+      throw new Error("Not authorized, token failed");
   }
-
-  const decoded = await util.promisify(jwt.verify)(token, process.env.JWT_SECRET);
-
-  const user = await User.findById(decoded.userId).select('-password');
-  if(!user) {
-    res.status(401);
-    throw new Error("User does not exist")
-  }
-
-
-  await user.save();
-
-  req.user = user;
-  next();
-
 });
 
 // User must be an admin
 const admin = (req, res, next) => {
   if (req.user && req.user.isAdmin) {
-    next();
+      next();
   } else {
-    res.status(401);
-    throw new Error('Access denied, Authorization level  2 required');
+      res.status(401);
+      throw new Error('Access denied, admin only');
   }
 };
 
 const localVariables = (req, res, next) => {
   req.app.locals = {
-    OTP : null,
-    resetSession: false,
-  }
+      OTP: null,
+      resetSession: false,
+  };
   next();
-}
+};
 
-export { protect, admin, localVariables};
+export { protect, admin, localVariables };

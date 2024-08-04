@@ -1,7 +1,63 @@
-import User from "../models/userModel.js";
-import db from "../config/db.js"
-import asyncHandler from "../middleware/asyncHandler.js";
+import User from "../../models/userModel.js";
+import db from "../../config/db.js"
+import asyncHandler from "../../middleware/asyncHandler.js";
 import validator from "validator";
+import generateTokens from "../../utils/generateTokens.js";
+
+const authenticateToken = asyncHandler(async(req, res)=> {
+
+    console.log("Toekn authentication endpoint".grey)
+
+    const token = req.cookies.accessToken;
+
+    if (!token) {
+        console.log("No token provided".red)
+        return res.sendStatus(403); // Forbidden
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            console.log("Error",err.message)
+            return res.sendStatus(403); // Forbidden
+        }
+
+        console.log("Token verified successfully".magenta)
+        req.user = user;
+        next();
+    });
+})
+
+const refreshToken = asyncHandler(async(req, res)=> {
+
+    console.log("Refreshing token".grey)
+
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+        console.log("Invalid refresh token".red)
+        return res.sendStatus(401); // Unauthorized
+    }
+
+    jwt.verify(refreshToken, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            console.log("Error", err.message)
+            return res.sendStatus(403); // Forbidden
+        }
+
+        const newAccessToken = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET, {
+            expiresIn: process.env.USER_ACCESS_TOKEN_EXPIRATION_TIME // e.g., 15 minutes
+        });
+
+        res.cookie('accessToken', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV !== "development",
+            maxAge: 15 * 60 * 1000 // 15 minutes
+        });
+
+        console.log("New access token successfully issued".magenta)
+        res.json({ accessToken: newAccessToken });
+    });
+})
 
 const registerUser = asyncHandler(async (req, res) => {
     console.log("Registering new user".yellow)
@@ -12,6 +68,7 @@ const registerUser = asyncHandler(async (req, res) => {
             lastName = '',
             email = '',
             password = '',
+            phoneNumber = '',
         } = req.body;
 
         // Trim input fields
@@ -19,15 +76,17 @@ const registerUser = asyncHandler(async (req, res) => {
         lastName = lastName.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
         email = email.trim().toLowerCase(); // Trim and normalize email
         password = password.trim();
+        phoneNumber = phoneNumber.trim();
 
         // Sanitize inputs to prevent XSS
         firstName = validator.escape(firstName);
         lastName = validator.escape(lastName);
         email = validator.escape(email);
         password = validator.escape(password);
+        phoneNumber = validator.escape(phoneNumber);
 
         // Check for required fields
-        if (!firstName || !lastName || !email || !password) {
+        if (!firstName || !lastName || !email || !password || !phoneNumber) {
             console.log('All fields are required'.red);
             return res.status(400).json({ error: 'All fields are required.' });
         }
@@ -39,7 +98,7 @@ const registerUser = asyncHandler(async (req, res) => {
         }
 
         // Check for existing user by email
-        db.connectDb()
+        
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             console.log("User registration failed, user already exists".red);
@@ -51,6 +110,7 @@ const registerUser = asyncHandler(async (req, res) => {
             firstName,
             lastName,
             email,
+            phoneNumber,
             password,
         });
         await user.save();
@@ -81,7 +141,6 @@ const loginUser = asyncHandler(async (req, res) => {
         }
 
         // Find user by sanitized and normalized email
-        db.connectDb()
         const user = await User.findOne({ email });
         console.log("Email:", email);
 
@@ -91,11 +150,12 @@ const loginUser = asyncHandler(async (req, res) => {
             console.log("UserId:", userId);
 
             // Generate a JWT token
-            const token = generateToken(res, userId);
+            const { accessToken, refreshToken } = generateTokens(res, user._id);
 
             console.log("User successfully logged in".magenta);
             res.status(201).json({
-                jwt: token,
+                accessToken: accessToken,
+                refreshToken: refreshToken,
                 success : true,
                 message : "User logged in Successfully!",
                 data : user,
@@ -110,28 +170,14 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 });
 
-const userDetails = asyncHandler(async(req, res) => {
-    console.log("Getting user details...")
-    try{
-        const user = await userModel.findById(req.userId)
-        console.log("User details successfully retrieved".blue)
-        res.status(200).json({
-            success : true,
-            message : "User details retrieved",
-            data : user
-        })
-
-    }catch(err){
-        console.log(`Error retrieving user details: ${err.message}`)
-        res.status(400).json({
-            message : `Error getting user details: ${err.message || err}`,
-        })
-    }
-})
-
+const joinWaitlist = asyncHandler(async (req, res) => {
+    console.log("Join waitlist endpoint")
+});
 
 export {
+    authenticateToken,
+    refreshToken,
     registerUser,
     loginUser,
-    userDetails
+    joinWaitlist
 }
