@@ -33,8 +33,8 @@ const joinwWaitList = asyncHandler(async(req, res) => {
 
         // Check for required fields
         if (!name || !email ||!phoneNumber) {
-            console.log('Name email and hone number are all required'.red);
-            return res.status(400).json({ error: 'Name email and hone number are all required.' });
+            console.log('Name, email and phone number are all required'.red);
+            return res.status(400).json({ error: 'Name, email and phone number are all required.' });
         }
 
         // Validate email format
@@ -47,7 +47,7 @@ const joinwWaitList = asyncHandler(async(req, res) => {
         
         const existingWaitlistUser = await Waitlist.findOne({ email });
         if (existingWaitlistUser) {
-            console.log("User registration failed, user already exists".red);
+            console.log("Email already in use".red);
             return res.status(400).json({ error: 'Email already in use.' });
         }
 
@@ -63,16 +63,19 @@ const joinwWaitList = asyncHandler(async(req, res) => {
 
         const newWaitlistUser = await Waitlist.findOne({ email })
 
-        console.log("New waitlist user successfully created".magenta);
+        console.log("You have successfully joined the waitlist. We will be in touch with you".magenta);
         res.status(201).json({
             success : true,
-            message : "New waitlist user created Successfully!",
+            message : "You have successfully joined the waitlist. We will be in touch with you!",
             data : newWaitlistUser
         })
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Server error. Please try again later.' });
+        res.status(500).json({ 
+            success: false,
+            message: error.message
+         });
     }
 })
 
