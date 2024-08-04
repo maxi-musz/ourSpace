@@ -15,6 +15,9 @@ const waitlistSchema = new mongoose.Schema({
     spaceLocation : {
         type: String,
     },
+    location : {
+        type: String,
+    },
     phoneNumber : {
         type: String,
         required: true
