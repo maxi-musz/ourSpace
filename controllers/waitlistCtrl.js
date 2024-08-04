@@ -12,32 +12,29 @@ const joinwWaitList = asyncHandler(async(req, res) => {
         let {
             name = '',
             email = '',
-            propertyType = '',
-            location = "",
-            numberOfProperties = "",
+            spaceLocation = "",
+            type = "",
             phoneNumber = '',
         } = req.body;
 
         // I Trim input fields
         name = name.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
         email = email.trim().toLowerCase(); // Trim and normalize email
-        propertyType = propertyType.trim();
-        location = location.trim();
-        numberOfProperties = numberOfProperties.trim();
+        spaceLocation = spaceLocation.trim();
+        type = type.trim();
         phoneNumber = phoneNumber.trim();
 
         // I sanitized inputs to prevent XSS
         name = validator.escape(name);
         email = validator.escape(email);
-        propertyType = validator.escape(propertyType);
-        location = validator.escape(location);
-        numberOfProperties = validator.escape(numberOfProperties);
+        spaceLocation = validator.escape(spaceLocation);
+        type = validator.escape(type);
         phoneNumber = validator.escape(phoneNumber);
 
         // Check for required fields
-        if (!name || !email || !propertyType || !location || !numberOfProperties ||!phoneNumber) {
-            console.log('All fields are required'.red);
-            return res.status(400).json({ error: 'All fields are required.' });
+        if (!name || !email ||!phoneNumber) {
+            console.log('Name email and hone number are all required'.red);
+            return res.status(400).json({ error: 'Name email and hone number are all required.' });
         }
 
         // Validate email format
@@ -59,9 +56,8 @@ const joinwWaitList = asyncHandler(async(req, res) => {
             name,
             email,
             phoneNumber,
-            propertyType,
-            location,
-            numberOfProperties
+            spaceLocation,
+            type
         });
         await waitlistUser.save();
 

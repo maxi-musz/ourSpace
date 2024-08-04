@@ -12,16 +12,7 @@ const waitlistSchema = new mongoose.Schema({
         unique : true,
         required : true
     },
-    numberOfProperties : {
-        type: Number,
-        default: 0,
-        required: true
-    },
-    propertyType : {
-        type: String,
-        required: true
-    },
-    location : {
+    spaceLocation : {
         type: String,
         required: true
     },
@@ -29,8 +20,11 @@ const waitlistSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    lastLogin: { type: Date },
-    lastLogout: { type: Date },
+    type: {
+        type: String,
+        enum: ['space-owner', 'space-user'],
+        required: true
+      },
 },{
     timestamps : true
 });
