@@ -14,15 +14,14 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-var corsOptions = {
-    origin: ["*",
-],
-    methods: "GET, HEAD, PUT, PATCH, POST, DELETE",
-    httpOnly: true,
+const corsOptions = {
+    origin: "*", // Allow access from any origin
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
     optionsSuccessStatus: 200
-}
-app.use(cors(corsOptions));
+  };
+  
+  app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
