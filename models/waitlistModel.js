@@ -14,7 +14,6 @@ const waitlistSchema = new mongoose.Schema({
     },
     spaceLocation : {
         type: String,
-        required: true
     },
     phoneNumber : {
         type: String,
@@ -22,8 +21,7 @@ const waitlistSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['space-owner', 'space-user'],
-        required: true
+        enum: ['space-owner', 'space-user']
       },
 },{
     timestamps : true
