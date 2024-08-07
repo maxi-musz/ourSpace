@@ -8,6 +8,7 @@ import db from './config/db.js';
 import waitlistRoutes from "./routes/waitlistRoutes.js"
 import authRoutes from "./routes/userRoutes/authRoutes.js"
 import adminUsers from "./routes/adminRoutes/adminUser.js"
+import listingsRoute from "./routes/listingsRoutes/listingsRoute.js"
 
 dotenv.config();
 
@@ -36,10 +37,9 @@ app.get("/api/v1", (req, res) => {
 db.connectDb()
 
 app.use("/api/v1/waitlist", waitlistRoutes)
-
 app.use("/api/v1/users", authRoutes)
-
 app.use("/api/v1/admin", adminUsers)
+app.use("/api/v1/listing", listingsRoute)
 
 app.listen(port, () => {
     console.log(`Server 2 running on port ${port}`.blue)

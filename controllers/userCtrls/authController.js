@@ -1,4 +1,5 @@
 import User from "../../models/userModel.js";
+import jwt from 'jsonwebtoken';
 import db from "../../config/db.js"
 import asyncHandler from "../../middleware/asyncHandler.js";
 import validator from "validator";
@@ -27,20 +28,19 @@ const authenticateToken = asyncHandler(async(req, res)=> {
     });
 })
 
-const refreshToken = asyncHandler(async(req, res)=> {
-
-    console.log("Refreshing token".grey)
+const refreshToken = asyncHandler(async(req, res) => {
+    console.log("Refreshing token".grey);
 
     const { refreshToken } = req.cookies;
 
     if (!refreshToken) {
-        console.log("Invalid refresh token".red)
+        console.log("Invalid refresh token".red);
         return res.sendStatus(401); // Unauthorized
     }
 
     jwt.verify(refreshToken, process.env.JWT_SECRET, (err, user) => {
         if (err) {
-            console.log("Error", err.message)
+            console.log("Error", err.message);
             return res.sendStatus(403); // Forbidden
         }
 
@@ -54,10 +54,10 @@ const refreshToken = asyncHandler(async(req, res)=> {
             maxAge: 15 * 60 * 1000 // 15 minutes
         });
 
-        console.log("New access token successfully issued".magenta)
+        console.log("New access token successfully issued".magenta);
         res.json({ accessToken: newAccessToken });
     });
-})
+});
 
 const registerUser = asyncHandler(async (req, res) => {
     console.log("Registering new user".yellow)

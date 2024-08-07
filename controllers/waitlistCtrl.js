@@ -1,6 +1,8 @@
 import validator from "validator";
 import asyncHandler from "../middleware/asyncHandler.js";
 import Waitlist from "../models/waitlistModel.js";
+import sendEmail from "../utils/sendMail.js";
+import generateCSV from "../utils/generateCsv.js";
 
 const joinwWaitList = asyncHandler(async(req, res) => {
     console.log("Join waitlist endpoint".yellow)
@@ -83,7 +85,59 @@ const joinwWaitList = asyncHandler(async(req, res) => {
     }
 })
 
+const getWaitlists = asyncHandler(async(req, res) => {
+
+    console.log("Getting all waitlist users and sending to Ourspace email as doc".blue)
+
+    const {email} = req.body
+    console.log("Email:", email)
+
+    try {
+        const waitlist = await Waitlist.find({});
+        const totalWaitlist = waitlist.length
+        console.log(`Total waitlists found: ${totalWaitlist}`)
+
+        if (!waitlist.length) {
+            console.log("NO waitlist data found".red)
+            res.status(404).json({ 
+                success: false,
+                message: 'No waitlist entries found'
+            });
+            return;
+        }
+
+        // Generate the CSV content
+        const csvContent = generateCSV(waitlist);
+
+        // Send the CSV file via email
+        await sendEmail(
+        email, // Replace with the recipient email address
+        'Waitlist CSV', // Email subject
+        'Please find the attached waitlist CSV file.', // Email body text
+        [
+            {
+                filename: 'waitlist.csv',
+                content: csvContent,
+                contentType: 'text/csv'
+            }
+        ]
+    );
+
+        console.log(`Waitlist data sent to ${email}`.magenta)
+        res.status(200).json({
+            success: true,
+            total: totalWaitlist,
+            message: `Waitlist csv data successfully sent to ${email}`,
+            data: waitlist
+        });
+    } catch (error) {
+        console.log('Error', error.message)
+        res.status(500).json({ message: error.message });
+    }
+})
+
 export {
-    joinwWaitList
+    joinwWaitList,
+    getWaitlists
 }
 

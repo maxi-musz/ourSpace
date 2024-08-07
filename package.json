@@ -17,11 +17,14 @@
     "colors": "^1.4.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "csv-writer": "^1.6.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.4",
+    "nodemailer": "^6.9.14",
     "nodemon": "^3.1.4",
+    "pdfkit": "^0.15.0",
     "validator": "^13.12.0"
   }
 }
