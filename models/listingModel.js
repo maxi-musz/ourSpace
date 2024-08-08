@@ -38,8 +38,14 @@ const propertyLocationSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    propertyType: {
+    propertyType: { 
       type: String,
+      required: true
+    },
+    status: { 
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
       required: true
     },
     bedroomTotal: {
@@ -56,6 +62,11 @@ const propertyLocationSchema = new mongoose.Schema({
     },
     bathroomTotal: {
       type: Number,
+      required: true
+    },
+    freeCancellation: {
+      type: Boolean,
+      default: false,
       required: true
     },
     toiletTotal: {
@@ -92,6 +103,7 @@ const propertyLocationSchema = new mongoose.Schema({
       required: true
     },
     availableAmenities: [String],
+    funPlacesNearby: [String],
     arrivalDepartureDetails: arrivalDepartureDetailsSchema,
     minimumDays: Number,
     infoForGuests: infoForGuestsSchema,
@@ -106,6 +118,10 @@ const propertyLocationSchema = new mongoose.Schema({
     chargeCurrency: String,
     acceptOtherCurrency: Boolean,
     pricePerGuest: Number,
+    price: {
+      type: Number,
+      required: true
+    },
     discount: Boolean,
     cancellationOption: {
       type: String,
