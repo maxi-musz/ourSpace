@@ -3,30 +3,42 @@ import mongoose from "mongoose";
 const propertyLocationSchema = new mongoose.Schema({
     address: {
       type: String,
-      required: true
     },
     apartmentNumber: Number,
     apartmentSize: Number
   });
+
+  const dateSchema = new mongoose.Schema({
+    date: { type: Number, required: true },
+    month: { type: Number, required: true },
+    year: { type: Number, required: true }
+});
+
+const arrivalDepartureDetailsSchema = new mongoose.Schema({
+  checkIn: dateSchema,
+  checkOut: dateSchema
+});
+
+const numberOfGuestsSchema = new mongoose.Schema({
+  adult: { type: Number },
+  children: { type: Number },
+  pets: { type: Number, default: 0 },
+  total: {
+      type: Number,
+      required: true,
+      default: function() {
+          return this.adult + this.children;
+      }
+  }
+});
   
-  const arrivalDepartureDetailsSchema = new mongoose.Schema({
-    checkIn: {
-      from: String,
-      until: String
-    },
-    checkOut: {
-      from: String,
-      until: String
-    }
-  });
-  
-  const infoForGuestsSchema = new mongoose.Schema({
-    petsAllowed: Boolean,
-    kidsAllowed: Boolean,
-    partiesAllowed: Boolean,
-    smokingAllowed: Boolean,
-    cctvAvailable: Boolean
-  });
+const infoForGuestsSchema = new mongoose.Schema({
+  petsAllowed: Boolean,
+  kidsAllowed: Boolean,
+  partiesAllowed: Boolean,
+  smokingAllowed: Boolean,
+  cctvAvailable: Boolean
+});
   
   const listingsSchema = new mongoose.Schema({
     user: {
@@ -73,11 +85,12 @@ const propertyLocationSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
-    maximumGuestNumber: {
-        type: Number
-    },
+    maximumGuestNumber: numberOfGuestsSchema,
+
     propertyLocation: propertyLocationSchema,
+
     description: String,
+
     bedroomPictures: {
       type: [String],
       required: true
@@ -103,26 +116,38 @@ const propertyLocationSchema = new mongoose.Schema({
       required: true
     },
     availableAmenities: [String],
+
     funPlacesNearby: [String],
+
     arrivalDepartureDetails: arrivalDepartureDetailsSchema,
+
     minimumDays: Number,
+
     infoForGuests: infoForGuestsSchema,
+
     guestMeansOfId: {
       type: String,
       enum: ['confirmation-mail/sms', 'government-id']
     },
+
     chargeType: {
       type: String,
       enum: ['daily', 'weekly']
     },
+
     chargeCurrency: String,
+
     acceptOtherCurrency: Boolean,
+
     pricePerGuest: Number,
+
     price: {
       type: Number,
       required: true
     },
+
     discount: Boolean,
+
     cancellationOption: {
       type: String,
       enum: ['flexible', 'moderate', 'firm', 'strict']
