@@ -38,47 +38,67 @@ const getAllListings = asyncHandler(async (req, res) => {
 });
 
 const searchListings = asyncHandler(async (req, res) => {
-  console.log("Searching for listings".blue)
-  const { propertyName, checkIn, checkOut, numberOfGuests } = req.query;
-  console.log(`Query: ${checkIn}, ${checkOut}`)
+  console.log("Searching for listings".blue);
+
+  const { city, checkIn, checkOut, numberOfGuests } = req.body;
+  console.log(`Search Parameters: City - ${city}, CheckIn - ${JSON.stringify(checkIn)}, CheckOut - ${JSON.stringify(checkOut)}, Guests - ${JSON.stringify(numberOfGuests)}`);
 
   let filter = {};
 
-  if (propertyName) {
-      filter.propertyName = { $regex: propertyName, $options: 'i' };
+  // Filter by City
+  if (city) {
+      filter.city = { $regex: city, $options: 'i' };
   }
 
-  if (checkIn && checkOut) {
-      const parsedCheckIn = JSON.parse(checkIn);
-      const parsedCheckOut = JSON.parse(checkOut);
+  // Fetch listings based on city
+  let listings = await Listing.find(filter);
 
-      filter['arrivalDepartureDetails.checkIn.date'] = parsedCheckIn.date;
-      filter['arrivalDepartureDetails.checkIn.month'] = parsedCheckIn.month;
-      filter['arrivalDepartureDetails.checkIn.year'] = parsedCheckIn.year;
+  // Filter listings by availability and guest requirements
+  listings = listings.filter(listing => {
+      if (!checkIn || !checkOut) return true; // If no checkIn/checkOut dates are provided, consider all listings
 
-      filter['arrivalDepartureDetails.checkOut.date'] = parsedCheckOut.date;
-      filter['arrivalDepartureDetails.checkOut.month'] = parsedCheckOut.month;
-      filter['arrivalDepartureDetails.checkOut.year'] = parsedCheckOut.year;
-  }
+      const { bookedDays, numberOfGuests: listingGuests } = listing;
 
-  if (numberOfGuests) {
-      const parsedGuests = JSON.parse(numberOfGuests);
+      // Convert bookedDays to a set of strings for easy lookup
+      const bookedDaysSet = new Set(bookedDays.map(day => `${day.date}-${day.month}-${day.year}`));
 
-      filter['numberOfGuests.adult'] = { $gte: parsedGuests.adult };
-      filter['numberOfGuests.children'] = { $gte: parsedGuests.children };
-      filter['numberOfGuests.pets'] = { $gte: parsedGuests.pets || 0 };
-  }
+      // Check if any of the dates in the requested range are already booked
+      for (let date = checkIn.date; date <= checkOut.date; date++) {
+          const checkDate = `${date}-${checkIn.month}-${checkIn.year}`;
+          if (bookedDaysSet.has(checkDate)) {
+              return false; // Date is already booked
+          }
+      }
+      
+      // Check if the listing can accommodate the required number of guests
+      if (numberOfGuests) {
+          if (
+              (numberOfGuests.adult > listingGuests.adult) || 
+              (numberOfGuests.children > listingGuests.children) || 
+              (numberOfGuests.pets > listingGuests.pets)
+          ) {
+              return false; // Listing can't accommodate the requested number of guests
+          }
+      }
 
-  const listings = await Listing.find(filter);
-  console.log(`total of ${listings.length} found`.magenta)
+      return true; // No conflicts, the listing is available
+  });
 
+  // Log the total number of listings found
+  console.log(`Total of ${listings.length} listings found`.magenta);
+  
+  // Return the filtered listings
   res.status(200).json({
       success: true,
       totalResults: listings.length,
-      message: `total of ${listings.length} found`,
+      message: `Total of ${listings.length} listings found`,
       data: listings
   });
 });
+
+
+
+
 
 const createListing = asyncHandler(async (req, res) => {
   console.log("Creating a new listing".blue)
@@ -92,6 +112,7 @@ const createListing = asyncHandler(async (req, res) => {
     const formattedData = {
       user: req.body.user,
       propertyName: req.body.propertyName,
+      city: req.body.city,
       propertyType: req.body.propertyType,
       status: req.body.status,
       bedroomTotal: parseInt(req.body.bedroomTotal, 10),

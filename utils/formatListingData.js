@@ -2,6 +2,7 @@ export const formatListingData = (data) => {
     console.log("Formatting listings".blue)
     return {
       user: data.user,
+      city: data.city,
       propertyName: data.propertyName,
       propertyType: data.propertyType,
       status: data.status,

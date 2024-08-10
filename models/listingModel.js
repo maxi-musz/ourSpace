@@ -89,6 +89,10 @@ const infoForGuestsSchema = new mongoose.Schema({
 
     propertyLocation: propertyLocationSchema,
 
+    city: {
+      type: String,
+    },
+
     description: String,
 
     bedroomPictures: {
@@ -118,6 +122,11 @@ const infoForGuestsSchema = new mongoose.Schema({
     availableAmenities: [String],
 
     funPlacesNearby: [String],
+
+    bookedDays: {
+      type: [dateSchema],  // Array of dateSchema to store booked days
+      default: []
+    },
 
     arrivalDepartureDetails: arrivalDepartureDetailsSchema,
 

@@ -24,7 +24,7 @@ router
 
 router
 .route("/search")
-.get(searchListings)
+.post(searchListings)
 
 router
 .route("/filter")
