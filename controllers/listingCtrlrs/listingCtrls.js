@@ -41,7 +41,10 @@ const searchListings = asyncHandler(async (req, res) => {
   console.log("Searching for listings".blue);
 
   const { city, propertyName, propertyId, checkIn, checkOut, numberOfGuests } = req.body;
-  console.log(`Search Parameters: City - ${city}, CheckIn - ${JSON.stringify(checkIn)}, CheckOut - ${JSON.stringify(checkOut)}, Guests - ${JSON.stringify(numberOfGuests)}`);
+
+  console.log(`Number of Guests: ${JSON.stringify(numberOfGuests)}`);
+
+  const guests = numberOfGuests || { adult: 0, children: 0, pets: 0 };
 
   let filter = {};
 
@@ -63,7 +66,7 @@ const searchListings = asyncHandler(async (req, res) => {
   listings = listings.filter(listing => {
       if (!checkIn || !checkOut) return true; // If no checkIn/checkOut dates are provided, consider all listings
 
-      const { bookedDays, numberOfGuests: listingGuests } = listing;
+      const { bookedDays, maximumGuestNumber: listingGuests } = listing;
 
       // Convert bookedDays to a set of strings for easy lookup
       const bookedDaysSet = new Set(bookedDays.map(day => `${day.date}-${day.month}-${day.year}`));
@@ -78,13 +81,15 @@ const searchListings = asyncHandler(async (req, res) => {
       
       // Check if the listing can accommodate the required number of guests
       if (numberOfGuests) {
-          if (
-              (numberOfGuests.adult > listingGuests.adult) || 
-              (numberOfGuests.children > listingGuests.children) || 
-              (numberOfGuests.pets > listingGuests.pets)
-          ) {
-              return false; // Listing can't accommodate the requested number of guests
-          }
+        console.log("Number of guests: ",numberOfGuests)
+        if (
+          (guests.adult > listingGuests.adult) ||
+          (guests.children > listingGuests.children) ||
+          (guests.pets > listingGuests.pets)
+        ) {
+          return false; // Listing can't accommodate the requested number of guests
+        }
+    
       }
 
       return true; // No conflicts, the listing is available

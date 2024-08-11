@@ -1,3 +1,4 @@
+import cron from "node-cron"
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -9,6 +10,7 @@ import waitlistRoutes from "./routes/waitlistRoutes.js"
 import authRoutes from "./routes/userRoutes/authRoutes.js"
 import adminUsers from "./routes/adminRoutes/adminUser.js"
 import listingsRoute from "./routes/listingsRoutes/listingsRoute.js"
+import { getWaitlists } from "./controllers/waitlistCtrl.js";
 
 dotenv.config();
 
@@ -21,7 +23,7 @@ const corsOptions = {
     credentials: true,
     optionsSuccessStatus: 200
   };
-  
+   
   app.use(cors(corsOptions));
 
 app.use(express.json());
@@ -35,6 +37,16 @@ app.get("/api/v1", (req, res) => {
 });
 
 db.connectDb()
+
+// Schedule a task to run every 2 minutes
+cron.schedule('* */12 * * *', async () => { //every 2 minutes
+    console.log('Running getWaitlists every 12 Hours'.green);
+    try {
+        await getWaitlists();
+    } catch (error) {
+        console.error('Error executing getWaitlists:', error.message);
+    }
+});
 
 app.use("/api/v1/waitlist", waitlistRoutes)
 app.use("/api/v1/users", authRoutes)

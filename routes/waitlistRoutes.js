@@ -1,9 +1,9 @@
 import express from "express";
-import { protect, admin } from "../middleware/authMiddleware.js";
 
 import { 
     joinwWaitList,
-    getWaitlists
+    getWaitlists,
+    getWaitlistsRouteHandler
 } from "../controllers/waitlistCtrl.js";
 
 const router = express.Router();
@@ -14,7 +14,7 @@ router
 
 router
 .route('/get-waitlists')
-.post(protect, getWaitlists)
+.get(getWaitlistsRouteHandler)
 
 export default router
 

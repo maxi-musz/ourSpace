@@ -74,7 +74,7 @@ const infoForGuestsSchema = new mongoose.Schema({
     },
     bathroomTotal: {
       type: Number,
-      required: true
+      required: true 
     },
     freeCancellation: {
       type: Boolean,

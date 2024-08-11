@@ -89,8 +89,7 @@ const getWaitlists = asyncHandler(async(req, res) => {
 
     console.log("Getting all waitlist users and sending to Ourspace email as doc".blue)
 
-    const {email} = req.body
-    console.log("Email:", email)
+    const email = "bernardmayowaa@gmail.com"
 
     try {
         const waitlist = await Waitlist.find({});
@@ -112,8 +111,8 @@ const getWaitlists = asyncHandler(async(req, res) => {
         // Send the CSV file via email
         await sendEmail(
         email, // Replace with the recipient email address
-        'Waitlist CSV', // Email subject
-        'Please find the attached waitlist CSV file.', // Email body text
+        `Waitlist-CSV -${totalWaitlist}`, // Email subject
+        'Please find attached the waitlist CSV file generated every 12 hours.', // Email body text
         [
             {
                 filename: 'waitlist.csv',
@@ -124,20 +123,30 @@ const getWaitlists = asyncHandler(async(req, res) => {
     );
 
         console.log(`Waitlist data sent to ${email}`.magenta)
-        res.status(200).json({
+        return {
             success: true,
             total: totalWaitlist,
-            message: `Waitlist csv data successfully sent to ${email}`,
-            data: waitlist
-        });
+            message: `Waitlist csv data successfully sent to ${email}`
+        };
     } catch (error) {
         console.log('Error', error.message)
         res.status(500).json({ message: error.message });
     }
 })
 
+// Express route handler
+const getWaitlistsRouteHandler = asyncHandler(async (req, res) => {
+    try {
+        const result = await getWaitlists();
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 export {
     joinwWaitList,
-    getWaitlists
+    getWaitlists,
+    getWaitlistsRouteHandler
 }
 
