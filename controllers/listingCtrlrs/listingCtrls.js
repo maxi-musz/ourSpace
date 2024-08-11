@@ -314,7 +314,7 @@ const filterListings = asyncHandler(async (req, res) => {
         status: 'success',
         message: `Found ${totalListings} listings matching your filters`,
         totalResults: listings.length,
-        listings
+        data: listings
     });
 });
   
