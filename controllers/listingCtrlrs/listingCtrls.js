@@ -156,11 +156,11 @@ const createListing = asyncHandler(async (req, res) => {
       },
       minimumDays: parseInt(req.body.minimumDays, 10),
       infoForGuests: {
-        petsAllowed: req.body.infoForGuests?.petsAllowed === 'true' || false,
-        kidsAllowed: req.body.infoForGuests?.kidsAllowed === 'true' || false,
-        partiesAllowed: req.body.infoForGuests?.partiesAllowed === 'true' || false,
-        smokingAllowed: req.body.infoForGuests?.smokingAllowed === 'true' || false,
-        cctvAvailable: req.body.infoForGuests?.cctvAvailable === 'true' || false
+        petsAllowed: req.body['infoForGuests.petsAllowed'],
+        kidsAllowed: req.body['infoForGuests.kidsAllowed'],
+        partiesAllowed: req.body['infoForGuests.partiesAllowed'],
+        smokingAllowed: req.body['infoForGuests.smokingAllowed'],
+        cctvAvailable: req.body['infoForGuests.cctvAvailable']
       },
       guestMeansOfId: req.body.guestMeansOfId,
       chargeType: req.body.chargeType,
@@ -221,15 +221,17 @@ const createListing = asyncHandler(async (req, res) => {
       otherPictures
     });
 
+    console.log("New Listing successfully created".magenta)
     res.status(201).json({
       success: true,
+      message: "You've successfully created a new listing",
       data: newListing
     });
   } catch (error) {
     console.error('Error creating property listing:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',error
     });
   }
 });
@@ -239,6 +241,7 @@ const filterListings = asyncHandler(async (req, res) => {
     console.log("Filtering listings based on user query...".blue);
 
     const {
+      propertyName,
         propertyType,
         status,
         bedroomTotal,
@@ -257,6 +260,9 @@ const filterListings = asyncHandler(async (req, res) => {
 
     if (propertyType) {
         filter.propertyType = { $in: propertyType.split(',') };
+    }
+    if (propertyName) {
+        filter.propertyName = { $in: propertyName.split(',') };
     }
 
     if (status) {
