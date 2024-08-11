@@ -40,7 +40,9 @@ const getAllListings = asyncHandler(async (req, res) => {
 const searchListings = asyncHandler(async (req, res) => {
   console.log("Searching for listings".blue);
 
-  const { city, propertyName, propertyId, checkIn, checkOut, numberOfGuests } = req.body;
+  const { destination, propertyName, propertyId, checkIn, checkOut, numberOfGuests } = req.body;
+
+  const state = destination
 
   console.log(`Number of Guests: ${JSON.stringify(numberOfGuests)}`);
 
@@ -48,9 +50,9 @@ const searchListings = asyncHandler(async (req, res) => {
 
   let filter = {};
 
-  // Filter by City, PropertyName, or PropertyId
-  if (city) {
-    filter.city = { $regex: city, $options: 'i' };
+  // Filter by state, PropertyName, or PropertyId
+  if (state) {
+    filter.state = { $regex: state, $options: 'i' };
   }
   if (propertyName) {
       filter.propertyName = { $regex: propertyName, $options: 'i' };
@@ -59,7 +61,7 @@ const searchListings = asyncHandler(async (req, res) => {
       filter._id = propertyId; // Assuming propertyId is the unique identifier (_id) in your database
   }
 
-  // Fetch listings based on city
+  // Fetch listings based on state
   let listings = await Listing.find(filter);
 
   // Filter listings by availability and guest requirements
