@@ -241,7 +241,7 @@ const filterListings = asyncHandler(async (req, res) => {
     console.log("Filtering listings based on user query...".blue);
 
     const {
-      propertyName,
+        destination,
         propertyType,
         status,
         bedroomTotal,
@@ -253,7 +253,8 @@ const filterListings = asyncHandler(async (req, res) => {
         funPlacesNearby
     } = req.query;
 
-    console.log("Request", amenities)
+    const state = destination
+    console.log(state)
 
     // Create a filter object based on the query parameters
     let filter = {};
@@ -261,8 +262,8 @@ const filterListings = asyncHandler(async (req, res) => {
     if (propertyType) {
         filter.propertyType = { $in: propertyType.split(',') };
     }
-    if (propertyName) {
-        filter.propertyName = { $in: propertyName.split(',') };
+    if (state) {
+        filter.state = { $in: state.split(',') };
     }
 
     if (status) {
