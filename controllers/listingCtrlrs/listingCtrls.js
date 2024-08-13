@@ -40,28 +40,28 @@ const getAllListings = asyncHandler(async (req, res) => {
 const searchListings = asyncHandler(async (req, res) => {
   console.log("Searching for listings".blue);
 
-  const { destination, propertyName, propertyId, checkIn, checkOut, numberOfGuests } = req.body;
-
-  const state = destination
-
-  console.log(`Number of Guests: ${JSON.stringify(numberOfGuests)}`);
+  const { searchQuery, propertyId, checkIn, checkOut, numberOfGuests } = req.body;
+  console.log(`Search Query: ${searchQuery}, Number of Guests: ${JSON.stringify(numberOfGuests)}`);
 
   const guests = numberOfGuests || { adult: 0, children: 0, pets: 0 };
 
   let filter = {};
 
-  // Filter by state, PropertyName, or PropertyId
-  if (state) {
-    filter.state = { $regex: state, $options: 'i' };
+  // Filter by searchQuery which can be either state, propertyName, or city
+  if (searchQuery) {
+      filter.$or = [
+          { state: { $regex: searchQuery, $options: 'i' } },
+          { propertyName: { $regex: searchQuery, $options: 'i' } },
+          { city: { $regex: searchQuery, $options: 'i' } }
+      ];
   }
-  if (propertyName) {
-      filter.propertyName = { $regex: propertyName, $options: 'i' };
-  }
+
+  // If propertyId is provided, use it to filter directly
   if (propertyId) {
       filter._id = propertyId; // Assuming propertyId is the unique identifier (_id) in your database
   }
 
-  // Fetch listings based on state
+  // Fetch listings based on the filter
   let listings = await Listing.find(filter);
 
   // Filter listings by availability and guest requirements
@@ -80,18 +80,16 @@ const searchListings = asyncHandler(async (req, res) => {
               return false; // Date is already booked
           }
       }
-      
+
       // Check if the listing can accommodate the required number of guests
       if (numberOfGuests) {
-        console.log("Number of guests: ",numberOfGuests)
-        if (
-          (guests.adult > listingGuests.adult) ||
-          (guests.children > listingGuests.children) ||
-          (guests.pets > listingGuests.pets)
-        ) {
-          return false; // Listing can't accommodate the requested number of guests
-        }
-    
+          if (
+              (guests.adult > listingGuests.adult) ||
+              (guests.children > listingGuests.children) ||
+              (guests.pets > listingGuests.pets)
+          ) {
+              return false; // Listing can't accommodate the requested number of guests
+          }
       }
 
       return true; // No conflicts, the listing is available
@@ -99,7 +97,7 @@ const searchListings = asyncHandler(async (req, res) => {
 
   // Log the total number of listings found
   console.log(`Total of ${listings.length} listings found`.magenta);
-  
+
   // Return the filtered listings
   res.status(200).json({
       success: true,
@@ -108,6 +106,7 @@ const searchListings = asyncHandler(async (req, res) => {
       data: listings
   });
 });
+
 
 const createListing = asyncHandler(async (req, res) => {
   console.log("Creating a new listing".blue)
