@@ -1,62 +1,84 @@
-export const formatListingData = (data) => {
-    console.log("Formatting listings".blue)
+const formatListingData = (req) => {
+    const formatDate = (year, month, day) => {
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    };
+  
     return {
-      user: data.user,
-      city: data.city,
-      propertyName: data.propertyName,
-      propertyType: data.propertyType,
-      status: data.status,
-      bedroomTotal: Number(data.bedroomTotal),
-      livingRoomTotal: Number(data.livingRoomTotal),
-      bedTotal: Number(data.bedTotal),
-      bathroomTotal: Number(data.bathroomTotal),
-      freeCancellation: data.freeCancellation,
-      toiletTotal: Number(data.toiletTotal),
+      user: req.body.user,
+      listedOnOtherPlatform: req.body.listedOnOtherPlatform,
+      propertyName: req.body.propertyName.toLowerCase(),
+      propertyType: req.body.propertyType.toLowerCase(),
+      propertyId: req.body.propertyId,
+      bedroomTotal: parseInt(req.body.bedroomTotal, 10),
+      livingRoomTotal: parseInt(req.body.livingRoomTotal, 10),
+      bedTotal: parseInt(req.body.bedTotal, 10),
+      bathroomTotal: parseInt(req.body.bathroomTotal, 10),
+      status: req.body.status.toLowerCase(),
+      freeCancellation: req.body.freeCancellation === 'true',
+      toiletTotal: parseInt(req.body.toiletTotal, 10),
+      totalGuestsAllowed: parseInt(req.body.totalGuestsAllowed),
       maximumGuestNumber: {
-        adult: Number(data.maximumGuestNumber.adult),
-        children: Number(data.maximumGuestNumber.children),
-        pets: Number(data.maximumGuestNumber.pets),
-        total: Number(data.maximumGuestNumber.total),
+        adult: parseInt(req.body['maximumGuestNumber.adult'], 10),
+        children: parseInt(req.body['maximumGuestNumber.children'], 10),
+        pets: parseInt(req.body['maximumGuestNumber.pets'], 10)
       },
       propertyLocation: {
-        ...data.propertyLocation,
-        apartmentNumber: Number(data.propertyLocation.apartmentNumber),
-        apartmentSize: Number(data.propertyLocation.apartmentSize),
+        address: req.body['propertyLocation.address'].toLowerCase(),
+        city: req.body['propertyLocation.city'].toLowerCase(),
+        state: req.body['propertyLocation.state'].toLowerCase(),
+        apartmentNumber: parseInt(req.body['propertyLocation.apartmentNumber'], 10),
+        apartmentSize: parseInt(req.body['propertyLocation.apartmentSize'], 10)
       },
-      description: data.description,
-      bedroomPictures: data.bedroomPictures,
-      livingRoomPictures: data.livingRoomPictures,
-      bathroomToiletPictures: data.bathroomToiletPictures,
-      kitchenPictures: data.kitchenPictures,
-      facilityPictures: data.facilityPictures,
-      otherPictures: data.otherPictures,
-      availableAmenities: data.availableAmenities,
-      funPlacesNearby: data.funPlacesNearby,
-      arrivalDepartureDetails: {
-        checkIn: {
-          date: Number(data.arrivalDepartureDetails.checkIn.date),
-          month: Number(data.arrivalDepartureDetails.checkIn.month),
-          year: Number(data.arrivalDepartureDetails.checkIn.year),
-        },
-        checkOut: {
-          date: Number(data.arrivalDepartureDetails.checkOut.date),
-          month: Number(data.arrivalDepartureDetails.checkOut.month),
-          year: Number(data.arrivalDepartureDetails.checkOut.year),
-        },
-      },
-      minimumDays: Number(data.minimumDays),
-      infoForGuests: data.infoForGuests,
-      guestMeansOfId: data.guestMeansOfId,
-      chargeType: data.chargeType,
-      chargeCurrency: data.chargeCurrency,
-      acceptOtherCurrency: data.acceptOtherCurrency,
-      pricePerGuest: Number(data.pricePerGuest),
-      price: Number(data.price),
-      discount: data.discount,
-      cancellationOption: data.cancellationOption,
+      description: req.body.description,
+      availableAmenities: Array.isArray(req.body.availableAmenities) 
+          ? req.body.availableAmenities 
+          : req.body.availableAmenities 
+              ? req.body.availableAmenities.split(',') 
+              : [].toLowerCase(),
 
-      
+      acceptOtherCurrency: req.body.acceptOtherCurrency === 'true' || req.body.acceptOtherCurrency === true,
+
+      arrivalDepartureDetails: {
+      checkIn: req.body['arrivalDepartureDetails.checkIn'],  // Expecting YYYY-MM-DD
+      checkOut: req.body['arrivalDepartureDetails.checkOut']  // Expecting YYYY-MM-DD
+    },
+
+      funPlacesNearby: Array.isArray(req.body.funPlacesNearby) 
+          ? req.body.funPlacesNearby 
+          : req.body.funPlacesNearby 
+              ? req.body.funPlacesNearby.split(',') 
+              : [].toLowerCase(),
+      minimumDays: parseInt(req.body.minimumDays, 10),
+      infoForGuests: {
+        petsAllowed: req.body['infoForGuests.petsAllowed'],
+        kidsAllowed: req.body['infoForGuests.kidsAllowed'],
+        partiesAllowed: req.body['infoForGuests.partiesAllowed'],
+        smokingAllowed: req.body['infoForGuests.smokingAllowed'],
+        cctvAvailable: req.body['infoForGuests.cctvAvailable']
+      },
+      guestMeansOfId: req.body.guestMeansOfId,
+      chargeCurrency: req.body.chargeCurrency.toLowerCase(),
+      otherAcceptedCurrencies: Array.isArray(req.body.otherAcceptedCurrencies) 
+          ? req.body.otherAcceptedCurrencies 
+          : req.body.otherAcceptedCurrencies 
+              ? req.body.otherAcceptedCurrencies.split(',') 
+              : [].toLowerCase(),
+      chargePerNight: parseFloat(req.body.chargePerNight),
+      cancellationOption: req.body.cancellationOption,
+      discount: req.body.discount === 'true',
+      pricePerGuest: parseFloat(req.body.pricePerGuest),
+      chargeType: req.body.chargeType, 
+      availability: Array.isArray(req.body.availability) 
+          ? req.body.availability 
+          : req.body.availability 
+              ? req.body.availability.split(',') 
+              : [],                                 // List of YYYY-MM-DD strings
+      bookedDays: Array.isArray(req.body.bookedDays) 
+          ? req.body.bookedDays 
+          : req.body.bookedDays 
+              ? req.body.bookedDays.split(',') 
+              : [],                                // List of YYYY-MM-DD strings
     };
   };
-  console.log("Listings successfully formatted".yellow)
-  
+
+export default formatListingData;

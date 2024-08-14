@@ -28,7 +28,7 @@ router
 
 router
 .route("/filter")
-.get(filterListings)
+.post(filterListings)
 
 
 

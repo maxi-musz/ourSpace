@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import colors from 'colors';
 import cookieParser from "cookie-parser";
+import axios from 'axios';
 import db from './config/db.js';
 
 import waitlistRoutes from "./routes/waitlistRoutes.js"
@@ -38,9 +39,20 @@ app.get("/api/v1", (req, res) => {
 
 db.connectDb()
 
+cron.schedule('*/2 * * * *', async () => {
+    console.log('Calling ourSpace API every 2 minutes'.green);
+    try {
+        const response = await axios.get('http://localhost:3000/api/v1');
+        console.log('Response from ourSpace API:', response.data);
+    } catch (error) {
+        console.error('Error calling ourSpace API:', error.message);
+    }
+});
+
+
 // Schedule a task to run every 2 minutes
-cron.schedule('* */12 * * *', async () => { //every 2 minutes
-    console.log('Running getWaitlists every 12 Hours'.green);
+cron.schedule('0 0 * * *', async () => { 
+    console.log('Running getWaitlists every 24 hours'.green);
     try {
         await getWaitlists();
     } catch (error) {
