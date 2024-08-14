@@ -25,6 +25,8 @@ const formatListingData = (req) => {
       propertyLocation: {
         address: req.body['propertyLocation.address'].toLowerCase(),
         city: req.body['propertyLocation.city'].toLowerCase(),
+        latitude: parseInt(req.body['propertyLocation.latitude']),
+        longitude: parseInt(req.body['propertyLocation.longitude']),
         state: req.body['propertyLocation.state'].toLowerCase(),
         apartmentNumber: parseInt(req.body['propertyLocation.apartmentNumber'], 10),
         apartmentSize: parseInt(req.body['propertyLocation.apartmentSize'], 10)

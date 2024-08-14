@@ -1,17 +1,120 @@
+import opencage from 'opencage-api-client';
 import asyncHandler from "../../middleware/asyncHandler.js";
 import Listing from "../../models/listingModel.js";
 import cloudinaryConfig from "../../uploadUtils/cloudinaryConfig.js";
 import formatListingData from "../../utils/formatListingData.js"
 
+const getCoordinates = async (address) => {
+  try {
+    const response = await opencage.geocode({ q: address, key: process.env.OPENCAGE_API_KEY });
+    if (response.results.length > 0) {
+      const { lat, lng } = response.results[0].geometry;
+      return { latitude: lat, longitude: lng };
+    } else {
+      throw new Error('No results found');
+    }
+  } catch (error) {
+    console.error('Error fetching coordinates:', error.message);
+    throw error;
+  }
+};
 
 const uploadImagesToCloudinary = async (files) => {
-    return Promise.all(files.map(async (file) => {
-      const result = await cloudinaryConfig.uploader.upload(file.path, {
-        folder: 'listings',
-      });
-      return result.secure_url; 
-    }));
+  return Promise.all(files.map(async (file) => {
+    const result = await cloudinaryConfig.uploader.upload(file.path, {
+      folder: 'listings',
+    });
+    return result.secure_url; 
+  }));
 };
+
+const createListing = asyncHandler(async (req, res) => {
+    console.log("Creating a new listing".blue)
+
+    const userId = req.user._id.toString();
+
+    try {
+        console.log('Formatting listings');
+        
+        // Extract and format fields from request body using the utility function
+        const formattedData = formatListingData(req);
+
+        console.log('Formatted data:', formattedData);
+
+        // Get latitude and longitude for the address
+        const { address, city, state } = formattedData.propertyLocation;
+        const fullAddress = `${address}, ${city}, ${state}`;
+        const { latitude, longitude } = await getCoordinates(fullAddress);
+
+        console.log(`Latitdue: ${latitude} \nLongitude: ${longitude}`.yellow)
+
+        // Initialize arrays to store the URLs after uploading
+        let bedroomPictures = [];
+        let livingRoomPictures = [];
+        let bathroomToiletPictures = [];
+        let kitchenPictures = [];
+        let facilityPictures = [];
+        let otherPictures = [];
+
+        // Upload the images to Cloudinary
+        if (req.files.bedroomPictures) {
+            console.log("Uploading bedroom pictures".grey)
+            bedroomPictures = await uploadImagesToCloudinary(req.files.bedroomPictures);
+        }
+        if (req.files.livingRoomPictures) {
+            console.log("Uploading livingroom pictures".yellow)
+            livingRoomPictures = await uploadImagesToCloudinary(req.files.livingRoomPictures);
+        }
+        if (req.files.bathroomToiletPictures) {
+            console.log("Uploading bathroom toilet pictures".blue)
+            bathroomToiletPictures = await uploadImagesToCloudinary(req.files.bathroomToiletPictures);
+        }
+        if (req.files.kitchenPictures) {
+            console.log("Uploading kitchen pictures".green)
+            kitchenPictures = await uploadImagesToCloudinary(req.files.kitchenPictures);
+        }
+        if (req.files.facilityPictures) {
+            console.log("Uploading facility pictures".white)
+            facilityPictures = await uploadImagesToCloudinary(req.files.facilityPictures);
+        }
+        if (req.files.otherPictures) {
+            console.log("Uploading other pictures".grey)
+            otherPictures = await uploadImagesToCloudinary(req.files.otherPictures);
+        }
+        console.log("Pictures uploaded");
+
+        // Proceed with saving the formattedData to the database
+        const newListing = await Listing.create({
+            ...formattedData,
+            user: userId,
+            propertyLocation: {
+              ...formattedData.propertyLocation,
+              latitude,
+              longitude
+            },
+            bedroomPictures,
+            livingRoomPictures,
+            bathroomToiletPictures,
+            kitchenPictures,
+            facilityPictures,
+            otherPictures
+        });
+
+        console.log("New Listing successfully created".magenta)
+        res.status(201).json({
+            success: true,
+            message: "You've successfully created a new listing",
+            data: newListing
+        });
+    } catch (error) {
+        console.error('Error creating property listing:', error);
+        res.status(500).json({
+            success: false,
+            message: `Server error: ${error.message}`,
+            error
+        });
+    }
+});
 
 // @desc    Get all listings
 // @route   GET /api/v1/listings
@@ -182,84 +285,6 @@ const filterListings = asyncHandler(async (req, res) => {
   });
 });
 
-
-
-
-const createListing = asyncHandler(async (req, res) => {
-    console.log("Creating a new listing".blue)
-
-    const userId = req.user._id.toString();
-
-    try {
-        console.log('Formatting listings');
-        
-        // Extract and format fields from request body using the utility function
-        const formattedData = formatListingData(req);
-
-        console.log('Formatted data:', formattedData);
-
-        // Initialize arrays to store the URLs after uploading
-        let bedroomPictures = [];
-        let livingRoomPictures = [];
-        let bathroomToiletPictures = [];
-        let kitchenPictures = [];
-        let facilityPictures = [];
-        let otherPictures = [];
-
-        // Upload the images to Cloudinary
-        if (req.files.bedroomPictures) {
-            console.log("Uploading bedroom pictures".grey)
-            bedroomPictures = await uploadImagesToCloudinary(req.files.bedroomPictures);
-        }
-        if (req.files.livingRoomPictures) {
-            console.log("Uploading livingroom pictures".yellow)
-            livingRoomPictures = await uploadImagesToCloudinary(req.files.livingRoomPictures);
-        }
-        if (req.files.bathroomToiletPictures) {
-            console.log("Uploading bathroom toilet pictures".blue)
-            bathroomToiletPictures = await uploadImagesToCloudinary(req.files.bathroomToiletPictures);
-        }
-        if (req.files.kitchenPictures) {
-            console.log("Uploading kitchen pictures".green)
-            kitchenPictures = await uploadImagesToCloudinary(req.files.kitchenPictures);
-        }
-        if (req.files.facilityPictures) {
-            console.log("Uploading facility pictures".white)
-            facilityPictures = await uploadImagesToCloudinary(req.files.facilityPictures);
-        }
-        if (req.files.otherPictures) {
-            console.log("Uploading other pictures".grey)
-            otherPictures = await uploadImagesToCloudinary(req.files.otherPictures);
-        }
-        console.log("Pictures uploaded");
-
-        // Proceed with saving the formattedData to the database
-        const newListing = await Listing.create({
-            ...formattedData,
-            user: userId,
-            bedroomPictures,
-            livingRoomPictures,
-            bathroomToiletPictures,
-            kitchenPictures,
-            facilityPictures,
-            otherPictures
-        });
-
-        console.log("New Listing successfully created".magenta)
-        res.status(201).json({
-            success: true,
-            message: "You've successfully created a new listing",
-            data: newListing
-        });
-    } catch (error) {
-        console.error('Error creating property listing:', error);
-        res.status(500).json({
-            success: false,
-            message: `Server error: ${error.message}`,
-            error
-        });
-    }
-});
 
 
 

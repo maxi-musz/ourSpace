@@ -13,6 +13,8 @@ const propertyLocationSchema = new mongoose.Schema({
       type: String,
       required: [true, "state is required"]
     },
+    latitude: Number,
+    longitude: Number,
     apartmentNumber: Number,
     apartmentSize: Number
 });
