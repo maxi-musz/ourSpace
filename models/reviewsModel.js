@@ -1,16 +1,9 @@
 import mongoose from "mongoose";
 
-// Schema to store stay period
-const stayPeriodSchema = new mongoose.Schema({
-    day: { type: Number, required: true },
-    month: { type: Number, required: true },
-    year: { type: Number, required: true }
-});
-
 // Review schema
 const reviewSchema = new mongoose.Schema({
     user: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId, 
         ref: 'User',
         required: true
     },
@@ -23,7 +16,7 @@ const reviewSchema = new mongoose.Schema({
         type: Number,
         min: 1,
         max: 5,
-        required: true
+        required: [true, "Only values between 1 - 5 is allowed"]
     },
     title: {
         type: String,
@@ -33,48 +26,56 @@ const reviewSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    stayPeriod: stayPeriodSchema,
+    stayPeriod: {
+        type: String,  // YYYY-MM-DD format
+        required: [true, "only dates in this format YYYY-MM-DD is allowed"],
+        validate: {
+          validator: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v),  // Validate the date format
+          message: props => `${props.value} is not a valid date!`
+        }
+      },
     cleanliness: {
         type: Number,
         min: 1,
         max: 10,
-        required: true
+        required: [true, "Only numbers between 1 - 10 is allowed"]
     },
     accuracy: {
         type: Number,
         min: 1,
         max: 10,
-        required: true
+        required: [true, "Only numbers between 1 - 10 is allowed"]
     },
     value: {
         type: Number,
         min: 1,
         max: 10,
-        required: true
+        required: [true, "Only numbers between 1 - 10 is allowed"]
     },
     service: {
         type: Number,
         min: 1,
         max: 10,
-        required: true
+        required: [true, "Only numbers between 1 - 10 is allowed"]
     },
     facilities: {
         type: Number,
         min: 1,
         max: 10,
-        required: true
+        required: [true, "Only numbers between 1 - 10 is allowed"]
     },
     location: {
         type: Number,
         min: 1,
         max: 10,
-        required: true
+        required: [true, "Only numbers between 1 - 10 is allowed"]
     },
-    images: {
+    reviewImages: {
         type: [String],
     },
     reviewCertification: {
         type: Boolean,
+        default: true,
         required: true
     },
     timestamp: {

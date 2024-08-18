@@ -12,6 +12,7 @@ import authRoutes from "./routes/userRoutes/authRoutes.js"
 import adminUsers from "./routes/adminRoutes/adminUser.js"
 import listingsRoute from "./routes/listingsRoutes/listingsRoute.js"
 import { getWaitlists } from "./controllers/waitlistCtrl.js";
+import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js"
 
 dotenv.config();
 
@@ -25,7 +26,7 @@ const corsOptions = {
     optionsSuccessStatus: 200
   };
    
-  app.use(cors(corsOptions));
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
@@ -64,6 +65,7 @@ app.use("/api/v1/waitlist", waitlistRoutes)
 app.use("/api/v1/users", authRoutes)
 app.use("/api/v1/admin", adminUsers)
 app.use("/api/v1/listing", listingsRoute)
+app.use("/api/v1/reviews", reviewsRoute)
 
 app.listen(port, () => {
     console.log(`Server 2 running on port ${port}`.blue)

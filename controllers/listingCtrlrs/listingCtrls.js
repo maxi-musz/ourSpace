@@ -19,10 +19,10 @@ const getCoordinates = async (address) => {
   }
 };
 
-const uploadImagesToCloudinary = async (files) => {
+const uploadListingImagesToCloudinary = async (files) => {
   return Promise.all(files.map(async (file) => {
     const result = await cloudinaryConfig.uploader.upload(file.path, {
-      folder: 'listings',
+      folder: 'ourSpace/listing-images',
     });
     return result.secure_url; 
   }));
@@ -59,27 +59,27 @@ const createListing = asyncHandler(async (req, res) => {
         // Upload the images to Cloudinary
         if (req.files.bedroomPictures) {
             console.log("Uploading bedroom pictures".grey)
-            bedroomPictures = await uploadImagesToCloudinary(req.files.bedroomPictures);
+            bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures);
         }
         if (req.files.livingRoomPictures) {
             console.log("Uploading livingroom pictures".yellow)
-            livingRoomPictures = await uploadImagesToCloudinary(req.files.livingRoomPictures);
+            livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures);
         }
         if (req.files.bathroomToiletPictures) {
             console.log("Uploading bathroom toilet pictures".blue)
-            bathroomToiletPictures = await uploadImagesToCloudinary(req.files.bathroomToiletPictures);
+            bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures);
         }
         if (req.files.kitchenPictures) {
             console.log("Uploading kitchen pictures".green)
-            kitchenPictures = await uploadImagesToCloudinary(req.files.kitchenPictures);
+            kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures);
         }
         if (req.files.facilityPictures) {
             console.log("Uploading facility pictures".white)
-            facilityPictures = await uploadImagesToCloudinary(req.files.facilityPictures);
+            facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures);
         }
         if (req.files.otherPictures) {
             console.log("Uploading other pictures".grey)
-            otherPictures = await uploadImagesToCloudinary(req.files.otherPictures);
+            otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures);
         }
         console.log("Pictures uploaded");
 
@@ -216,7 +216,9 @@ const filterListings = asyncHandler(async (req, res) => {
     freeCancellation,
     minPrice,
     maxPrice,
-    availableAmenities,
+    propertyAmenities,
+    roomFeatures,
+    outdoorActivities,
     funPlacesNearby
   } = req.body;
 
@@ -262,11 +264,16 @@ const filterListings = asyncHandler(async (req, res) => {
     });
   }
 
-  if (Array.isArray(availableAmenities)) {
-    console.log("Available amenities present".yellow);
-    // Trim any leading/trailing spaces from the amenities
-    const trimmedAmenities = availableAmenities.map(amenity => amenity.trim());
-    filter.availableAmenities = { $all: trimmedAmenities };
+  if (propertyAmenities || Array.isArray(req.body.propertyAmenities) && req.body.propertyAmenities.length) {
+    filter['availableAmenities.propertyAmenities'] = { $all: req.body.propertyAmenities.map(item => item.toLowerCase()) };
+  }
+  
+  if (roomFeatures || Array.isArray(req.body.roomFeatures) && req.body.roomFeatures.length) {
+    filter['availableAmenities.roomFeatures'] = { $all: req.body.roomFeatures.map(item => item.toLowerCase()) };
+  }
+  
+  if (outdoorActivities || Array.isArray(req.body.outdoorActivities) && req.body.outdoorActivities.length) {
+    filter['availableAmenities.outdoorActivities'] = { $all: req.body.outdoorActivities.map(item => item.toLowerCase()) };
   }
 
   if (funPlacesNearby) {

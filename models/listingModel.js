@@ -166,7 +166,11 @@ const infoForGuestsSchema = new mongoose.Schema({
       required: true
     },
 
-    availableAmenities: [String],
+    availableAmenities: {
+      propertyAmenities: [String],
+      roomFeatures: [String],
+      outdoorActivities: [String],
+    },
 
     arrivalDepartureDetails: arrivalDepartureDetailsSchema,
 
@@ -230,8 +234,15 @@ const infoForGuestsSchema = new mongoose.Schema({
       type: [String],
       default: []
     },
-    
-  });
+    totalReviews: {
+      type: Number,
+      default: 0
+  },
+  reviewStats: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ReviewStats'
+  }
+});
   
   const Listing = mongoose.model('Listing', listingsSchema);
   

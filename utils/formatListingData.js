@@ -32,11 +32,23 @@ const formatListingData = (req) => {
         apartmentSize: parseInt(req.body['propertyLocation.apartmentSize'], 10)
       },
       description: req.body.description,
-      availableAmenities: Array.isArray(req.body.availableAmenities) 
-          ? req.body.availableAmenities 
-          : req.body.availableAmenities 
-              ? req.body.availableAmenities.split(',') 
-              : [].toLowerCase(),
+      availableAmenities: {
+        propertyAmenities: Array.isArray(req.body.propertyAmenities)
+          ? req.body.propertyAmenities.map(item => item.trim().toLowerCase())
+          : req.body.propertyAmenities
+          ? req.body.propertyAmenities.split(',').map(item => item.trim().toLowerCase())
+          : [],
+        roomFeatures: Array.isArray(req.body.roomFeatures)
+          ? req.body.roomFeatures.map(item => item.trim().toLowerCase())
+          : req.body.roomFeatures
+          ? req.body.roomFeatures.split(',').map(item => item.trim().toLowerCase())
+          : [],
+        outdoorActivities: Array.isArray(req.body.outdoorActivities)
+          ? req.body.outdoorActivities.map(item => item.trim().toLowerCase())
+          : req.body.outdoorActivities
+          ? req.body.outdoorActivities.split(',').map(item => item.trim().toLowerCase())
+          : [],
+      },
 
       acceptOtherCurrency: req.body.acceptOtherCurrency === 'true' || req.body.acceptOtherCurrency === true,
 
