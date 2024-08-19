@@ -15,7 +15,6 @@ const joinwWaitList = asyncHandler(async(req, res) => {
             name = '',
             email = '',
             spaceLocation = "",
-            location = "",
             type = "",
             phoneNumber = '',
         } = req.body;
@@ -24,7 +23,6 @@ const joinwWaitList = asyncHandler(async(req, res) => {
         name = name.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
         email = email.trim().toLowerCase(); // Trim and normalize email
         spaceLocation = spaceLocation.trim();
-        location = location.trim();
         type = type.trim();
         phoneNumber = phoneNumber.trim();
 
@@ -32,7 +30,6 @@ const joinwWaitList = asyncHandler(async(req, res) => {
         name = validator.escape(name);
         email = validator.escape(email);
         spaceLocation = validator.escape(spaceLocation);
-        location = validator.escape(location);
         type = validator.escape(type);
         phoneNumber = validator.escape(phoneNumber);
 
@@ -62,7 +59,6 @@ const joinwWaitList = asyncHandler(async(req, res) => {
             email,
             phoneNumber,
             spaceLocation,
-            location,
             type
         });
         await waitlistUser.save();
@@ -82,7 +78,6 @@ const joinwWaitList = asyncHandler(async(req, res) => {
             Email: ${newWaitlistUser.email}
             Phone Number: ${newWaitlistUser.phoneNumber}
             Space Location: ${newWaitlistUser.spaceLocation}
-            Location: ${newWaitlistUser.location}
             Type: ${newWaitlistUser.type}` // Email body text
         );
 
@@ -95,7 +90,6 @@ const joinwWaitList = asyncHandler(async(req, res) => {
             Email: ${newWaitlistUser.email}
             Phone Number: ${newWaitlistUser.phoneNumber}
             Space Location: ${newWaitlistUser.spaceLocation}
-            Location: ${newWaitlistUser.location}
             Type: ${newWaitlistUser.type}` // Email body text
         );
 
