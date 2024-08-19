@@ -69,6 +69,36 @@ const joinwWaitList = asyncHandler(async(req, res) => {
 
         const newWaitlistUser = await Waitlist.findOne({ email })
 
+        const ourspaceEmail = process.env.OUR_SPACE_EMAIL
+
+        const waitlist = await Waitlist.find({});
+        const totalWaitlist = waitlist.length
+
+        await sendEmail(
+            ourspaceEmail, // Replace with the recipient email address
+            `Waitlist-New-User joined - Total:${totalWaitlist}`, // Email subject
+            `Find below details of the new user who joined waitlist:
+            Name: ${newWaitlistUser.name}
+            Email: ${newWaitlistUser.email}
+            Phone Number: ${newWaitlistUser.phoneNumber}
+            Space Location: ${newWaitlistUser.spaceLocation}
+            Location: ${newWaitlistUser.location}
+            Type: ${newWaitlistUser.type}` // Email body text
+        );
+
+        // Send mail to user also
+        await sendEmail(
+            email, // Replace with the recipient email address
+            `Our Space waitlist Successful Registration`, // Email subject
+            `Thanks for joining our waitlist, we will be in touch with you shortly, Cheers to making more money:
+            Name: ${newWaitlistUser.name}
+            Email: ${newWaitlistUser.email}
+            Phone Number: ${newWaitlistUser.phoneNumber}
+            Space Location: ${newWaitlistUser.spaceLocation}
+            Location: ${newWaitlistUser.location}
+            Type: ${newWaitlistUser.type}` // Email body text
+        );
+
         console.log("You have successfully joined the waitlist. We will be in touch with you".magenta);
         res.status(201).json({
             success : true,
