@@ -15,7 +15,6 @@ const joinwWaitList = asyncHandler(async(req, res) => {
             name = '',
             email = '',
             spaceLocation = "",
-            type = "",
             phoneNumber = '',
         } = req.body;
 
@@ -23,14 +22,12 @@ const joinwWaitList = asyncHandler(async(req, res) => {
         name = name.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
         email = email.trim().toLowerCase(); // Trim and normalize email
         spaceLocation = spaceLocation.trim();
-        type = type.trim();
         phoneNumber = phoneNumber.trim();
 
         // I sanitized inputs to prevent XSS
         name = validator.escape(name);
         email = validator.escape(email);
         spaceLocation = validator.escape(spaceLocation);
-        type = validator.escape(type);
         phoneNumber = validator.escape(phoneNumber);
 
         // Check for required fields
@@ -59,7 +56,6 @@ const joinwWaitList = asyncHandler(async(req, res) => {
             email,
             phoneNumber,
             spaceLocation,
-            type
         });
         await waitlistUser.save();
 
@@ -70,27 +66,26 @@ const joinwWaitList = asyncHandler(async(req, res) => {
         const waitlist = await Waitlist.find({});
         const totalWaitlist = waitlist.length
 
+        const recipientEmail = `${ourspaceEmail}, ourspacegloballtd@gmail.com, omayowagold@gmail.com`;
         await sendEmail(
-            ourspaceEmail, // Replace with the recipient email address
-            `Waitlist-New-User joined - Total:${totalWaitlist}`, // Email subject
+            recipientEmail,
+            `Waitlist-New-User joined - Total:${totalWaitlist}`,
             `Find below details of the new user who joined waitlist:
             Name: ${newWaitlistUser.name}
             Email: ${newWaitlistUser.email}
             Phone Number: ${newWaitlistUser.phoneNumber}
-            Space Location: ${newWaitlistUser.spaceLocation}
-            Type: ${newWaitlistUser.type}` // Email body text
+            Space Location: ${newWaitlistUser.spaceLocation}`
         );
 
         // Send mail to user also
         await sendEmail(
-            email, // Replace with the recipient email address
-            `Our Space waitlist Successful Registration`, // Email subject
+            email,
+            `Our Space waitlist Successful Registration`,
             `Thanks for joining our waitlist, we will be in touch with you shortly, Cheers to making more money:
             Name: ${newWaitlistUser.name}
             Email: ${newWaitlistUser.email}
             Phone Number: ${newWaitlistUser.phoneNumber}
-            Space Location: ${newWaitlistUser.spaceLocation}
-            Type: ${newWaitlistUser.type}` // Email body text
+            Space Location: ${newWaitlistUser.spaceLocation}`
         );
 
         console.log("You have successfully joined the waitlist. We will be in touch with you".magenta);
@@ -133,8 +128,9 @@ const getWaitlists = asyncHandler(async(req, res) => {
         const csvContent = generateCSV(waitlist);
 
         // Send the CSV file via email
+        const recipientEmail = `${ourspaceEmail}, ourspacegloballtd@gmail.com, omayowagold@gmail.com`;
         await sendEmail(
-        email, // Replace with the recipient email address
+        recipientEmail, 
         `Waitlist-CSV -${totalWaitlist}`, // Email subject
         'Please find attached the waitlist CSV file generated every 12 hours.', // Email body text
         [

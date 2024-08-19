@@ -9,10 +9,7 @@ const generateCSV = (waitlistData) => {
             { id: 'name', title: 'Name' },
             { id: 'email', title: 'Email' },
             { id: 'spaceLocation', title: 'Space Location' },
-            { id: 'location', title: 'Location' },
-            { id: 'type', title: 'Type' },
             { id: 'phoneNumber', title: 'Phone Number' },
-            // Add other fields as necessary
         ]
     });
 
