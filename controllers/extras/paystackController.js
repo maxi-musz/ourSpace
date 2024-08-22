@@ -82,7 +82,7 @@ export const handleWebhook = async (req, res) => {
             // deliverValueToCustomer(transaction);
 
             const ourspaceEmail = process.env.OUR_SPACE_EMAIL
-            const waitlistRegisterNotificationEmail = `${ourspaceEmail}, omayowagold@gmail.com`;
+            const waitlistRegisterNotificationEmail = `${ourspaceEmail}, bernardmayowaa@gmail.com`;
             await sendEmail(
                 waitlistRegisterNotificationEmail,
                 "Ourspace bookings payment",
