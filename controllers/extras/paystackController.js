@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Transaction from '../../models/transactionsModel.js';
+import sendEmail from '../../utils/sendMail.js';
 
 export const initializeTransaction = async (req, res) => {
     console.log("Paystack payment initialised".bgGreen);
@@ -82,7 +83,7 @@ export const handleWebhook = async (req, res) => {
 
             const ourspaceEmail = process.env.OUR_SPACE_EMAIL
             const waitlistRegisterNotificationEmail = `${ourspaceEmail}, omayowagold@gmail.com`;
-            sendEmail(
+            await sendEmail(
                 waitlistRegisterNotificationEmail,
                 "Ourspace bookings payment",
                 `A new payment of ${amount / 100} Naira was made by ${email}.`
