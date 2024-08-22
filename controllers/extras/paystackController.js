@@ -81,7 +81,7 @@ export const handleWebhook = async (req, res) => {
 
             const ourspaceEmail = process.env.OUR_SPACE_EMAIL
             const maximusEmail = process.env.MAXIMUS_EMAIL
-            const waitlistRegisterNotificationEmail = `${ourspaceEmail}, X${maximusEmail}`;
+            const waitlistRegisterNotificationEmail = `${ourspaceEmail}, ${maximusEmail}`;
             await sendEmail(
                 waitlistRegisterNotificationEmail,
                 "Ourspace bookings payment",
