@@ -40,6 +40,8 @@ export const initializeTransaction = async (req, res) => {
 
         console.log(`Transaction amount of: ${amountInKobo} initialised`.america);
 
+        await sendEmail()
+
         res.status(200).json({
             success: true,
             message: `Transaction amount of: ${amountInKobo} initialised`,
@@ -64,7 +66,7 @@ export const handleWebhook = async (req, res) => {
     // I try to verify if the webhook is valid
     if (event.event === 'charge.success') {
         const { reference } = event.data;
-        const { amount, status } = event.data;
+        const { amount, status, email } = event.data.customer;
 
         // I first find the transaction
         const transaction = await Transaction.findOne({ reference });
@@ -77,6 +79,15 @@ export const handleWebhook = async (req, res) => {
 
             // Deliver the value to the customer (e.g., activate booking, provide access, etc.)
             // deliverValueToCustomer(transaction);
+
+            const ourspaceEmail = process.env.OUR_SPACE_EMAIL
+            const waitlistRegisterNotificationEmail = `${ourspaceEmail}, omayowagold@gmail.com`;
+            sendEmail(
+                waitlistRegisterNotificationEmail,
+                "Ourspace bookings payment",
+                `A new payment of ${amount / 100} Naira was made by ${email}.`
+            )
+            console.log("payment confirmed and email sent")
 
             res.status(200).send('Webhook received and processed');
         } else {
