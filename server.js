@@ -13,6 +13,8 @@ import adminUsers from "./routes/adminRoutes/adminUser.js"
 import listingsRoute from "./routes/listingsRoutes/listingsRoute.js"
 import { getWaitlists } from "./controllers/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js"
+// Paystack
+import paystackRoutes from "./routes/extras/paystackRoutes.js"
 
 dotenv.config();
 
@@ -66,6 +68,9 @@ app.use("/api/v1/users", authRoutes)
 app.use("/api/v1/admin", adminUsers)
 app.use("/api/v1/listing", listingsRoute)
 app.use("/api/v1/reviews", reviewsRoute)
+
+// Paystack
+app.use('/api/v1/paystack', paystackRoutes);
 
 app.listen(port, () => {
     console.log(`Server 2 running on port ${port}`.blue)

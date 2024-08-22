@@ -3,6 +3,7 @@ import asyncHandler from "../../middleware/asyncHandler.js";
 import Listing from "../../models/listingModel.js";
 import cloudinaryConfig from "../../uploadUtils/cloudinaryConfig.js";
 import formatListingData from "../../utils/formatListingData.js"
+import Booking from '../../models/bookingsModel.js';
 
 const getCoordinates = async (address) => {
   try {
@@ -39,8 +40,6 @@ const createListing = asyncHandler(async (req, res) => {
         // Extract and format fields from request body using the utility function
         const formattedData = formatListingData(req);
 
-        console.log('Formatted data:', formattedData);
-
         // Get latitude and longitude for the address
         const { address, city, state } = formattedData.propertyLocation;
         const fullAddress = `${address}, ${city}, ${state}`;
@@ -48,7 +47,6 @@ const createListing = asyncHandler(async (req, res) => {
 
         console.log(`Latitdue: ${latitude} \nLongitude: ${longitude}`.yellow)
 
-        // Initialize arrays to store the URLs after uploading
         let bedroomPictures = [];
         let livingRoomPictures = [];
         let bathroomToiletPictures = [];
@@ -59,34 +57,43 @@ const createListing = asyncHandler(async (req, res) => {
         // Upload the images to Cloudinary
         if (req.files.bedroomPictures) {
             console.log("Uploading bedroom pictures".grey)
-            bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures);
+            bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures)
+            console.log("Bedroom pictures uploaded".blue)
+            ;
         }
         if (req.files.livingRoomPictures) {
-            console.log("Uploading livingroom pictures".yellow)
-            livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures);
+            console.log("Uploading livingroom pictures".grey)
+            livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures)
+            console.log("living room pictures uploaded".blue)
+            ;
         }
         if (req.files.bathroomToiletPictures) {
-            console.log("Uploading bathroom toilet pictures".blue)
-            bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures);
+            console.log("Uploading bathroom toilet pictures".grey)
+            bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures)
+            console.log("Bathroom pictures uploaded".blue);
         }
         if (req.files.kitchenPictures) {
-            console.log("Uploading kitchen pictures".green)
-            kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures);
+            console.log("Uploading kitchen pictures".grey)
+            kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures)
+            console.log("Kitchen pictures uploaded".blue)
         }
         if (req.files.facilityPictures) {
-            console.log("Uploading facility pictures".white)
-            facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures);
+            console.log("Uploading facility pictures".grey)
+            facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
+            console.log("Bedroom pictures uploaded".blue)
         }
         if (req.files.otherPictures) {
             console.log("Uploading other pictures".grey)
-            otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures);
+            otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures)
+            console.log("Other pictures uploaded".blue)
         }
-        console.log("Pictures uploaded");
+        console.log("Pictures uploaded".yellow);
 
         // Proceed with saving the formattedData to the database
         const newListing = await Listing.create({
             ...formattedData,
             user: userId,
+            listingStatus: req.body.listingStatus === 'pending' ? 'pending' : 'draft',
             propertyLocation: {
               ...formattedData.propertyLocation,
               latitude,
@@ -116,29 +123,42 @@ const createListing = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Get all listings
-// @route   GET /api/v1/listings
-// @access  Public
-const getAllListings = asyncHandler(async (req, res) => {
-    console.log("Fetching all listings".grey);
 
-    const listings = await Listing.find({});
+const getSingleListing = asyncHandler(async (req, res) => {
+  console.log("Fetching a single listing".blue);
 
-    if (listings.length === 0) {
-        console.log("No listings found".yellow);
-        return res.status(404).json({
-            status: 'fail',
-            message: 'No listings found',
-        });
-    }
+  const { listingId } = req.params;
 
-    console.log(`${listings.length} listings found`.green);
-    res.status(200).json({
-        status: 'success',
-        totalListings: listings.length,
-        data: listings,
-    });
+  try {
+      console.log(`Searching for listing with ID: ${listingId}`.yellow);
+
+      const listing = await Listing.findById(listingId);
+
+      if (!listing) {
+          console.log(`Listing with ID: ${listingId} not found`.red);
+          return res.status(404).json({
+              success: false,
+              message: "Listing not found",
+          });
+      }
+
+      console.log("Listing found".green);
+      
+      res.status(200).json({
+          success: true,
+          message: "Listing retrieved successfully",
+          data: listing,
+      });
+  } catch (error) {
+      console.error('Error fetching listing:', error);
+      res.status(500).json({
+          success: false,
+          message: `Server error: ${error.message}`,
+          error,
+      });
+  }
 });
+
 
 const searchListings = asyncHandler(async (req, res) => {
   console.log("Searching for listings".blue);
@@ -208,7 +228,7 @@ const filterListings = asyncHandler(async (req, res) => {
   console.log("Filtering listings based on user query...".blue);
 
   const {
-    searchResultIds, // List of IDs returned from the search
+    searchResultIds,
     propertyType,
     status,
     bedroomTotal,
@@ -216,9 +236,7 @@ const filterListings = asyncHandler(async (req, res) => {
     freeCancellation,
     minPrice,
     maxPrice,
-    propertyAmenities,
-    roomFeatures,
-    outdoorActivities,
+    availableAmenities, 
     funPlacesNearby
   } = req.body;
 
@@ -264,16 +282,10 @@ const filterListings = asyncHandler(async (req, res) => {
     });
   }
 
-  if (propertyAmenities || Array.isArray(req.body.propertyAmenities) && req.body.propertyAmenities.length) {
-    filter['availableAmenities.propertyAmenities'] = { $all: req.body.propertyAmenities.map(item => item.toLowerCase()) };
-  }
-  
-  if (roomFeatures || Array.isArray(req.body.roomFeatures) && req.body.roomFeatures.length) {
-    filter['availableAmenities.roomFeatures'] = { $all: req.body.roomFeatures.map(item => item.toLowerCase()) };
-  }
-  
-  if (outdoorActivities || Array.isArray(req.body.outdoorActivities) && req.body.outdoorActivities.length) {
-    filter['availableAmenities.outdoorActivities'] = { $all: req.body.outdoorActivities.map(item => item.toLowerCase()) };
+  if (availableAmenities && Array.isArray(availableAmenities) && availableAmenities.length) {
+    listings = listings.filter(listing => 
+      availableAmenities.every(amenity => listing.availableAmenities.allAmenities.includes(amenity.toLowerCase()))
+    );
   }
 
   if (funPlacesNearby) {
@@ -292,14 +304,130 @@ const filterListings = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get user listings
+// @route   GET /api/v1/listings
+// @access  Public
+const getUserListings = asyncHandler(async (req, res) => {
+  const { userId, status } = req.query;
 
+  try {
+      console.log("Fetching user listings".blue);
 
+      const query = { user: userId };
 
+      // In case a status query is provided
+      if (status) {
+          query.status = status;
+      }
 
-  
+      // Find listings based on the query object
+      const listings = await Listing.find(query);
+
+      console.log(`Listings fetched for user: ${userId}`.green);
+
+      res.status(200).json({
+          success: true,
+          total: listings.length,
+          message: 'Listings retrieved successfully',
+          data: listings,
+      });
+  } catch (error) {
+      console.error('Error fetching user listings:', error);
+      res.status(500).json({
+          success: false,
+          message: `Server error: ${error.message}`,
+          error,
+      });
+  }
+});
+
+const getSingleUserListing = asyncHandler(async (req, res) => {
+  console.log("Fetching a single user listing".blue);
+
+  const { listingId } = req.query;
+  const userId = req.user._id.toString();
+
+  try {
+      console.log(`Searching for listing with ID: ${listingId}`.yellow);
+
+      // Fetch the listing from the database using the provided ID
+      const listing = await Listing.findById(listingId);
+
+      if (!listing) {
+          console.log(`Listing with ID: ${listingId} not found`.red);
+          return res.status(404).json({
+              success: false,
+              message: "Listing not found",
+          });
+      }
+
+      // Check if the requesting user is the owner of the listing
+      if (listing.user.toString() !== userId) {
+          console.log(`User ${userId} is not authorized to access listing ${listingId}`.red);
+          return res.status(403).json({
+              success: false,
+              message: "You are not authorized to access this listing",
+          });
+      }
+
+      console.log(`User ${userId} is authorized. Listing found`.green);
+      
+      res.status(200).json({
+          success: true,
+          message: "Listing retrieved successfully",
+          data: listing,
+      });
+  } catch (error) {
+      console.error('Error fetching listing:', error);
+      res.status(500).json({
+          success: false,
+          message: `Server error: ${error.message}`,
+          error,
+      });
+  }
+});
+
+const getBookingHistory = asyncHandler(async (req, res) => {
+  const { listingId } = req.query;
+
+  try {
+      console.log(`Fetching booking history for listing ID: ${listingId}`.blue);
+
+      const bookings = await Booking.find({ listing: listingId })
+          .populate('user', 'name')
+          .sort({ date: -1 });
+
+      console.log(`Booking history retrieved for listing ID: ${listingId}`.green);
+
+      const formattedBookings = bookings.map(booking => ({
+          date: booking.date,
+          description: booking.description,
+          guestName: booking.user.name,
+          nightsSpent: booking.nightsSpent,
+          amountPaid: booking.amountPaid,
+      }));
+
+      res.status(200).json({
+          success: true,
+          message: "Booking history retrieved successfully",
+          total: formattedBookings.length,
+          data: formattedBookings,
+      });
+  } catch (error) {
+      console.error('Error fetching booking history:', error);
+      res.status(500).json({
+          success: false,
+          message: `Server error: ${error.message}`,
+          error,
+      });
+  }
+});
+
 export { 
 createListing,
 searchListings,
 filterListings,
-getAllListings
+getUserListings,
+getSingleUserListing,
+getBookingHistory
 };

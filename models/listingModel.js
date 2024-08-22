@@ -79,6 +79,17 @@ const infoForGuestsSchema = new mongoose.Schema({
       ref: 'User',
       required: true
     },
+    
+    propertyId: {
+      type: String,
+      default: generateListingId(),
+      required: true
+    },
+    listingStatus: { 
+      type: String,
+      enum: ["active", "inactive", "pending", "draft", "archived", "blocked"],
+      default: "active",
+    },
     listedOnOtherPlatform: {
       type: Boolean,
       default: false,
@@ -91,10 +102,6 @@ const infoForGuestsSchema = new mongoose.Schema({
     propertyType: { 
       type: String,
       required: [true, 'Property type is required.']
-    },
-    propertyId: { 
-      type: String,
-      required: [true, 'Property id is required.']
     },
     bedroomTotal: {
       type: Number,
@@ -117,30 +124,12 @@ const infoForGuestsSchema = new mongoose.Schema({
       required: true
     },
 
-    totalGuestsAllowed: {
-      type: Number,
-      required: [true, "maximum allowed guests is required"]
-    },
-
     propertyLocation: propertyLocationSchema,
-
-    status: { 
-      type: String,
-      enum: ["active", "inactive"],
-      default: "active",
-      required: [true, 'Property status is required.']
-    },
-    freeCancellation: {
-      type: Boolean,
-      default: false,
-      required: true
-    },
-    maximumGuestNumber: numberOfGuestsSchema,
 
     description: {
       type: String
     },
-    
+
     bedroomPictures: {
       type: [String],
       required: true
@@ -170,12 +159,11 @@ const infoForGuestsSchema = new mongoose.Schema({
       propertyAmenities: [String],
       roomFeatures: [String],
       outdoorActivities: [String],
+      allAmenities: [String]
     },
 
     arrivalDepartureDetails: arrivalDepartureDetailsSchema,
 
-    funPlacesNearby: [String],
-    
     minimumDays: {
       type: Number,
       default: 1,
@@ -183,10 +171,22 @@ const infoForGuestsSchema = new mongoose.Schema({
     },
     
     infoForGuests: infoForGuestsSchema,
-    
+
     guestMeansOfId: {
+      confirmationMail: {
+        type: Boolean,
+        default: false
+      },
+      idCard: {
+        type: Boolean,
+        default: false
+      }
+    },
+
+    chargeType: {
       type: String,
-      enum: ['confirmation-mail/sms', 'government-id']
+      enum: ['daily', 'weekly'],
+      default: "daily"
     },
 
     chargeCurrency: {
@@ -220,9 +220,9 @@ const infoForGuestsSchema = new mongoose.Schema({
       required: [true, "Cancellation option is required"]
     },
 
-    chargeType: {
-      type: String,
-      enum: ['daily', 'weekly']
+    availability: {
+      type: [String],
+      default: []
     },
 
     bookedDays: {
@@ -230,20 +230,40 @@ const infoForGuestsSchema = new mongoose.Schema({
       default: []
     },
 
-    availability: {
-      type: [String],
-      default: []
-    },
-    totalReviews: {
+    totalGuestsAllowed: {
       type: Number,
-      default: 0
-  },
-  reviewStats: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ReviewStats'
-  }
+      required: [true, "Total allowed guests is required"]
+    },
+    
+    freeCancellation: {
+      type: Boolean,
+      default: false,
+      required: true
+    },
+    maximumGuestNumber: numberOfGuestsSchema,
+
+    funPlacesNearby: [String],
+
+}, {
+  timestamps: true
+});
+
+function generateListingId() {
+  const randomDigits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
+  return `OS${randomDigits}`;
+}
+
+listingsSchema.pre('save', function (next) {
+    const amenities = new Set([
+      ...this.availableAmenities.propertyAmenities,
+      ...this.availableAmenities.roomFeatures,
+      ...this.availableAmenities.outdoorActivities,
+    ]);
+
+    this.availableAmenities.allAmenities = Array.from(amenities);
+    next();
 });
   
-  const Listing = mongoose.model('Listing', listingsSchema);
-  
-  export default Listing;
+const Listing = mongoose.model('Listing', listingsSchema);
+
+export default Listing;

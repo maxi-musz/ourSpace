@@ -66,9 +66,10 @@ const joinwWaitList = asyncHandler(async(req, res) => {
         const waitlist = await Waitlist.find({});
         const totalWaitlist = waitlist.length
 
-        const recipientEmail = `${ourspaceEmail}, ourspacegloballtd@gmail.com, omayowagold@gmail.com`;
+        // send notification mail to our space
+        const waitlistRegisterNotificationEmail = `${ourspaceEmail}, ourspacegloballtd@gmail.com, omayowagold@gmail.com`;
         await sendEmail(
-            recipientEmail,
+            waitlistRegisterNotificationEmail,
             `Waitlist-New-User joined - Total:${totalWaitlist}`,
             `Find below details of the new user who joined waitlist:
             Name: ${newWaitlistUser.name}
