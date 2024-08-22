@@ -41,8 +41,6 @@ export const initializeTransaction = async (req, res) => {
 
         console.log(`Transaction amount of: ${amountInKobo} initialised`.america);
 
-        await sendEmail()
-
         res.status(200).json({
             success: true,
             message: `Transaction amount of: ${amountInKobo} initialised`,
@@ -82,7 +80,8 @@ export const handleWebhook = async (req, res) => {
             // deliverValueToCustomer(transaction);
 
             const ourspaceEmail = process.env.OUR_SPACE_EMAIL
-            const waitlistRegisterNotificationEmail = `${ourspaceEmail}, bernardmayowaa@gmail.com`;
+            const maximusEmail = process.env.MAXIMUS_EMAIL
+            const waitlistRegisterNotificationEmail = `${ourspaceEmail}, X${maximusEmail}`;
             await sendEmail(
                 waitlistRegisterNotificationEmail,
                 "Ourspace bookings payment",
