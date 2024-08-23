@@ -51,8 +51,14 @@ const formatListingData = (req) => {
       },
 
       arrivalDepartureDetails: {
-        checkIn: req.body['arrivalDepartureDetails.checkIn'],  // Expecting YYYY-MM-DD
-        checkOut: req.body['arrivalDepartureDetails.checkOut']  // Expecting YYYY-MM-DD
+        checkInTime: {
+          from: req.body["arrivalDepartureDetails.checkInTime.from"].toLowerCase(),
+          to: req.body["arrivalDepartureDetails.checkInTime.from"].toLowerCase(),
+        }, 
+        checkOutTime: {
+          from: req.body["arrivalDepartureDetails.checkOutTime.from"].toLowerCase(),
+          to: req.body["arrivalDepartureDetails.checkOutTime.to"].toLowerCase(),
+        },  
       },
 
       minimumDays: parseInt(req.body.minimumDays, 10),
@@ -107,6 +113,6 @@ const formatListingData = (req) => {
       //         ? req.body.funPlacesNearby.split(',') 
       //         : [].toLowerCase(),
     };
-  };
+};
 
 export default formatListingData;

@@ -162,7 +162,24 @@ const infoForGuestsSchema = new mongoose.Schema({
       allAmenities: [String]
     },
 
-    arrivalDepartureDetails: arrivalDepartureDetailsSchema,
+    arrivalDepartureDetails: {
+      checkInTime: {
+        from: {
+          type: String,
+        },
+        to: {
+          type: String
+        }
+      },
+      checkOutTime: {
+        from: {
+          type: String,
+        },
+        to: {
+          type: String
+        }
+      }
+    },
 
     minimumDays: {
       type: Number,

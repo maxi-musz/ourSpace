@@ -30,13 +30,12 @@ const uploadListingImagesToCloudinary = async (files) => {
 };
 
 const createListing = asyncHandler(async (req, res) => {
-    console.log("Creating a new listing".blue)
 
     const userId = req.user._id.toString();
 
     try {
         console.log('Formatting listings');
-        
+
         // Extract and format fields from request body using the utility function
         const formattedData = formatListingData(req);
 
@@ -93,7 +92,7 @@ const createListing = asyncHandler(async (req, res) => {
         const newListing = await Listing.create({
             ...formattedData,
             user: userId,
-            listingStatus: req.body.listingStatus === 'pending' ? 'pending' : 'draft',
+            listingStatus: req.body.listingStatus === 'draft' ? 'draft' : 'pending',
             propertyLocation: {
               ...formattedData.propertyLocation,
               latitude,
