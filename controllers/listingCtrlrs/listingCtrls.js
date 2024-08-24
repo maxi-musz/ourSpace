@@ -307,22 +307,14 @@ const filterListings = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/listings
 // @access  Public
 const getUserListings = asyncHandler(async (req, res) => {
-  const { userId, status } = req.query;
-
+  
   try {
       console.log("Fetching user listings".blue);
 
-      const query = { user: userId };
-
-      // In case a status query is provided
-      if (status) {
-          query.status = status;
-      }
-
       // Find listings based on the query object
-      const listings = await Listing.find(query);
+      const listings = await Listing.find({user: req.user._id});
 
-      console.log(`Listings fetched for user: ${userId}`.green);
+      console.log(`Listings fetched`.green);
 
       res.status(200).json({
           success: true,
