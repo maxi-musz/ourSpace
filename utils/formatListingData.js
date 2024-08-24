@@ -6,15 +6,15 @@ const formatListingData = (req) => {
     return {
       user: req.body.user,
       listedOnOtherPlatform: req.body.listedOnOtherPlatform,
-      propertyName: req.body.propertyName?.toLowerCase(),
-      propertyType: req.body.propertyType?.toLowerCase(),
+      propertyName: req.body.propertyName,
+      propertyType: req.body.propertyType,
       propertyId: req.body.propertyId,
       bedroomTotal: parseInt(req.body.bedroomTotal, 10),
       livingRoomTotal: parseInt(req.body.livingRoomTotal, 10),
       bedTotal: parseInt(req.body.bedTotal, 10),
       toiletTotal: parseInt(req.body.toiletTotal, 10),
       bathroomTotal: parseInt(req.body.bathroomTotal, 10),
-      // status: req.body.status?.toLowerCase(),
+      // status: req.body.status,
       freeCancellation: req.body.freeCancellation === 'true',
       totalGuestsAllowed: parseInt(req.body.totalGuestsAllowed),
       // maximumGuestNumber: {
@@ -23,41 +23,41 @@ const formatListingData = (req) => {
       //   pets: parseInt(req.body['maximumGuestNumber.pets'], 10)
       // },
       propertyLocation: {
-        address: req.body['propertyLocation.address']?.toLowerCase(),
-        city: req.body['propertyLocation.city']?.toLowerCase(),
+        address: req.body['propertyLocation.address'],
+        city: req.body['propertyLocation.city'],
         latitude: parseInt(req.body['propertyLocation.latitude']),
         longitude: parseInt(req.body['propertyLocation.longitude']),
-        state: req.body['propertyLocation.state']?.toLowerCase(),
+        state: req.body['propertyLocation.state'],
         apartmentNumber: parseInt(req.body['propertyLocation.apartmentNumber'], 10),
         apartmentSize: parseInt(req.body['propertyLocation.apartmentSize'], 10)
       },
       description: req.body.description,
       availableAmenities: {
         propertyAmenities: Array.isArray(req.body.propertyAmenities)
-          ? req.body.propertyAmenities.map(item => item.trim()?.toLowerCase())
+          ? req.body.propertyAmenities.map(item => item.trim())
           : req.body.propertyAmenities
-          ? req.body.propertyAmenities.split(',').map(item => item.trim()?.toLowerCase())
+          ? req.body.propertyAmenities.split(',').map(item => item.trim())
           : [],
         roomFeatures: Array.isArray(req.body.roomFeatures)
-          ? req.body.roomFeatures.map(item => item.trim()?.toLowerCase())
+          ? req.body.roomFeatures.map(item => item.trim())
           : req.body.roomFeatures
-          ? req.body.roomFeatures.split(',').map(item => item.trim()?.toLowerCase())
+          ? req.body.roomFeatures.split(',').map(item => item.trim())
           : [],
         outdoorActivities: Array.isArray(req.body.outdoorActivities)
-          ? req.body.outdoorActivities.map(item => item.trim()?.toLowerCase())
+          ? req.body.outdoorActivities.map(item => item.trim())
           : req.body.outdoorActivities
-          ? req.body.outdoorActivities.split(',').map(item => item.trim()?.toLowerCase())
+          ? req.body.outdoorActivities.split(',').map(item => item.trim())
           : [],
       },
 
       arrivalDepartureDetails: {
         checkInTime: {
-          from: req.body["arrivalDepartureDetails.checkInTime.from"]?.toLowerCase(),
-          to: req.body["arrivalDepartureDetails.checkInTime.from"]?.toLowerCase(),
+          from: req.body["arrivalDepartureDetails.checkInTime.from"],
+          to: req.body["arrivalDepartureDetails.checkInTime.from"],
         }, 
         checkOutTime: {
-          from: req.body["arrivalDepartureDetails.checkOutTime.from"]?.toLowerCase(),
-          to: req.body["arrivalDepartureDetails.checkOutTime.to"]?.toLowerCase(),
+          from: req.body["arrivalDepartureDetails.checkOutTime.from"],
+          to: req.body["arrivalDepartureDetails.checkOutTime.to"],
         },  
       },
 
@@ -78,7 +78,7 @@ const formatListingData = (req) => {
 
       chargeType: req.body.chargeType, 
       
-      chargeCurrency: req.body.chargeCurrency?.toLowerCase(),
+      chargeCurrency: req.body.chargeCurrency,
 
       acceptOtherCurrency: req.body.acceptOtherCurrency === 'true' || req.body.acceptOtherCurrency === true,
       
@@ -86,7 +86,7 @@ const formatListingData = (req) => {
           ? req.body.otherAcceptedCurrencies 
           : req.body.otherAcceptedCurrencies 
               ? req.body.otherAcceptedCurrencies.split(',') 
-              : []?.toLowerCase(),
+              : [],
 
       chargePerNight: parseFloat(req.body.chargePerNight),
       
@@ -111,7 +111,7 @@ const formatListingData = (req) => {
       //     ? req.body.funPlacesNearby 
       //     : req.body.funPlacesNearby 
       //         ? req.body.funPlacesNearby.split(',') 
-      //         : []?.toLowerCase(),
+      //         : [],
     };
 };
 
