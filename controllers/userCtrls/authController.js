@@ -74,7 +74,7 @@ const registerUser = asyncHandler(async (req, res) => {
         // Trim input fields
         firstName = firstName.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
         lastName = lastName.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
-        email = email.trim().toLowerCase(); // Trim and normalize email
+        email = email.trim()?.toLowerCase(); // Trim and normalize email
         password = password.trim();
         phoneNumber = phoneNumber.trim();
 

@@ -283,7 +283,7 @@ const filterListings = asyncHandler(async (req, res) => {
 
   if (availableAmenities && Array.isArray(availableAmenities) && availableAmenities.length) {
     listings = listings.filter(listing => 
-      availableAmenities.every(amenity => listing.availableAmenities.allAmenities.includes(amenity.toLowerCase()))
+      availableAmenities.every(amenity => listing.availableAmenities.allAmenities.includes(amenity?.toLowerCase()))
     );
   }
 

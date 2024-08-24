@@ -20,7 +20,7 @@ const joinwWaitList = asyncHandler(async(req, res) => {
 
         // I Trim input fields
         name = name.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
-        email = email.trim().toLowerCase(); // Trim and normalize email
+        email = email.trim()?.toLowerCase(); // Trim and normalize email
         spaceLocation = spaceLocation.trim();
         phoneNumber = phoneNumber.trim();
 
