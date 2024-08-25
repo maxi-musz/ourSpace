@@ -54,16 +54,16 @@ const createListing = asyncHandler(async (req, res) => {
         let otherPictures = [];
 
         // Upload the images to Cloudinary
-        if(!req.files.bedroomPictures && !req.files.livingRoomPictures && !req.files.bathroomToiletPictures && !req.files.kitchenPictures
-          && !req.files.facilityPictures
-          && !req.files.otherPictures
-        ) {
-          console.log("All image files must be supplied".red)
-          return res.status(500).json({
-            success: false,
-            message: `All image files must be supplied`
-        });
-        }
+        // if(!req.files.bedroomPictures && !req.files.livingRoomPictures && !req.files.bathroomToiletPictures && !req.files.kitchenPictures
+        //   && !req.files.facilityPictures
+        //   && !req.files.otherPictures
+        // ) {
+        //   console.log("All image files must be supplied".red)
+        //   return res.status(500).json({
+        //     success: false,
+        //     message: `All image files must be supplied`
+        // });
+        // }
         if (req.files.bedroomPictures) {
             console.log("Uploading bedroom pictures".grey)
             bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures)

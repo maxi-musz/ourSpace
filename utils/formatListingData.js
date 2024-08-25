@@ -52,12 +52,12 @@ const formatListingData = (req) => {
 
       arrivalDepartureDetails: {
         checkIn: {
-          from: req.body["arrivalDepartureDetails.checkInTime.from"],
-          to: req.body["arrivalDepartureDetails.checkInTime.from"],
+          from: req.body["arrivalDepartureDetails.checkIn.from"],
+          to: req.body["arrivalDepartureDetails.checkIn.from"],
         }, 
         checkOut: {
-          from: req.body["arrivalDepartureDetails.checkOutTime.from"],
-          to: req.body["arrivalDepartureDetails.checkOutTime.to"],
+          from: req.body["arrivalDepartureDetails.checkOut.from"],
+          to: req.body["arrivalDepartureDetails.checkOut.to"],
         },  
       },
 

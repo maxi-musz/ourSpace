@@ -73,7 +73,7 @@ const infoForGuestsSchema = new mongoose.Schema({
   cctvAvailable: Boolean
 });
   
-  const listingsSchema = new mongoose.Schema({
+const listingsSchema = new mongoose.Schema({
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
