@@ -163,7 +163,7 @@ const infoForGuestsSchema = new mongoose.Schema({
     },
 
     arrivalDepartureDetails: {
-      checkInTime: {
+      checkIn: {
         from: {
           type: String,
         },
@@ -171,7 +171,7 @@ const infoForGuestsSchema = new mongoose.Schema({
           type: String
         }
       },
-      checkOutTime: {
+      checkOut: {
         from: {
           type: String,
         },

@@ -72,6 +72,14 @@ app.use("/api/v1/reviews", reviewsRoute)
 // Paystack
 app.use('/api/v1/paystack', paystackRoutes);
 
+app.use("*", (req, res, next) => {
+    console.log("Route not found")
+    res.status(404).json({
+        success: false,
+        message: "Route not found"
+    })
+})
+
 app.listen(port, () => {
     console.log(`Server 2 running on port ${port}`.blue)
 })
