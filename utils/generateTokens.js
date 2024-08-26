@@ -13,7 +13,7 @@ const generateTokens = (res, userId) => {
     res.cookie('accessToken', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV !== "development",
-        maxAge: 15 * 60 * 1000, // 15 minutes 
+        maxAge: 24 * 1 * 15 * 60 * 1000, // 1 day 
       });
       
     res.cookie("refreshToken", refreshToken, {

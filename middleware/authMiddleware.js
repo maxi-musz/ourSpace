@@ -33,7 +33,7 @@ const protect = asyncHandler(async (req, res, next) => {
     req.user = user;
     next();
   
-  });
+});
 
 // User must be an admin
 const admin = (req, res, next) => {

@@ -1,11 +1,11 @@
 import express from "express";
 import { protect, admin } from "../../middleware/authMiddleware.js";
-import { userDetails } from "../../controllers/adminCtrls/adminController.js";
+import { getAllListings } from "../../controllers/adminCtrls/listingsAdminC.js";
 
 const router = express.Router()
 
 router
-.route("/get-user")
-.get(protect, userDetails) 
+.route("/all")
+.get(protect, getAllListings) 
 
 export default router
