@@ -25,6 +25,15 @@ const userSchema = new mongoose.Schema({
     profilePic : {
         type: String
     },
+    userType: {
+        type: String,
+        enum: ["space-user", "space-owner"],
+    },
+    agreeToTerms: {
+        type: Boolean,
+        default: false,
+        required: true
+    },
     role : {
         type: String,
         default: "user",
@@ -52,7 +61,7 @@ const userSchema = new mongoose.Schema({
 
 function generateOurSpaceId() {
     const randomDigits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
-    return `OS${randomDigits}`;
+    return `OSU${randomDigits}`;
 }
 
 

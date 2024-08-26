@@ -59,8 +59,8 @@ const refreshToken = asyncHandler(async(req, res) => {
     });
 });
 
-const registerUser = asyncHandler(async (req, res) => {
-    console.log("Registering new user".yellow)
+const spaceUserSignUp = asyncHandler(async (req, res) => {
+    console.log("Registering new space-user".yellow)
     try {
         // Destructure and trim input fields
         let {
@@ -69,6 +69,7 @@ const registerUser = asyncHandler(async (req, res) => {
             email = '',
             password = '',
             phoneNumber = '',
+            agreeToTerms
         } = req.body;
 
         // Trim input fields
@@ -88,21 +89,38 @@ const registerUser = asyncHandler(async (req, res) => {
         // Check for required fields
         if (!firstName || !lastName || !email || !password || !phoneNumber) {
             console.log('All fields are required'.red);
-            return res.status(400).json({ error: 'All fields are required.' });
+            return res.status(400).json({ 
+                success: false,
+                message: "All fields are required"
+             });
+        }
+
+        if(agreeToTerms !== true) {
+            console.log('You must agree to terms and conditions before creating an account'.red);
+            return res.status(400).json({ 
+                success: false,
+                message: "You must agree to terms and conditions before creating an account"
+            });
         }
 
         // Validate email format
         if (!validator.isEmail(email)) {
             console.log('Invalid email format'.red);
-            return res.status(400).json({ error: 'Invalid email format.' });
+            return res.status(400).json({ 
+                success: false,
+                message: "Invalid email format"
+             });
         }
 
         // Check for existing user by email
         
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            console.log("User registration failed, user already exists".red);
-            return res.status(400).json({ error: 'Email already in use.' });
+            console.log("Space-user registration failed, user already exists".red);
+            return res.status(400).json({ 
+                success: false,
+                message: "Space-user registration failed, user already exists"
+             });
         }
 
         // Create and save new user
@@ -112,23 +130,120 @@ const registerUser = asyncHandler(async (req, res) => {
             email,
             phoneNumber,
             password,
+            agreeToTerms,
+            userType: "space-user"
         });
         await user.save();
         db.disconnectDb()
 
-        console.log("User successfully created".magenta);
+        console.log("new space-user successfully created".magenta);
         res.status(201).json({
             data : user,
             success : true,
-            message : "User created Successfully!"
+            message : "You've successfully registered as a new space user!"
         })
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Server error. Please try again later.' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 });
 
-const loginUser = asyncHandler(async (req, res) => {
+const spaceOwnerSignUp = asyncHandler(async (req, res) => {
+    console.log("Registering new space-owner".yellow)
+    try {
+        // Destructure and trim input fields
+        let {
+            firstName = '',
+            lastName = '',
+            email = '',
+            password = '',
+            phoneNumber = '',
+            agreeToTerms
+        } = req.body;
+
+        // Trim input fields
+        firstName = firstName.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
+        lastName = lastName.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
+        email = email.trim()?.toLowerCase(); // Trim and normalize email
+        password = password.trim();
+        phoneNumber = phoneNumber.trim();
+
+        // Sanitize inputs to prevent XSS
+        firstName = validator.escape(firstName);
+        lastName = validator.escape(lastName);
+        email = validator.escape(email);
+        password = validator.escape(password);
+        phoneNumber = validator.escape(phoneNumber);
+
+        // Check for required fields
+        if (!firstName || !lastName || !email || !password || !phoneNumber) {
+            console.log('All fields are required'.red);
+            return res.status(400).json({ 
+                success: false,
+                message: "All fields are required"
+             });
+        }
+
+        if(agreeToTerms !== true) {
+            console.log('You must agree to terms and conditions before creating an account'.red);
+            return res.status(400).json({ 
+                success: false,
+                message: "You must agree to terms and conditions before creating an account"
+            });
+        }
+
+        // Validate email format
+        if (!validator.isEmail(email)) {
+            console.log('Invalid email format'.red);
+            return res.status(400).json({ 
+                success: false,
+                message: "Invalid email format"
+             });
+        }
+
+        // Check for existing user by email
+        
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            console.log("Space-owner registration failed, email already exists".red);
+            return res.status(400).json({ 
+                success: false,
+                message: "Space-owner registration failed, email already exists"
+             });
+        }
+
+        // Create and save new user
+        const user = new User({
+            firstName,
+            lastName,
+            email,
+            phoneNumber,
+            password,
+            agreeToTerms,
+            userType: "space-owner"
+        });
+        await user.save();
+        db.disconnectDb()
+
+        console.log("new space-owner successfully created".magenta);
+        res.status(201).json({
+            data : user,
+            success : true,
+            message : "You've successfully registered as a new space owner!, cheers to making more money"
+        })
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+const spaceOwnerSignIn = asyncHandler(async (req, res) => {
     try {
         console.log("Log in user endpoint...".blue);
 
@@ -177,7 +292,8 @@ const joinWaitlist = asyncHandler(async (req, res) => {
 export {
     authenticateToken,
     refreshToken,
-    registerUser,
-    loginUser,
+    spaceUserSignUp,
+    spaceOwnerSignUp,
+    spaceOwnerSignIn,
     joinWaitlist
 }

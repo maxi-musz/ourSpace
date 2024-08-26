@@ -1,21 +1,31 @@
 import express from "express";
-import { protect, admin } from "../../middleware/authMiddleware.js"
 
 import {
-    loginUser,
+    spaceOwnerSignIn,
     refreshToken,
-    registerUser,
+    spaceUserSignUp,
+    spaceOwnerSignUp,
 } from "../../controllers/userCtrls/authController.js"
 
 const router = express.Router();
 
+// space users
 router
-.route('/')
-.post(registerUser)
+.route('/su-register')
+.post(spaceUserSignUp)
 
 router
-.route('/sign-in')
-.post(loginUser)
+.route('/su-sign-in')
+.post(spaceOwnerSignIn)
+
+// Space Owners
+router
+.route('/so-register')
+.post(spaceOwnerSignUp)
+
+router
+.route('/so-sign-in')
+.post(spaceOwnerSignIn)
 
 router
 .route('/refresh')

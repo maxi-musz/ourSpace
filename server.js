@@ -6,6 +6,7 @@ import colors from 'colors';
 import cookieParser from "cookie-parser";
 import axios from 'axios';
 import db from './config/db.js';
+import morgan from "morgan"
 
 import waitlistRoutes from "./routes/waitlistRoutes.js"
 import authRoutes from "./routes/userRoutes/authRoutes.js"
@@ -20,6 +21,8 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.use(morgan("dev"))
 
 const corsOptions = {
     origin: "*", // Allow access from any origin
@@ -42,18 +45,18 @@ app.get("/api/v1", (req, res) => {
 
 db.connectDb()
 
-cron.schedule('*/2 * * * *', async () => {
-    console.log('Calling ourSpace API every 2 minutes'.green);
-    try {
-        const response = await axios.get('http://localhost:3000/api/v1');
-        console.log('Response from ourSpace API:', response.data);
-    } catch (error) {
-        console.error('Error calling ourSpace API:', error.message);
-    }
-});
+// cron.schedule('*/2 * * * *', async () => {
+//     console.log('Calling ourSpace API every 2 minutes'.green);
+//     try {
+//         const response = await axios.get('http://localhost:3000/api/v1');
+//         console.log('Response from ourSpace API:', response.data);
+//     } catch (error) {
+//         console.error('Error calling ourSpace API:', error.message);
+//     }
+// });
 
 
-// Schedule a task to run every 2 minutes
+// Schedule a task to run every 24hrs
 cron.schedule('0 0 * * *', async () => { 
     console.log('Running getWaitlists every 24 hours'.green);
     try {
