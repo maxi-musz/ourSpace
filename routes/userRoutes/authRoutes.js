@@ -1,10 +1,13 @@
 import express from "express";
 
 import {
-    spaceOwnerSignIn,
+    suLogin,
+    soLogin,
     refreshToken,
     spaceUserSignUp,
     spaceOwnerSignUp,
+    continueWithGoogle,
+    googleCallback,
 } from "../../controllers/userCtrls/authController.js"
 
 const router = express.Router();
@@ -15,8 +18,8 @@ router
 .post(spaceUserSignUp)
 
 router
-.route('/su-sign-in')
-.post(spaceOwnerSignIn)
+.route('/su-login')
+.post(suLogin)
 
 // Space Owners
 router
@@ -24,12 +27,16 @@ router
 .post(spaceOwnerSignUp)
 
 router
-.route('/so-sign-in')
-.post(spaceOwnerSignIn)
+.route('/so-login')
+.post(soLogin)
 
 router
 .route('/refresh')
 .post(refreshToken)
+
+router.get('/google', continueWithGoogle);
+
+router.get('/auth/google/callback', googleCallback);
 
 
 

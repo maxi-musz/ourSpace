@@ -4,6 +4,7 @@ import db from "../../config/db.js"
 import asyncHandler from "../../middleware/asyncHandler.js";
 import validator from "validator";
 import generateTokens from "../../utils/generateTokens.js";
+import passport from "passport";
 
 const authenticateToken = asyncHandler(async(req, res)=> {
 
@@ -27,6 +28,10 @@ const authenticateToken = asyncHandler(async(req, res)=> {
         next();
     });
 })
+
+const joinWaitlist = asyncHandler(async (req, res) => {
+    console.log("Join waitlist endpoint")
+});
 
 const refreshToken = asyncHandler(async(req, res) => {
     console.log("Refreshing token".grey);
@@ -243,16 +248,19 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
     }
 });
 
-const spaceOwnerSignIn = asyncHandler(async (req, res) => {
+const suLogin = asyncHandler(async (req, res) => {
     try {
-        console.log("Log in user endpoint...".blue);
+        console.log("Space user log in endpoint...".blue);
 
         const { email, password } = req.body
 
         // Check for required fields
         if (!email || !password) {
             console.log('Email and password are required'.red);
-            return res.status(400).json({ error: 'Email and password are required.' });
+            return res.status(401).json({ 
+                success: false,
+                message: "Email and password are required"
+            });
         }
 
         // Find user by sanitized and normalized email
@@ -267,26 +275,113 @@ const spaceOwnerSignIn = asyncHandler(async (req, res) => {
             // Generate a JWT token
             const { accessToken, refreshToken } = generateTokens(res, user._id);
 
-            console.log("User successfully logged in".magenta);
+            console.log(`Welcome back ${user.firstName}, you're successfully logged in`.magenta);
             res.status(201).json({
                 accessToken: accessToken,
                 refreshToken: refreshToken,
                 success : true,
-                message : "User logged in Successfully!",
+                message : `Welcome back ${user.firstName}, you're successfully logged in`,
                 data : user,
             })
         } else {
             console.log("Invalid email or password".red);
-            return res.status(401).json({ error: 'Invalid email or password.' });
+            return res.status(401).json({ 
+                success: false,
+                message: "Invalid email or password"
+            });
         }
     } catch (error) {
         console.log(error);
-        res.status(500).json({ message: 'Server error. Please try again later.' });
+        res.status(500).json({ message: `Server error: ${error.message}.` });
     }
 });
 
-const joinWaitlist = asyncHandler(async (req, res) => {
-    console.log("Join waitlist endpoint")
+const soLogin = asyncHandler(async (req, res) => {
+    try {
+        console.log("Space owner log in endpoint...".blue);
+
+        const { email, password } = req.body
+
+        // Check for required fields
+        if (!email || !password) {
+            console.log('Email and password are required'.red);
+            return res.status(401).json({ 
+                success: false,
+                message: "Email and password are required"
+            });
+        }
+
+        // Find user by sanitized and normalized email
+        const user = await User.findOne({ email });
+        console.log("Email:", email);
+
+        // Check if user exists and the password matches
+        if (user && (await user.matchPassword(password))) {
+            const userId = user._id;
+            console.log("UserId:", userId);
+
+            // Generate a JWT token
+            const { accessToken, refreshToken } = generateTokens(res, user._id);
+
+            console.log(`Welcome back ${user.firstName}, you're successfully logged in`.magenta);
+            res.status(201).json({
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+                success : true,
+                message : `Welcome back ${user.firstName}, you're successfully logged in`,
+                data : user,
+            })
+        } else {
+            console.log("Invalid email or password".red);
+            return res.status(401).json({ 
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: `Server error: ${error.message}.` });
+    }
+});
+  
+// Controller to handle Google authentication
+const continueWithGoogle = asyncHandler((req, res, next) => {
+    console.log("Sign in / Register with google authenticated".blue)
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
+  
+  // Controller to handle Google callback and user creation or login
+const googleCallback = asyncHandler((req, res) => {
+    console.log("Entering google callback route".yellow)
+    passport.authenticate('google', { failureRedirect: '/login', session: false }, async (err, user, info) => {
+      if (err || !user) {
+        console.log("Error", err)
+        return res.status(401).json({ 
+            success: false,
+            message: 'Authentication failed'
+         });
+      }
+
+      const userId = user._id;
+  
+      // Generate JWT for the user
+      const {accessToken, refreshToken } = generateTokens(res, userId)
+  
+      // Send the JWT to the frontend
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+      });
+  
+      console.log("User authenticated successfully".america)
+      res.status(200).json({
+        success: true,
+        message: 'User authenticated successfully',
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        data: user
+      });
+    })(req, res);
 });
 
 export {
@@ -294,6 +389,9 @@ export {
     refreshToken,
     spaceUserSignUp,
     spaceOwnerSignUp,
-    spaceOwnerSignIn,
+    soLogin,
+    suLogin,
+    continueWithGoogle,
+    googleCallback,
     joinWaitlist
 }

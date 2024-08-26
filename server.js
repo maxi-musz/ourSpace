@@ -4,9 +4,10 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import colors from 'colors';
 import cookieParser from "cookie-parser";
-import axios from 'axios';
 import db from './config/db.js';
 import morgan from "morgan"
+import session from "express-session"
+import passport from "./utils/passport.js"
 
 import waitlistRoutes from "./routes/waitlistRoutes.js"
 import authRoutes from "./routes/userRoutes/authRoutes.js"
@@ -23,6 +24,9 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(morgan("dev"))
+app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false }));
+app.use(passport.initialize());
+app.use(passport.session());
 
 const corsOptions = {
     origin: "*", // Allow access from any origin

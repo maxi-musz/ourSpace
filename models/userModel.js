@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema({
     },
     agreeToTerms: {
         type: Boolean,
-        default: false,
+        default: true,
         required: true
     },
     role : {
