@@ -2,7 +2,6 @@ import cron from "node-cron";
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import colors from 'colors';
 import cookieParser from "cookie-parser";
 import db from './config/db.js';
 import morgan from "morgan";
@@ -10,6 +9,7 @@ import session from "express-session";
 import passport from "./utils/passport.js";
 import axios from "axios";
 import MongoStore from 'connect-mongo';
+import colors from "colors"
 
 // Import your routes
 import waitlistRoutes from "./routes/waitlistRoutes.js";

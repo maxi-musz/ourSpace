@@ -5,34 +5,37 @@ import sendEmail from "../utils/sendMail.js";
 import generateCSV from "../utils/generateCsv.js";
 
 const joinwWaitList = asyncHandler(async(req, res) => {
-    console.log("Join waitlist endpoint".yellow)
+    console.log("Space owners join waitlist endpoint".yellow)
 
     try {
         
-
         // Destructure and trim input fields
         let {
             name = '',
             email = '',
-            spaceLocation = "",
             phoneNumber = '',
+            type = "",
+            spaceLocation = "",
+            location = "",
         } = req.body;
 
         // I Trim input fields
         name = name.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
         email = email.trim()?.toLowerCase(); // Trim and normalize email
-        spaceLocation = spaceLocation.trim();
         phoneNumber = phoneNumber.trim();
+        spaceLocation = spaceLocation.trim();
+        type = type.trim();
 
         // I sanitized inputs to prevent XSS
         name = validator.escape(name);
         email = validator.escape(email);
-        spaceLocation = validator.escape(spaceLocation);
         phoneNumber = validator.escape(phoneNumber);
+        spaceLocation = validator.escape(spaceLocation);
+        type = validator.escape(type);
 
         // Check for required fields
-        if (!name || !email ||!phoneNumber) {
-            console.log('Name, email and phone number are all required'.red);
+        if (!name || !email ||!phoneNumber ||!type) {
+            console.log('Name, email and phone number and type are all required'.red);
             return res.status(400).json({ error: 'Name, email and phone number are all required.' });
         }
 
@@ -56,6 +59,8 @@ const joinwWaitList = asyncHandler(async(req, res) => {
             email,
             phoneNumber,
             spaceLocation,
+            location,
+            type
         });
         await waitlistUser.save();
 
@@ -63,32 +68,68 @@ const joinwWaitList = asyncHandler(async(req, res) => {
 
         const ourspaceEmail = process.env.OUR_SPACE_EMAIL
 
-        const waitlist = await Waitlist.find({});
-        const totalWaitlist = waitlist.length
+        // All waitlist
+        const totalWaitlist = await Waitlist.find()
+        console.log(`Total waitlist regsitrations: ${totalWaitlist.length}`)
 
-        // send notification mail to our space
+        // space owners
+        const spaceOwners = await Waitlist.find({ type: "space-owner"});
+        const totalSpaceOwners = spaceOwners.length
+        console.log(`Total space owners: ${totalSpaceOwners}`)
+        // Space users
+        const spaceUsers = await Waitlist.find({ type: "space-user"});
+        const totalSpaceUsers = spaceUsers.length
+        console.log(`Total space users: ${totalSpaceUsers}`)
+
         const waitlistRegisterNotificationEmail = `${ourspaceEmail}, ourspacegloballtd@gmail.com, omayowagold@gmail.com`;
-        await sendEmail(
-            waitlistRegisterNotificationEmail,
-            `Waitlist-New-User joined - Total:${totalWaitlist}`,
-            `Find below details of the new user who joined waitlist:
-            Name: ${newWaitlistUser.name}
-            Email: ${newWaitlistUser.email}
-            Phone Number: ${newWaitlistUser.phoneNumber}
-            Space Location: ${newWaitlistUser.spaceLocation}`
-        );
+        // send notification mail to our space
+        if(type === "space-user") {
+            await sendEmail(
+                waitlistRegisterNotificationEmail,
+                `Waitlist-New-Space-user joined-Total:${totalSpaceUsers}`,
+                `Find below details of the new space user who joined waitlist.\nTotal waitlist space users: ${totalSpaceUsers}.\nTotal waitlist registrations: ${totalWaitlist}:
+                Name: ${newWaitlistUser.name}
+                Email: ${newWaitlistUser.email}
+                Phone Number: ${newWaitlistUser.phoneNumber}
+                Location: ${newWaitlistUser.location}`
+            );
+    
+            // Send mail to user also
+            await sendEmail(
+                email,
+                `Our Space waitlist Successful Registration`,
+                `Thanks for joining our waitlist, we will be in touch with you shortly
+                Name: ${newWaitlistUser.name}
+                Email: ${newWaitlistUser.email}
+                Phone Number: ${newWaitlistUser.phoneNumber}
+                Location: ${newWaitlistUser.location}`
+            );
+        }
 
-        // Send mail to user also
-        await sendEmail(
-            email,
-            `Our Space waitlist Successful Registration`,
-            `Thanks for joining our waitlist, we will be in touch with you shortly, Cheers to making more money:
-            Name: ${newWaitlistUser.name}
-            Email: ${newWaitlistUser.email}
-            Phone Number: ${newWaitlistUser.phoneNumber}
-            Space Location: ${newWaitlistUser.spaceLocation}`
-        );
-
+        if(type === "space-owner") {
+            await sendEmail(
+                waitlistRegisterNotificationEmail,
+                `Waitlist-New-Space-owner joined-Total:${totalSpaceOwners}`,
+                `Find below details of the new space owner who joined the waitlist.\n
+                Total waitlist space owner: ${totalSpaceOwners}.\nTotal waitlist subscribers: ${totalWaitlist.length}:
+                Name: ${newWaitlistUser.name}
+                Email: ${newWaitlistUser.email}
+                Phone Number: ${newWaitlistUser.phoneNumber}
+                Space Location: ${newWaitlistUser.spaceLocation}`
+            );
+    
+            // Send mail to user also
+            await sendEmail(
+                email,
+                `Our Space waitlist Successful Registration`,
+                `Thanks for joining our waitlist, we will be in touch with you shortly, Cheers to making more money:
+                Name: ${newWaitlistUser.name}
+                Email: ${newWaitlistUser.email}
+                Phone Number: ${newWaitlistUser.phoneNumber}
+                Space Location: ${newWaitlistUser.spaceLocation}`
+            );
+        }
+        
         console.log("You have successfully joined the waitlist. We will be in touch with you".magenta);
         res.status(201).json({
             success : true,
@@ -128,12 +169,21 @@ const getWaitlists = asyncHandler(async(req, res) => {
         // Generate the CSV content
         const csvContent = generateCSV(waitlist);
 
+        const ourspaceEmail = process.env.OUR_SPACE_EMAIL
+
+        // space owners
+        const spaceOwners = await Waitlist.find({ type: "space-owner"});
+        const totalSpaceOwners = spaceOwners.length
+        // Space users
+        const spaceUsers = await Waitlist.find({ type: "space-user"});
+        const totalSpaceUsers = spaceUsers.length
+
         // Send the CSV file via email
         const recipientEmail = `${ourspaceEmail}, ourspacegloballtd@gmail.com, omayowagold@gmail.com`;
         await sendEmail(
-        recipientEmail, 
+        "omayowagold@gmail.com", 
         `Waitlist-CSV -${totalWaitlist}`, // Email subject
-        'Please find attached the waitlist CSV file generated every 12 hours.', // Email body text
+        `Please find attached the waitlist CSV file generated every 24 hours.\nTotal space users: ${totalSpaceUsers}\nTotal space owners: ${totalSpaceOwners}\nTotal waitlist subscribers: ${totalWaitlist}`, // Email body text
         [
             {
                 filename: 'waitlist.csv',

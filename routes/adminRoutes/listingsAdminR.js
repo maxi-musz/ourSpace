@@ -6,6 +6,6 @@ const router = express.Router()
 
 router
 .route("/all")
-.get(protect, getAllListings) 
+.get(protect, admin, getAllListings) 
 
 export default router

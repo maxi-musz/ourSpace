@@ -4,13 +4,13 @@ import Listing from "../../models/listingModel.js"
 const getAllListings = asyncHandler(async(req, res) => {
     console.log("Getting all listings...".yellow)
     try{
-        const users = await Listing.find()
-        console.log("All users successfully retrieved".america)
+        const listings = await Listing.find()
+        console.log("All listings successfully retrieved".america)
         res.status(200).json({
             success : true,
-            message : "All users successfully retrieved",
-            total: users.length,
-            data : users
+            message : "All listings successfully retrieved",
+            total: listings.length,
+            data : listings
         })
 
     }catch(err){
