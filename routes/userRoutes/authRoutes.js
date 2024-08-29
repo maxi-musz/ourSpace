@@ -8,6 +8,8 @@ import {
     spaceOwnerSignUp,
     continueWithGoogle,
     googleCallback,
+    generateOtp,
+    verifyOtp,
 } from "../../controllers/userCtrls/authController.js"
 
 const router = express.Router();
@@ -29,6 +31,14 @@ router
 router
 .route('/so-login')
 .post(soLogin)
+
+router.
+route('/generate-otp')
+.post(generateOtp);
+
+router.
+route('/verify-otp')
+.post(verifyOtp);
 
 router
 .route('/refresh')

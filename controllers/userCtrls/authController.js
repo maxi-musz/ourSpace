@@ -5,6 +5,8 @@ import asyncHandler from "../../middleware/asyncHandler.js";
 import validator from "validator";
 import generateTokens from "../../utils/generateTokens.js";
 import passport from "passport";
+import OTP from "../../models/otpModel.js";
+import { generateOTP, saveOTPToDatabase, sendOTPByEmail, verifyOTP } from "../../utils/authUtils.js"
 
 const authenticateToken = asyncHandler(async(req, res)=> {
 
@@ -64,8 +66,9 @@ const refreshToken = asyncHandler(async(req, res) => {
     });
 });
 
+//                                                                   SPACE USER
 const spaceUserSignUp = asyncHandler(async (req, res) => {
-    console.log("Registering new space-user".yellow)
+    console.log("Registering new space-user".yellow);
     try {
         // Destructure and trim input fields
         let {
@@ -78,9 +81,9 @@ const spaceUserSignUp = asyncHandler(async (req, res) => {
         } = req.body;
 
         // Trim input fields
-        firstName = firstName.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
-        lastName = lastName.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
-        email = email.trim()?.toLowerCase(); // Trim and normalize email
+        firstName = firstName.replace(/\s+/g, ' ').trim();
+        lastName = lastName.replace(/\s+/g, ' ').trim();
+        email = email.trim()?.toLowerCase();
         password = password.trim();
         phoneNumber = phoneNumber.trim();
 
@@ -97,10 +100,10 @@ const spaceUserSignUp = asyncHandler(async (req, res) => {
             return res.status(400).json({ 
                 success: false,
                 message: "All fields are required"
-             });
+            });
         }
 
-        if(agreeToTerms !== true) {
+        if (agreeToTerms !== true) {
             console.log('You must agree to terms and conditions before creating an account'.red);
             return res.status(400).json({ 
                 success: false,
@@ -114,18 +117,17 @@ const spaceUserSignUp = asyncHandler(async (req, res) => {
             return res.status(400).json({ 
                 success: false,
                 message: "Invalid email format"
-             });
+            });
         }
 
         // Check for existing user by email
-        
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             console.log("Space-user registration failed, user already exists".red);
             return res.status(400).json({ 
                 success: false,
                 message: "Space-user registration failed, user already exists"
-             });
+            });
         }
 
         // Create and save new user
@@ -139,14 +141,46 @@ const spaceUserSignUp = asyncHandler(async (req, res) => {
             userType: "space-user"
         });
         await user.save();
-        db.disconnectDb()
 
-        console.log("new space-user successfully created".magenta);
+        // Find the newly created user by email
+        const newUser = await User.findOne({ email });
+        if (newUser) {
+            const userId = newUser._id;
+
+            // Check if an OTP exists for the user and delete if found
+            const existingOtp = await OTP.findOneAndDelete({ user: userId });
+
+            if (existingOtp) {
+                console.log("Existing OTP found and deleted:".red);
+            }
+
+            // Generate and save a new OTP
+            const { otp, hashedOTP } = await generateOTP();
+            console.log(`OTP ${otp} generated...`.magenta);
+            
+            await saveOTPToDatabase(userId, otp, hashedOTP);
+            await sendOTPByEmail(email, otp);
+            console.log(`OTP successfully sent to ${email}`);
+            
+            return res.json({
+                success: true,
+                message: `Enter the OTP sent to ${email}, code expires in 3 minutes`
+            });
+        }
+
+        console.log("New space-user successfully created".magenta);
         res.status(201).json({
-            data : user,
-            success : true,
-            message : "You've successfully registered as a new space user!"
-        })
+            success: true,
+            message: "You've successfully registered as a new space user!",
+            data: {
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
+                email: newUser.email,
+                phoneNumber: newUser.phoneNumber,
+                userType: newUser.userType,
+                isEmailVerified: newUser.isEmailVerified
+            }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({
@@ -156,8 +190,9 @@ const spaceUserSignUp = asyncHandler(async (req, res) => {
     }
 });
 
+///                                                                  SPACE OWNER
 const spaceOwnerSignUp = asyncHandler(async (req, res) => {
-    console.log("Registering new space-owner".yellow)
+    console.log("Registering new space-owner".yellow);
     try {
         // Destructure and trim input fields
         let {
@@ -170,9 +205,9 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
         } = req.body;
 
         // Trim input fields
-        firstName = firstName.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
-        lastName = lastName.replace(/\s+/g, ' ').trim(); // Normalize whitespace to a single space
-        email = email.trim()?.toLowerCase(); // Trim and normalize email
+        firstName = firstName.replace(/\s+/g, ' ').trim();
+        lastName = lastName.replace(/\s+/g, ' ').trim();
+        email = email.trim()?.toLowerCase();
         password = password.trim();
         phoneNumber = phoneNumber.trim();
 
@@ -189,10 +224,10 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
             return res.status(400).json({ 
                 success: false,
                 message: "All fields are required"
-             });
+            });
         }
 
-        if(agreeToTerms !== true) {
+        if (agreeToTerms !== true) {
             console.log('You must agree to terms and conditions before creating an account'.red);
             return res.status(400).json({ 
                 success: false,
@@ -206,18 +241,17 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
             return res.status(400).json({ 
                 success: false,
                 message: "Invalid email format"
-             });
+            });
         }
 
         // Check for existing user by email
-        
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            console.log("Space-owner registration failed, email already exists".red);
+            console.log("Space-owner registration failed, user already exists".red);
             return res.status(400).json({ 
                 success: false,
-                message: "Space-owner registration failed, email already exists"
-             });
+                message: "Space-owner registration failed, user already exists"
+            });
         }
 
         // Create and save new user
@@ -231,14 +265,46 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
             userType: "space-owner"
         });
         await user.save();
-        db.disconnectDb()
 
-        console.log("new space-owner successfully created".magenta);
+        // Find the newly created user by email
+        const newUser = await User.findOne({ email });
+        if (newUser) {
+            const userId = newUser._id;
+
+            // Check if an OTP exists for the user and delete if found
+            const existingOtp = await OTP.findOneAndDelete({ user: userId });
+
+            if (existingOtp) {
+                console.log("Existing OTP found and deleted:".red);
+            }
+
+            // Generate and save a new OTP
+            const { otp, hashedOTP } = await generateOTP();
+            console.log(`OTP ${otp} generated...`.magenta);
+            
+            await saveOTPToDatabase(userId, otp, hashedOTP);
+            await sendOTPByEmail(email, otp);
+            console.log(`OTP successfully sent to ${email}`);
+            
+            return res.json({
+                success: true,
+                message: `Enter the OTP sent to ${email}, code expires in 3 minutes`
+            });
+        }
+
+        console.log("New space-owner successfully created".magenta);
         res.status(201).json({
-            data : user,
-            success : true,
-            message : "You've successfully registered as a new space owner!, cheers to making more money"
-        })
+            success: true,
+            message: "You've successfully registered as a new space owner!",
+            data: {
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
+                email: newUser.email,
+                phoneNumber: newUser.phoneNumber,
+                userType: newUser.userType,
+                isEmailVerified: newUser.isEmailVerified
+            }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({
@@ -247,6 +313,93 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
         });
     }
 });
+
+const generateOtp = asyncHandler(async (req, res) => {
+
+    try {
+      console.log("......")
+      console.log("Generating otp...".blue)
+      const { email } = req.body;
+  
+
+      const user = await User.findOne({ email });
+      if(user) {
+        const userId = user._id;
+  
+        // Check if an OTP exists for the user
+        const existingOtp = await OTP.findOneAndDelete({ user: userId });
+        if (existingOtp) {
+          console.log("Existing OTP found and deleted:".red);
+        }
+  
+        const { otp, hashedOTP } = await generateOTP();
+          console.log("......")
+          console.log(`Otp ${otp} generated...`.magenta)
+    
+          await saveOTPToDatabase(userId, otp, hashedOTP);
+          await sendOTPByEmail(email, otp);
+          console.log(`Otp succeessfully sent to ${email}`)
+  
+          res.json({
+            message: `Enter the OTP sent to ${email}, code expires in 3 minutes`,
+          });
+      }
+      }catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+      }
+  
+});
+
+const verifyOtp = asyncHandler(async (req, res) => {
+    try {
+        console.log("Verifying OTP".blue);
+  
+        const { email, otp } = req.body;
+  
+        const user = await User.findOne({ email });
+  
+        if (user) {
+            const isOTPValid = await verifyOTP(user._id, otp);
+  
+            if (isOTPValid) {
+                // Set isEmailVerified to true
+                user.isEmailVerified = true;
+                
+                // Save the updated user document
+                await user.save();
+  
+                // Generate JWT tokens for the user
+                const { accessToken, refreshToken } = generateTokens(res, user._id);
+  
+                // Exclude password from the response
+                const userResponse = user.toObject();
+                delete userResponse.password;
+  
+                res.json({
+                    success: true,
+                    message: "OTP verified. You've been successfully logged in.",
+                    accessToken,
+                    refreshToken,
+                    data: userResponse
+                });
+            } else {
+                console.log("Invalid OTP".red);
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid OTP"
+                });
+            }
+        } else {
+            res.status(401);
+            throw new Error("Invalid user");
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 
 const suLogin = asyncHandler(async (req, res) => {
     try {
@@ -389,6 +542,8 @@ export {
     refreshToken,
     spaceUserSignUp,
     spaceOwnerSignUp,
+    generateOtp,
+    verifyOtp,
     soLogin,
     suLogin,
     continueWithGoogle,
