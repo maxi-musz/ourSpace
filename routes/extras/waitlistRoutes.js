@@ -14,7 +14,7 @@ router
 .post(joinwWaitList)
 
 router
-.route('/get-waitlists')
+.route('/send-waitlist-as-csv')
 .get(protect, admin, getWaitlistsRouteHandler)
 
 router

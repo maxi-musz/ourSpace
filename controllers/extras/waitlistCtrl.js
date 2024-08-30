@@ -182,7 +182,7 @@ const getWaitlists = asyncHandler(async(req, res) => {
         // Send the CSV file via email
         const recipientEmail = `${ourspaceEmail}, ourspacegloballtd@gmail.com, omayowagold@gmail.com`;
         await sendEmail(
-        recipientEmail, 
+        "omayowagold@gmail.com", 
         `Waitlist-CSV -${totalWaitlist}`, // Email subject
         `Please find attached the waitlist CSV file generated every 24 hours.\nTotal space users: ${totalSpaceUsers}\nTotal space owners: ${totalSpaceOwners}\nTotal waitlist subscribers: ${totalWaitlist}`, // Email body text
         [
