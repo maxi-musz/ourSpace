@@ -20,12 +20,18 @@ const getCoordinates = async (address) => {
   }
 };
 
-const uploadListingImagesToCloudinary = async (files) => {
-  return Promise.all(files.map(async (file) => {
-    const result = await cloudinaryConfig.uploader.upload(file.path, {
-      folder: 'ourSpace/listing-images',
-    });
-    return result.secure_url; 
+const uploadListingImagesToCloudinary = async (items) => {
+  return Promise.all(items.map(async (item) => {
+    if (typeof item === 'string' && item.startsWith('http')) {
+      // The item is an existing URL, return it as is
+      return item;
+    } else {
+      // The item is a file, upload it to Cloudinary
+      const result = await cloudinaryConfig.uploader.upload(item.path, {
+        folder: 'ourSpace/listing-images',
+      });
+      return result.secure_url; 
+    }
   }));
 };
 
@@ -53,17 +59,6 @@ const createListing = asyncHandler(async (req, res) => {
         let facilityPictures = [];
         let otherPictures = [];
 
-        // Upload the images to Cloudinary
-        // if(!req.files.bedroomPictures && !req.files.livingRoomPictures && !req.files.bathroomToiletPictures && !req.files.kitchenPictures
-        //   && !req.files.facilityPictures
-        //   && !req.files.otherPictures
-        // ) {
-        //   console.log("All image files must be supplied".red)
-        //   return res.status(500).json({
-        //     success: false,
-        //     message: `All image files must be supplied`
-        // });
-        // }
         if (req.files.bedroomPictures) {
             console.log("Uploading bedroom pictures".grey)
             bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures)
@@ -136,15 +131,15 @@ const createListing = asyncHandler(async (req, res) => {
 const getSingleListing = asyncHandler(async (req, res) => {
   console.log("Fetching a single listing".blue);
 
-  const { listingId } = req.params;
+  const { id } = req.params;
 
   try {
-      console.log(`Searching for listing with ID: ${listingId}`.yellow);
+      console.log(`Searching for listing with ID: ${id}`.yellow);
 
-      const listing = await Listing.findById(listingId);
+      const listing = await Listing.findById(id);
 
       if (!listing) {
-          console.log(`Listing with ID: ${listingId} not found`.red);
+          console.log(`Listing with ID: ${id} not found`.red);
           return res.status(404).json({
               success: false,
               message: "Listing not found",
@@ -388,6 +383,93 @@ const getSingleUserListing = asyncHandler(async (req, res) => {
   }
 });
 
+const editListing = asyncHandler(async (req, res) => {
+  const listingId = req.params.id;
+  const userId = req.user._id.toString();
+
+  try {
+      console.log('Editing listing...');
+
+      // Fetch the existing listing
+      const listing = await Listing.findById(listingId);
+
+      if (!listing) {
+          console.log("Listing not found".red);
+          return res.status(404).json({
+              success: false,
+              message: "Listing not found"
+          });
+      }
+
+      // Ensure the user owns the listing
+      if (listing.user.toString() !== userId || !user.isAdmin) {
+          console.log("Unauthorized access attempt".red);
+          return res.status(403).json({
+              success: false,
+              message: "You do not have permission to edit this listing"
+          });
+      }
+
+      // Extract and format fields from request body using the utility function
+      const formattedData = formatListingData(req);
+
+      // If the address is updated, get the new latitude and longitude
+      if (formattedData.propertyLocation) {
+          const { address, city, state } = formattedData.propertyLocation;
+          const fullAddress = `${address}, ${city}, ${state}`;
+          const { latitude, longitude } = await getCoordinates(fullAddress);
+
+          formattedData.propertyLocation.latitude = latitude;
+          formattedData.propertyLocation.longitude = longitude;
+      }
+
+      // Process image updates
+      let updatedImages = {};
+
+      const processImages = async (field) => {
+          if (req.body[field] || req.files[field]) {
+              const existingImages = Array.isArray(req.body[field]) ? req.body[field] : [];
+              const newImages = req.files[field] || [];
+              updatedImages[field] = await uploadListingImagesToCloudinary([...existingImages, ...newImages]);
+          }
+      };
+
+      await processImages('bedroomPictures');
+      await processImages('livingRoomPictures');
+      await processImages('bathroomToiletPictures');
+      await processImages('kitchenPictures');
+      await processImages('facilityPictures');
+      await processImages('otherPictures');
+
+      // Merge the updated fields with the existing listing
+      const updatedListing = await Listing.findByIdAndUpdate(
+          listingId,
+          {
+              ...formattedData,
+              ...updatedImages
+          },
+          { new: true, runValidators: true }
+      );
+
+      const currentListing = await Listing.findById(listingId)
+
+      console.log("Listing successfully updated".magenta);
+      res.status(200).json({
+          success: true,
+          message: "Listing successfully updated",
+          data: currentListing
+      });
+
+  } catch (error) {
+      console.error('Error updating listing:', error);
+      res.status(500).json({
+          success: false,
+          message: `Server error: ${error.message}`,
+          error
+      });
+  }
+});
+
 const getBookingHistory = asyncHandler(async (req, res) => {
   const { listingId } = req.query;
 
@@ -429,6 +511,8 @@ createListing,
 searchListings,
 filterListings,
 getUserListings,
+getSingleListing,
 getSingleUserListing,
+editListing,
 getBookingHistory
 };
