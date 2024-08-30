@@ -39,6 +39,7 @@ const generateOtp = asyncHandler(async (req, res) => {
           console.log(`Otp succeessfully sent to ${email}`)
   
           res.json({
+            success: true,
             message: `Enter the OTP sent to ${email}, code expires in 3 minutes`,
           });
       }       else {
@@ -82,7 +83,10 @@ const verifyOtp = asyncHandler(async (req, res) => {
           });
           console.log("User successfully logged in")
         } else {
-          return res.status(400).json("OTP invalid or expired...");
+          return res.status(400).json({
+            success: false,
+            message: "OTP invalid or expired..."
+          });
         }
       } else {
         res.status(401);
@@ -90,7 +94,10 @@ const verifyOtp = asyncHandler(async (req, res) => {
       }
     } catch (error) {
       console.log(error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ 
+        success: false,
+        message: error.message
+       });
     }
 });
 
