@@ -12,10 +12,10 @@ import MongoStore from 'connect-mongo';
 import colors from "colors"
 
 // Import your routes
-import waitlistRoutes from "./routes/waitlistRoutes.js";
+import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/userRoutes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoutes/listingsRoute.js";
-import { getWaitlists } from "./controllers/waitlistCtrl.js";
+import { getWaitlists } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 

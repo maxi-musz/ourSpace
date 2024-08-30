@@ -10,45 +10,30 @@ import {
     googleCallback,
     generateOtp,
     verifyOtp,
+    sendResetPasswordLink,
+    resetPassword,
 } from "../../controllers/userCtrls/authController.js"
 
 const router = express.Router();
 
 // space users
-router
-.route('/su-register')
-.post(spaceUserSignUp)
-
-router
-.route('/su-login')
-.post(suLogin)
+router.route('/su-register').post(spaceUserSignUp)
+router.route('/su-login').post(suLogin)
 
 // Space Owners
-router
-.route('/so-register')
-.post(spaceOwnerSignUp)
+router.route('/so-register').post(spaceOwnerSignUp)
+router.route('/so-login').post(soLogin)
 
-router
-.route('/so-login')
-.post(soLogin)
+router.route('/generate-otp').post(generateOtp);
+router.route('/verify-otp').post(verifyOtp);
 
-router.
-route('/generate-otp')
-.post(generateOtp);
+router.route('/refresh').post(refreshToken)
 
-router.
-route('/verify-otp')
-.post(verifyOtp);
+router.route('/google').get(continueWithGoogle);
+router.route('/auth/google/callback').get(googleCallback);
 
-router
-.route('/refresh')
-.post(refreshToken)
+router.route('/send-password-reset-link').post(sendResetPasswordLink);
 
-router.get('/google', continueWithGoogle);
-
-router.get('/auth/google/callback', googleCallback);
-
-
-
+router.route("/reset-password").post(resetPassword);
 
 export default router;

@@ -54,7 +54,9 @@ const userSchema = new mongoose.Schema({
     ourSpaceId: {
         type: String,
         default: generateOurSpaceId()
-      }
+    },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date
 },{
     timestamps : true
 });

@@ -1,8 +1,9 @@
 import validator from "validator";
-import asyncHandler from "../middleware/asyncHandler.js";
-import Waitlist from "../models/waitlistModel.js";
-import sendEmail from "../utils/sendMail.js";
-import generateCSV from "../utils/generateCsv.js";
+import asyncHandler from "../../middleware/asyncHandler.js";
+import Waitlist from "../../models/waitlistModel.js";
+import sendEmail from "../../utils/sendMail.js";
+import generateCSV from "../../utils/generateCsv.js";
+import Newsletter from "../../models/newsletterModel.js";
 
 const joinwWaitList = asyncHandler(async(req, res) => {
     console.log("Space owners join waitlist endpoint".yellow)
@@ -215,9 +216,66 @@ const getWaitlistsRouteHandler = asyncHandler(async (req, res) => {
     }
 });
 
+const joinNewsletter = asyncHandler(async (req, res) => {
+    console.log("Newsletter sign-up endpoint...".blue);
+
+    const { email } = req.body;
+
+    // Check for required fields
+    if (!email) {
+        console.log('Email is required'.red);
+        return res.status(400).json({
+            success: false,
+            message: "Email is required"
+        });
+    }
+
+    // Validate email
+    if (!validator.isEmail(email)) {
+        console.log('Invalid email format'.red);
+        return res.status(400).json({
+            success: false,
+            message: "Invalid email format"
+        });
+    }
+
+    try {
+        //Check if the email is already subscribed (if applicable)
+        const existingSubscriber = await Newsletter.findOne({ email });
+        if (existingSubscriber) {
+            console.log('Email is already subscribed'.yellow);
+            return res.status(400).json({
+                success: false,
+                message: "Email is already subscribed"
+            });
+        }
+
+        const subscriber = new Newsletter({
+            email
+        })
+        await subscriber.save()
+
+        console.log('Newsletter sign-up successful'.green);
+        console.log(`Subscribed Email: ${email}`);
+
+        // Respond with success message
+        res.status(200).json({
+            success: true,
+            message: "Thank you for subscribing to our newsletter!"
+        });
+    } catch (error) {
+        console.error("Error during newsletter sign-up", error.message.red);
+        res.status(500).json({
+            success: false,
+            message: `Server error: ${error.message}`
+        });
+    }
+});
+
 export {
     joinwWaitList,
     getWaitlists,
-    getWaitlistsRouteHandler
+    getWaitlistsRouteHandler,
+    joinNewsletter
 }
 
