@@ -15,9 +15,8 @@ const generateOtp = asyncHandler(async (req, res) => {
       if (user && (await user.matchPassword(password))) {
         const userId = user._id;
 
-        console.log(user.role)
 
-        if(user.role !== "admin") {
+        if(!user.isAdmin) {
             console.log("Only admins are allowed to access this route".red)
             return res.json({
                 success: false,
