@@ -20,6 +20,7 @@ import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 
 // Admin Routes
+import waitlistAdminRoute from "./routes/adminRoutes/waitlistAdminRoute.js"
 import authAdminR from "./routes/adminRoutes/authAdminR.js";
 import usersAdminR from "./routes/adminRoutes/usersAdminR.js";
 import listingsAdminR from "./routes/adminRoutes/listingsAdminR.js";
@@ -100,6 +101,7 @@ app.use("/api/v1/listing", listingsRoute);
 app.use("/api/v1/reviews", reviewsRoute);
 
 // Admin routes
+app.use("/api/v1/admin/waitlist", waitlistAdminRoute);
 app.use("/api/v1/admin/auth", authAdminR);
 app.use("/api/v1/admin/users", usersAdminR);
 app.use("/api/v1/admin/listings", listingsAdminR);

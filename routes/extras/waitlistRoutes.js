@@ -5,6 +5,7 @@ import {
     getWaitlistsRouteHandler,
     joinNewsletter
 } from "../../controllers/extras/waitlistCtrl.js";
+import { admin, protect } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router
 
 router
 .route('/get-waitlists')
-.get(getWaitlistsRouteHandler)
+.get(protect, admin, getWaitlistsRouteHandler)
 
 router
 .route('/join-newsletter')
