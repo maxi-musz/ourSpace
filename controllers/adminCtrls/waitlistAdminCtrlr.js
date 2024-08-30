@@ -4,20 +4,20 @@ import Waitlist from "../../models/waitlistModel.js";
 const getAllWaitlistData = asyncHandler(async (req, res) => {
     console.log("Getting all waitlist data...".yellow);
 
-    // Extract userType from query parameters
-    const { userType } = req.query;
+    // Extract type from query parameters
+    const { type } = req.query;
     let filter = {};
 
-    // Apply filter if userType is provided
-    if (userType) {
-        if (["space-user", "space-owner"].includes(userType)) {
-            filter.userType = userType;
-            console.log(`Filtering users by userType: ${userType}`.cyan);
+    // Apply filter if type is provided
+    if (type) {
+        if (["space-user", "space-owner"].includes(type)) {
+            filter.type = type;
+            console.log(`Filtering users by type: ${type}`.cyan);
         } else {
-            console.log(`Invalid userType provided: ${userType}`.red);
+            console.log(`Invalid type provided: ${type}`.red);
             return res.status(400).json({
                 success: false,
-                message: "Invalid userType provided. Must be 'space-owner', 'space-user'"
+                message: "Invalid type provided. Must be 'space-owner', 'space-user'"
             });
         }
     }
