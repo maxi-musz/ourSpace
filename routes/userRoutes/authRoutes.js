@@ -29,7 +29,7 @@ router.route('/verify-otp').post(verifyOtp);
 
 router.route('/refresh').post(refreshToken)
 
-router.route('/google').get(continueWithGoogle);
+router.route('/google').post(continueWithGoogle);
 router.route('/auth/google/callback').get(googleCallback);
 
 router.route('/send-password-reset-link').post(sendResetPasswordLink);
