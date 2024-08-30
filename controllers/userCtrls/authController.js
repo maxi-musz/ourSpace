@@ -498,8 +498,48 @@ const soLogin = asyncHandler(async (req, res) => {
   
 // Controller to handle Google authentication
 const continueWithGoogle = asyncHandler((req, res, next) => {
-    console.log("Sign in / Register with google authenticated".blue)
-    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+    const { idToken } = req.body;
+
+    // Verify the Google ID token
+    client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID // Your Google Client ID
+    }).then(ticket => {
+        const payload = ticket.getPayload(); // Get user info from the token
+
+        // Find or create the user in the database
+        User.findOne({ googleId: payload.sub })
+            .then(user => {
+                if (user) {
+                    // User exists, generate tokens
+                    const { accessToken, refreshToken } = generateTokens(res, user._id);
+                    res.json({
+                        success: true,
+                        accessToken,
+                        refreshToken,
+                        user
+                    });
+                } else {
+                    // User does not exist, create a new user
+                    const newUser = new User({
+                        googleId: payload.sub,
+                        name: payload.name,
+                        email: payload.email
+                    });
+                    newUser.save().then(user => {
+                        const { accessToken, refreshToken } = generateTokens(res, user._id);
+                        res.json({
+                            success: true,
+                            accessToken,
+                            refreshToken,
+                            user
+                        });
+                    });
+                }
+            });
+    }).catch(error => {
+        res.status(400).json({ success: false, message: 'Authentication failed', error });
+    });
 });
   
   // Controller to handle Google callback and user creation or login
@@ -526,13 +566,10 @@ const googleCallback = asyncHandler((req, res) => {
       });
   
       console.log("User authenticated successfully".america)
-      res.status(200).json({
-        success: true,
-        message: 'User authenticated successfully',
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        data: user
-      });
+      
+      const redirectUrl = `https://ourspace-git-dev-ourspace-global.vercel.app/callback?accessToken=${accessToken}&refreshToken=${refreshToken}&user=${encodeURIComponent(JSON.stringify(user))}`;
+      res.redirect(redirectUrl);
+
     })(req, res);
 });
 
