@@ -15,7 +15,7 @@ import colors from "colors"
 import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/userRoutes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoutes/listingsRoute.js";
-import { getWaitlists } from "./controllers/extras/waitlistCtrl.js";
+import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 
@@ -86,11 +86,11 @@ cron.schedule('*/2 * * * *', async () => {
 
 // Schedule a task to run every 24hrs
 cron.schedule('0 0 * * *', async () => {
-    console.log('Running getWaitlists every 24 hours'.green);
+    console.log('Running getWaitlistsAsCsv every 24 hours'.green);
     try {
-        await getWaitlists();
+        await getWaitlistsAsCsv();
     } catch (error) {
-        console.error('Error executing getWaitlists:', error.message);
+        console.error('Error executing getWaitlistsAsCsv:', error.message);
     }
 });
 

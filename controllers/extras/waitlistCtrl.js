@@ -147,7 +147,7 @@ const joinwWaitList = asyncHandler(async(req, res) => {
     }
 })
 
-const getWaitlists = asyncHandler(async(req, res) => {
+const getWaitlistsAsCsv = asyncHandler(async(req, res) => {
 
     console.log("Getting all waitlist users and sending to Ourspace email as doc".blue)
 
@@ -182,7 +182,7 @@ const getWaitlists = asyncHandler(async(req, res) => {
         // Send the CSV file via email
         const recipientEmail = `${ourspaceEmail}, ourspacegloballtd@gmail.com, omayowagold@gmail.com`;
         await sendEmail(
-        "omayowagold@gmail.com", 
+        recipientEmail, 
         `Waitlist-CSV -${totalWaitlist}`, // Email subject
         `Please find attached the waitlist CSV file generated every 24 hours.\nTotal space users: ${totalSpaceUsers}\nTotal space owners: ${totalSpaceOwners}\nTotal waitlist subscribers: ${totalWaitlist}`, // Email body text
         [
@@ -209,7 +209,7 @@ const getWaitlists = asyncHandler(async(req, res) => {
 // Express route handler
 const getWaitlistsRouteHandler = asyncHandler(async (req, res) => {
     try {
-        const result = await getWaitlists();
+        const result = await getWaitlistsAsCsv();
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -274,7 +274,7 @@ const joinNewsletter = asyncHandler(async (req, res) => {
 
 export {
     joinwWaitList,
-    getWaitlists,
+    getWaitlistsAsCsv,
     getWaitlistsRouteHandler,
     joinNewsletter
 }
