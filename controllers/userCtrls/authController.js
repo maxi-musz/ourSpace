@@ -4,14 +4,12 @@ import crypto from 'crypto';
 import bcrypt from "bcryptjs"
 
 import User from "../../models/userModel.js";
-import db from "../../config/db.js"
 import asyncHandler from "../../middleware/asyncHandler.js";
 import validator from "validator";
 import generateTokens from "../../utils/generateTokens.js";
 import OTP from "../../models/otpModel.js";
 import { generateOTP, saveOTPToDatabase, sendOTPByEmail, verifyOTP } from "../../utils/authUtils.js"
 import sendEmail from '../../utils/sendMail.js';
-import { error } from 'console';
 
 const authenticateToken = asyncHandler(async(req, res)=> {
 
@@ -616,9 +614,6 @@ const resetPassword = asyncHandler(async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Password has been reset' });
 });
-
-
-
 
 export {
     authenticateToken,
