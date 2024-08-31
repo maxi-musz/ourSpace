@@ -10,6 +10,7 @@ import generateTokens from "../../utils/generateTokens.js";
 import OTP from "../../models/otpModel.js";
 import { generateOTP, saveOTPToDatabase, sendOTPByEmail, verifyOTP } from "../../utils/authUtils.js"
 import sendEmail from '../../utils/sendMail.js';
+import { passwordResetEmailTemplate } from '../../email_templates/passwordResetEmailTemplate.js';
 
 const authenticateToken = asyncHandler(async(req, res)=> {
 
@@ -600,15 +601,18 @@ const sendResetPasswordLink = asyncHandler(async (req, res) => {
 
     // Send reset email with link
     const resetUrl = `${frontendStagingUrl}/?reset-token=${resetToken}`;
-    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please click on the link below to reset your password:\n\n${resetUrl}`;
+
+    const htmlContent = passwordResetEmailTemplate(email, resetUrl);
 
     try {
+        // Send the email
         await sendEmail(
-            email,
-            "Password reset request",
-            message
+            email,                  // Recipient's email address
+            "Password reset request",  // Subject line
+            htmlContent,            // HTML content for the email body
+            null                    // No attachments, pass null or an empty array
         );
-        console.log(`Password reset Token: ${resetToken}`);
+        console.log(`Password reset Token sent to ${email}`.magenta);
         res.status(200).json({ success: true, message: 'Check your email address for the link to reset your password' });
     } catch (error) {
         user.resetPasswordToken = undefined;

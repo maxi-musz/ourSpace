@@ -5,6 +5,8 @@ import otpGenerator from "otp-generator";
 import OTP from '../models/otpModel.js';
 import { isAfter } from 'date-fns';
 import { OTPExpiredError } from './otpErrors.js';
+import { passwordResetEmailTemplate } from '../email_templates/passwordResetEmailTemplate.js';
+import { otpVerificationCodeTemplate } from '../email_templates/otpVerificationCodeTemplate.js';
 
 const hashFunction = async (data) => {
   const saltRounds = 10; // Salt rounds for bcrypt
@@ -36,7 +38,8 @@ export const saveOTPToDatabase = async (userId,  otp, hashedOTP) => {
   }
 };
 
-export const sendOTPByEmail = async (email, otp) => {
+export const sendOTPByEmail = async (email,otp) => {
+  
   try {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -49,14 +52,17 @@ export const sendOTPByEmail = async (email, otp) => {
       },
     });
 
+    const otpExpiresAt = "3 minutes"
+    const htmlContent = otpVerificationCodeTemplate(email, otp, otpExpiresAt);
+
     const mailOptions = {
       from: {
-        name: "Maximus",
+        name: "Ourspace",
         address: process.env.EMAIL_USER,
       },
       to: email,
       subject: 'Login OTP Confirmation Code',
-      html: `<p>Enter <b>${otp}</b> in the app to verify your email address and complete the authentication</p><p>This code expires in 3 minutes</p>`,
+      html: htmlContent
     };
 
     await transporter.sendMail(mailOptions);
