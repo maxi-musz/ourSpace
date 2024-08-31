@@ -227,6 +227,8 @@ const updateListingStatus = asyncHandler(async (req, res) => {
         }
 
         listing.listingStatus = newListingStatus;
+        listing.status = "listed"
+
 
         await listing.save();
 

@@ -44,6 +44,7 @@
     "passport-google-oauth20": "^2.0.0",
     "pdfkit": "^0.15.0",
     "redis": "^4.7.0",
+    "twilio": "^5.2.3",
     "validator": "^13.12.0"
   }
 }

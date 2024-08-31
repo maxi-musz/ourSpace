@@ -17,9 +17,12 @@ import authRoutes from "./routes/userRoutes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoutes/listingsRoute.js";
 import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
+import userSettingsR from "./routes/settingsRoute/userSettingsR.js"
+
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 
 // Admin Routes
+import adminDashboardR from "./routes/adminRoutes/adminDashboardR.js"
 import waitlistAdminRoute from "./routes/adminRoutes/waitlistAdminRoute.js"
 import authAdminR from "./routes/adminRoutes/authAdminR.js";
 import usersAdminR from "./routes/adminRoutes/usersAdminR.js";
@@ -101,8 +104,10 @@ app.use("/api/v1/waitlist", waitlistRoutes);
 app.use("/api/v1/users", authRoutes);
 app.use("/api/v1/listing", listingsRoute);
 app.use("/api/v1/reviews", reviewsRoute);
+app.use("/api/v1/settings", userSettingsR);
 
 // Admin routes
+app.use("/api/v1/admin/dashboard", adminDashboardR)
 app.use("/api/v1/admin/waitlist", waitlistAdminRoute);
 app.use("/api/v1/admin/auth", authAdminR);
 app.use("/api/v1/admin/users", usersAdminR);
