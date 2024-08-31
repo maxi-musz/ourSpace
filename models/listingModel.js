@@ -87,7 +87,7 @@ const listingsSchema = new mongoose.Schema({
     },
     listingStatus: { 
       type: String,
-      enum: ["active", "inactive", "pending", "draft", "archived", "blocked"],
+      enum: ["approved", "rejected","active", "inactive", "pending", "draft", "archived", "blocked"],
       default: "pending",
     },
     listedOnOtherPlatform: {

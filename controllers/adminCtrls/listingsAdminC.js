@@ -210,7 +210,7 @@ const updateListingStatus = asyncHandler(async (req, res) => {
         const { listingId } = req.params;
         const { newListingStatus } = req.body;
 
-        if (!newListingStatus || !['active', 'inactive', 'pending', 'draft', 'archived', 'blocked'].includes(newListingStatus)) {
+        if (!newListingStatus || !["approved", "rejected",'active', 'inactive', 'pending', 'draft', 'archived', 'blocked'].includes(newListingStatus)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid listing status'
