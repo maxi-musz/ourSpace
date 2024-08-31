@@ -502,7 +502,10 @@ const soLogin = asyncHandler(async (req, res) => {
 // Controller to handle Google authentication
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const continueWithGoogle = asyncHandler(async (req, res, next) => {
+    console.log("Entering continue with google endpoint".yellow)
     const { idToken, userType } = req.body;
+
+    console.log(`idToken: ${idToken}\nuserType: ${userType}`.green)
 
     try {
         // Verify the access token and get user info
@@ -528,6 +531,7 @@ const continueWithGoogle = asyncHandler(async (req, res, next) => {
                 googleId: payload.id,
                 email: payload.email,
                 isEmailVerified: true,
+                isAdmin: true,                                  //for development
                 firstName: payload.given_name,
                 lastName: payload.family_name,
                 profilePic: payload.picture,
@@ -536,12 +540,13 @@ const continueWithGoogle = asyncHandler(async (req, res, next) => {
             await user.save();
             const { accessToken, refreshToken } = generateTokens(res, user._id);
             console.log(`Successfully registered new user through google authentication as new ${userType}`.america)
+            console.log("User: ", user)
             res.json({
                 success: true,
                 message: `You've successfully registered as a new ${userType}`,
                 accessToken,
                 refreshToken,
-                user
+                data: user
             });
         }
     } catch (error) {
