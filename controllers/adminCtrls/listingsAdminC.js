@@ -135,7 +135,7 @@ const editListing = asyncHandler(async (req, res) => {
         }
 
         // Ensure the user owns the listing
-        if (listing.user.toString() !== userId || !user.isAdmin) {
+        if (listing.user.toString() !== userId || !listing.user.isAdmin !== true) {
             console.log("Unauthorized access attempt".red);
             return res.status(403).json({
                 success: false,
