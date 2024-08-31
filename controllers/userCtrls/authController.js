@@ -12,6 +12,7 @@ import OTP from "../../models/otpModel.js";
 import { generateOTP, saveOTPToDatabase, sendOTPByEmail, verifyOTP } from "../../utils/authUtils.js"
 import sendEmail from '../../utils/sendMail.js';
 import { passwordResetEmailTemplate } from '../../email_templates/passwordResetEmailTemplate.js';
+import axios from 'axios';
 
 const authenticateToken = asyncHandler(async(req, res)=> {
 
@@ -500,50 +501,56 @@ const soLogin = asyncHandler(async (req, res) => {
   
 // Controller to handle Google authentication
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const continueWithGoogle = asyncHandler((req, res, next) => {
+const continueWithGoogle = asyncHandler(async (req, res, next) => {
     const { idToken } = req.body;
 
-    // Verify the Google ID token
-    client.verifyIdToken({
-        idToken,
-        audience: process.env.GOOGLE_CLIENT_ID
-    }).then(ticket => {
-        const payload = ticket.getPayload(); 
+    try {
+        // Verify the access token and get user info
+        const response = await axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${idToken}`);
+        const payload = response.data;
 
-        User.findOne({ googleId: payload.sub })
-        console.log(`Payload: ${payload}`)
-            .then(user => {
-                if (user) {
-                    // User exists, generate tokens
-                    const { accessToken, refreshToken } = generateTokens(res, user._id);
-                    res.json({
-                        success: true,
-                        accessToken,
-                        refreshToken,
-                        user
-                    });
-                } else {
-                    // User does not exist, create a new user
-                    const newUser = new User({
-                        googleId: payload.sub,
-                        name: payload.name,
-                        email: payload.email
-                    });
-                    newUser.save().then(user => {
-                        const { accessToken, refreshToken } = generateTokens(res, user._id);
-                        res.json({
-                            success: true,
-                            accessToken,
-                            refreshToken,
-                            user
-                        });
-                    });
-                }
+        console.log(`Payload: ${JSON.stringify(payload)}`);
+
+        let user = await User.findOne({ googleId: payload.id });
+
+        if (user) {
+            // User exists, generate tokens
+            const { accessToken, refreshToken } = generateTokens(res, user._id);
+            res.json({
+                success: true,
+                accessToken,
+                refreshToken,
+                user
             });
-    }).catch(error => {
-        console.log("Error", error)
-        res.status(400).json({ success: false, message: error });
-    });
+        } else {
+            // User does not exist, create a new user
+            user = new User({
+                googleId: payload.id,
+                email: payload.email,
+                isEmailVerified: true,
+                firstName: payload.given_name,
+                lastName: payload.family_name,
+                profilePic: payload.picture,
+            });
+            await user.save();
+            const { accessToken, refreshToken } = generateTokens(res, user._id);
+            res.json({
+                success: true,
+                accessToken,
+                refreshToken,
+                user
+            });
+        }
+    } catch (error) {
+        console.error("Error during Google authentication:", error);
+
+        // Send detailed error response
+        res.status(400).json({
+            success: false,
+            message: 'Google authentication failed',
+            error: error.message || error,
+        });
+    }
 });
   
   // Controller to handle Google callback and user creation or login
