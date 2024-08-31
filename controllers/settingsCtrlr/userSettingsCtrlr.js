@@ -2,19 +2,19 @@ import asyncHandler from "../../middleware/asyncHandler.js";
 import User from "../../models/userModel.js";
 import cloudinaryConfig from "../../uploadUtils/cloudinaryConfig.js";
 
-import twilio from 'twilio';
+// import twilio from 'twilio';
 
 // Twilio configuration
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+// const accountSid = process.env.TWILIO_ACCOUNT_SID;
+// const authToken = process.env.TWILIO_AUTH_TOKEN;
+// const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
-const client = twilio(accountSid, authToken);
+// const client = twilio(accountSid, authToken);
 
 // Function to generate a random OTP
-const generateOtp = () => {
-    return crypto.randomInt(100000, 999999).toString(); // Generates a 6-digit OTP
-};
+// const generateOtp = () => {
+//     return crypto.randomInt(100000, 999999).toString(); // Generates a 6-digit OTP
+// };
 
 // Function to send OTP
 const sendSmsOtp = async (phoneNumber) => {
@@ -37,44 +37,44 @@ const sendSmsOtp = async (phoneNumber) => {
     }
 };
 
-const sendSmsVerificationOtp = asyncHandler(async(req, res) =>{
-    console.log("Sending sms verification otp".yellow)
+// const sendSmsVerificationOtp = asyncHandler(async(req, res) =>{
+//     console.log("Sending sms verification otp".yellow)
 
-    const { phoneNumber } = req.body;
+//     const { phoneNumber } = req.body;
 
-    if (!phoneNumber) {
-        return res.status(400).json({ success: false, message: "Phone number is required" });
-    }
+//     if (!phoneNumber) {
+//         return res.status(400).json({ success: false, message: "Phone number is required" });
+//     }
 
-    try {
-        // Call the function to send OTP
-        const otp = await sendSmsOtp(phoneNumber);
+//     try {
+//         // Call the function to send OTP
+//         const otp = await sendSmsOtp(phoneNumber);
 
-        res.status(200).json({ success: true, message: "OTP sent successfully", otp });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Failed to send OTP" });
-    }
-})
+//         res.status(200).json({ success: true, message: "OTP sent successfully", otp });
+//     } catch (error) {
+//         res.status(500).json({ success: false, message: "Failed to send OTP" });
+//     }
+// })
 
-const verifyOtpSms = asyncHandler(async(req, res)=> {
-    console.log("Verifying phone number with sms")
+// const verifyOtpSms = asyncHandler(async(req, res)=> {
+//     console.log("Verifying phone number with sms")
 
-    const { phoneNumber, otp } = req.body;
+//     const { phoneNumber, otp } = req.body;
 
-    if (!phoneNumber || !otp) {
-        return res.status(400).json({ success: false, message: "Phone number and OTP are required" });
-    }
+//     if (!phoneNumber || !otp) {
+//         return res.status(400).json({ success: false, message: "Phone number and OTP are required" });
+//     }
 
-    const validOtp = "123456"; // Replace this with actual OTP validation
+//     const validOtp = "123456"; // Replace this with actual OTP validation
 
-    if (otp === validOtp) {
-        // OTP is valid
-        res.status(200).json({ success: true, message: "Phone number verified successfully" });
-    } else {
-        // OTP is invalid
-        res.status(400).json({ success: false, message: "Invalid OTP" });
-    }
-})
+//     if (otp === validOtp) {
+//         // OTP is valid
+//         res.status(200).json({ success: true, message: "Phone number verified successfully" });
+//     } else {
+//         // OTP is invalid
+//         res.status(400).json({ success: false, message: "Invalid OTP" });
+//     }
+// })
 
 const uploadProfileImageToCloudinary = async (file) => {
     try {
@@ -162,6 +162,6 @@ const editProfileInfo = asyncHandler(async (req, res) => {
 
 export {
     editProfileInfo,
-    sendSmsVerificationOtp,
-    verifyOtpSms
+    // sendSmsVerificationOtp,
+    // verifyOtpSms
 }
