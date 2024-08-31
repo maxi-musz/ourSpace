@@ -1,6 +1,6 @@
 import express from "express";
 import { protect, admin } from "../../middleware/authMiddleware.js";
-import { editListing, getAllListings, getListingById } from "../../controllers/adminCtrls/listingsAdminC.js";
+import { editListing, getAllListings, getListingById, updateListingStatus } from "../../controllers/adminCtrls/listingsAdminC.js";
 import upload from "../../uploadUtils/multer.js";
 
 const router = express.Router()
@@ -23,5 +23,9 @@ router
     { name: 'facilityPictures', maxCount: 10 },
     { name: 'otherPictures', maxCount: 10 }
   ]), editListing);
+
+router
+.route("/update-status/:listingId")
+.post(protect, admin, updateListingStatus) 
 
 export default router

@@ -271,14 +271,18 @@ function generateListingId() {
 }
 
 listingsSchema.pre('save', function (next) {
-    const amenities = new Set([
-      ...this.availableAmenities.propertyAmenities,
-      ...this.availableAmenities.roomFeatures,
-      ...this.availableAmenities.outdoorActivities,
-    ]);
+  if (!this.availableAmenities) {
+      this.availableAmenities = {};
+  }
 
-    this.availableAmenities.allAmenities = Array.from(amenities);
-    next();
+  const amenities = new Set([
+    ...(this.availableAmenities.propertyAmenities || []),
+    ...(this.availableAmenities.roomFeatures || []),
+    ...(this.availableAmenities.outdoorActivities || [])
+  ]);
+
+  this.availableAmenities.allAmenities = Array.from(amenities);
+  next();
 });
   
 const Listing = mongoose.model('Listing', listingsSchema);

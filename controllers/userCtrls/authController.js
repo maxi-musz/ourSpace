@@ -595,8 +595,11 @@ const sendResetPasswordLink = asyncHandler(async (req, res) => {
 
     await user.save();
 
+    const frontendStagingUrl = process.env.OUR_SPACE_STAGING_URL
+    
+
     // Send reset email with link
-    const resetUrl = `http://frontendUrl.com/reset-password/${resetToken}`;
+    const resetUrl = `${frontendStagingUrl}/?reset-token=${resetToken}`;
     const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please click on the link below to reset your password:\n\n${resetUrl}`;
 
     try {

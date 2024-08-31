@@ -50,7 +50,9 @@ app.use(passport.session());
 
 const corsOptions = {
     origin: [
+        "http://localhost:3000",
         "http://localhost:3001",
+        "http://localhost:3002",
         "https://ourspace-git-dev-ourspace-global.vercel.app"
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",

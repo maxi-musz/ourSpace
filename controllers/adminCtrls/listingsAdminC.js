@@ -203,10 +203,55 @@ const editListing = asyncHandler(async (req, res) => {
     }
 });
 
+const updateListingStatus = asyncHandler(async (req, res) => {
+    console.log("Updating listing status".yellow);
+
+    try {
+        const { listingId } = req.params;
+        const { newListingStatus } = req.body;
+
+        if (!newListingStatus || !['active', 'inactive', 'pending', 'draft', 'archived', 'blocked'].includes(newListingStatus)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid listing status'
+            });
+        }
+
+        const listing = await Listing.findById(listingId);
+
+        if (!listing) {
+            return res.status(404).json({
+                success: false,
+                message: 'Listing not found'
+            });
+        }
+
+        listing.listingStatus = newListingStatus;
+
+        await listing.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Listing status updated successfully',
+            data: listing
+        });
+    } catch (error) {
+        console.error(`Error updating listing status: ${error.message}`.red);
+        return res.status(500).json({
+            success: false,
+            message: `Server error: ${error.message}`,
+            error
+        });
+    }
+});
+
+
+
 
 
 export { 
     getListingById,
     getAllListings,
-    editListing
+    editListing,
+    updateListingStatus
 }
