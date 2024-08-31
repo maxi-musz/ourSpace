@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import passport from "passport";
 import crypto from 'crypto';
 import bcrypt from "bcryptjs"
+import { OAuth2Client } from 'google-auth-library';;
 
 import User from "../../models/userModel.js";
 import asyncHandler from "../../middleware/asyncHandler.js";
@@ -498,18 +499,19 @@ const soLogin = asyncHandler(async (req, res) => {
 });
   
 // Controller to handle Google authentication
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const continueWithGoogle = asyncHandler((req, res, next) => {
     const { idToken } = req.body;
 
     // Verify the Google ID token
     client.verifyIdToken({
         idToken,
-        audience: process.env.GOOGLE_CLIENT_ID // Your Google Client ID
+        audience: process.env.GOOGLE_CLIENT_ID
     }).then(ticket => {
-        const payload = ticket.getPayload(); // Get user info from the token
+        const payload = ticket.getPayload(); 
 
-        // Find or create the user in the database
         User.findOne({ googleId: payload.sub })
+        console.log(`Payload: ${payload}`)
             .then(user => {
                 if (user) {
                     // User exists, generate tokens
@@ -539,7 +541,8 @@ const continueWithGoogle = asyncHandler((req, res, next) => {
                 }
             });
     }).catch(error => {
-        res.status(400).json({ success: false, message: 'Authentication failed', error });
+        console.log("Error", error)
+        res.status(400).json({ success: false, message: error });
     });
 });
   
