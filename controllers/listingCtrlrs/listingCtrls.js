@@ -317,9 +317,9 @@ const getUserListings = asyncHandler(async (req, res) => {
       console.log("Fetching user listings".blue);
 
       // Find listings based on the query object
-      const listings = await Listing.find({user: req.user._id});
+      const listings = await Listing.find({user: req.user._id, status: "listed"});
 
-      console.log(`Listings fetched`.green);
+      console.log(`Total of ${listings.length} listings fetched`.magenta);
 
       res.status(200).json({
           success: true,
