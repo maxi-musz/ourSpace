@@ -207,8 +207,8 @@ const updateListingStatus = asyncHandler(async (req, res) => {
     console.log("Updating listing status".yellow);
 
     try {
-        const { listingId } = req.params;
-        const { newListingStatus } = req.body;
+        const { listingId, newListingStatus } = req.query;
+        console.log(newListingStatus, listingId)
 
         if (!newListingStatus || !["approved", "rejected",'active', 'inactive', 'pending', 'draft', 'archived', 'blocked'].includes(newListingStatus)) {
             return res.status(400).json({
@@ -226,17 +226,29 @@ const updateListingStatus = asyncHandler(async (req, res) => {
             });
         }
 
-        listing.listingStatus = newListingStatus;
-        listing.status = "listed"
+        if(newListingStatus === "approved" || newListingStatus === "active") {
+            listing.listingStatus = newListingStatus;
+            listing.status = "listed"
 
+            await listing.save();
 
-        await listing.save();
+            res.status(200).json({
+                success: true,
+                message: 'Listing status updated successfully',
+                data: listing
+            });
+        } else {
+            listing.listingStatus = newListingStatus;
+            listing.status = "unlisted"
 
-        res.status(200).json({
-            success: true,
-            message: 'Listing status updated successfully',
-            data: listing
-        });
+            await listing.save();
+
+            res.status(200).json({
+                success: true,
+                message: 'Listing status updated successfully',
+                data: listing
+            });
+        }
     } catch (error) {
         console.error(`Error updating listing status: ${error.message}`.red);
         return res.status(500).json({

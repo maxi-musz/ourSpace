@@ -311,7 +311,7 @@ const filterListings = asyncHandler(async (req, res) => {
 // @desc    Get user listings
 // @route   GET /api/v1/listings
 // @access  Public
-const getUserListings = asyncHandler(async (req, res) => {
+const getUserApprovedListings = asyncHandler(async (req, res) => {
   
   try {
       console.log("Fetching user listings".blue);
@@ -510,7 +510,7 @@ export {
 createListing,
 searchListings,
 filterListings,
-getUserListings,
+getUserApprovedListings,
 getSingleListing,
 getSingleUserListing,
 editListing,

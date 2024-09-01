@@ -25,7 +25,7 @@ router
   ]), editListing);
 
 router
-.route("/update-status/:listingId")
-.post(protect, admin, updateListingStatus) 
+.route("/update-status")
+.put(protect, admin, updateListingStatus) 
 
 export default router

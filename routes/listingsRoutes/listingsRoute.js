@@ -5,7 +5,7 @@ import {
     filterListings,
     getBookingHistory,
     getSingleListing,
-    getUserListings,
+    getUserApprovedListings,
     searchListings
  } from '../../controllers/listingCtrlrs/listingCtrls.js';
 import upload from '../../uploadUtils/multer.js';
@@ -36,7 +36,7 @@ router
 // Get user listings
 router
 .route("/get-user-listings")
-.get(protect, getUserListings)
+.get(protect, getUserApprovedListings)
 
 // Get user listings
 router
