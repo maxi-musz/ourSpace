@@ -172,9 +172,11 @@ const searchListings = asyncHandler(async (req, res) => {
 
   const guests = numberOfGuests || { adult: 0, children: 0, pets: 0 };
 
-  let filter = {};
+  let filter = {
+    propertyStatus: "listed" // Only include listings with a status of "listed"
+  };
 
-  // Filter by searchQuery which can be either state, propertyName, or city
+  // Filter by searchQuery which can be either state, propertyName, city, or propertyId
   if (searchQuery) {
       filter.$or = [
           { "propertyLocation.state": { $regex: searchQuery, $options: 'i' } },
@@ -185,7 +187,7 @@ const searchListings = asyncHandler(async (req, res) => {
   }
 
   // Fetch listings based on the filter
-  let listings = await Listing.find({filter, status: "listed"});
+  let listings = await Listing.find(filter);
 
   listings = listings.filter(listing => {
       if (!checkIn || !checkOut) return true;
@@ -218,7 +220,6 @@ const searchListings = asyncHandler(async (req, res) => {
   const searchIds = listings.map(listing => listing._id.toString());
   console.log(`Total of ${listings.length} listings found`.magenta);
 
-  
   res.status(200).json({
       success: true,
       totalResults: listings.length,
@@ -227,6 +228,7 @@ const searchListings = asyncHandler(async (req, res) => {
       data: listings
   });
 });
+
 
 const filterListings = asyncHandler(async (req, res) => {
   console.log("Filtering listings based on user query...".blue);
