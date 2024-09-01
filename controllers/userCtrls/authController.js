@@ -514,7 +514,7 @@ const continueWithGoogle = asyncHandler(async (req, res, next) => {
 
         console.log(`Payload: ${JSON.stringify(payload)}`);
 
-        let user = await User.findOne({ googleId: payload.id });
+        let user = await User.findOne({ email: payload.email });
 
         if (user) {
             // User exists, generate tokens
