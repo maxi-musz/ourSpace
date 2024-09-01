@@ -259,11 +259,41 @@ const updateListingStatus = asyncHandler(async (req, res) => {
     }
 });
 
+const tempUpdateListingStatus = asyncHandler(async (req, res) => {
+    console.log("Updating listing status".yellow);
+
+    try {
+        const listings = await Listing.find()
+
+        // Loop through each listing and update the status
+        for (let listing of listings) { // Use let to allow reassignment
+            if (listing.listingStatus === "approved") {
+                listing.status = "listed";
+            } else {
+                listing.status = "unlisted";
+            }
+            await listing.save(); // Save the updated listing to the database
+        }     
+        console.log("Status for each listing successfully updated".green);
+        return res.status(201).json({
+            success: true,
+            message: "Status update for each listing successful"
+        });
+
+    } catch (error) {
+        console.log("Error", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Server error: " + error.message
+        });
+    }
+});
+
 const updateStatus = asyncHandler(async (req, res) => {
     console.log("Updating status".yellow);
 
     try {
-        const listings = await Listing.find(); 
+        const listings = await Listing.find();
 
         if (!listings || listings.length === 0) {
             console.log("No listings found".red);
@@ -308,5 +338,6 @@ export {
     getAllListings,
     editListing,
     updateListingStatus,
-    updateStatus
+    updateStatus,
+    tempUpdateListingStatus
 }

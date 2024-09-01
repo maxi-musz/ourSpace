@@ -1,6 +1,6 @@
 import express from "express";
 import { protect, admin } from "../../middleware/authMiddleware.js";
-import { editListing, getAllListings, getListingById, updateListingStatus, updateStatus } from "../../controllers/adminCtrls/listingsAdminC.js";
+import { editListing, getAllListings, getListingById, tempUpdateListingStatus, updateListingStatus, updateStatus } from "../../controllers/adminCtrls/listingsAdminC.js";
 import upload from "../../uploadUtils/multer.js";
 
 const router = express.Router()
@@ -31,5 +31,9 @@ router
 router
 .route("/status-update")
 .put(protect, admin, updateStatus) 
+
+// router
+// .route("/status-update")
+// .put(protect, admin, tempUpdateListingStatus) 
 
 export default router

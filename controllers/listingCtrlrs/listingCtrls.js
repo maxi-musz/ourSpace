@@ -185,7 +185,7 @@ const searchListings = asyncHandler(async (req, res) => {
   }
 
   // Fetch listings based on the filter
-  let listings = await Listing.find(filter);
+  let listings = await Listing.find({filter, status: "listed"});
 
   listings = listings.filter(listing => {
       if (!checkIn || !checkOut) return true;
