@@ -263,47 +263,43 @@ const updateStatus = asyncHandler(async (req, res) => {
     console.log("Updating status".yellow);
 
     try {
-        const {status} = req.query
+        const listings = await Listing.find(); 
 
-        if(!status || !["listed", "unlisted"].includes(status)) {
-            console.log("Invalid listing status entered".red)
-            res.status(404).json({
+        if (!listings || listings.length === 0) {
+            console.log("No listings found".red);
+            return res.status(404).json({
                 success: false,
-                message: "Invalid listing status entered"
-            })
+                message: "No listings found"
+            });
         }
 
-        const listing = await Listing.find({status: "unlisted"})
-        if (!listing){
-            console.log("Listing not found".red)
-            res.status(404).json({
-                success: false,
-                message: "Listing not found"
-            })
-        }
+        console.log(`Total of ${listings.length} listings found`.green);
 
-        for(listing in listing){
-            if(listingStatus === "approved") {
-                listing.status = "listed" 
+        // Loop through each listing and update the status
+        for (let listing of listings) { // Use let to allow reassignment
+            if (listing.status === "approved") {
+                listing.status = "listed";
             } else {
-                listing.status = "unlisted"
+                listing.status = "unlisted";
             }
+            await listing.save(); // Save the updated listing to the database
         }
 
-        console.log("Status for each listings successfully updated")
+        console.log("Status for each listing successfully updated".green);
         return res.status(201).json({
             success: true,
-            message: "status update for each listings successful"
-        })
+            message: "Status update for each listing successful"
+        });
 
     } catch (error) {
-        console.log("Error", error.message)
-        return res.status(501).json({
+        console.log("Error", error.message);
+        return res.status(500).json({
             success: false,
-            message: error
-        })
+            message: "Server error: " + error.message
+        });
     }
 });
+
 
 
 
