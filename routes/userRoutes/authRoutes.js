@@ -12,7 +12,9 @@ import {
     verifyOtp,
     sendResetPasswordLink,
     resetPassword,
+    getCurrentUser,
 } from "../../controllers/userCtrls/authController.js"
+import { protect } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -23,6 +25,8 @@ router.route('/su-login').post(suLogin)
 // Space Owners
 router.route('/so-register').post(spaceOwnerSignUp)
 router.route('/so-login').post(soLogin)
+
+router.route('/get-current-user').get(protect, getCurrentUser);
 
 router.route('/generate-otp').post(generateOtp);
 router.route('/verify-otp').post(verifyOtp);

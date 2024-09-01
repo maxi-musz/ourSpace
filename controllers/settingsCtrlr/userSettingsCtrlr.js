@@ -122,9 +122,9 @@ const editProfileInfo = asyncHandler(async (req, res) => {
         if (firstName) user.firstName = firstName;
         if (lastName) user.lastName = lastName;
         if (email) user.email = email;
+        if (mobileNumber) user.mobileNumber = mobileNumber;
         if (gender) user.gender = gender;
         if (dateOfBirth) user.dateOfBirth = dateOfBirth;
-        if (mobileNumber) user.mobileNumber = mobileNumber;
         if (country) user.country = country;
         if (state) user.state = state;
         if (city) user.city = city;

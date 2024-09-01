@@ -675,6 +675,42 @@ const resetPassword = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, message: 'Password has been reset' });
 });
 
+const getCurrentUser = asyncHandler(async (req, res) => {
+    console.log("Fetching current user information".blue);
+
+    try {
+        console.log(req.user)
+        // Extract user ID from the request object (assuming it's set by the authentication middleware)
+        const userId = req.user.id;
+
+        // Fetch the user from the database
+        const user = await User.findById(userId).select('-password'); // Exclude the password field
+
+        if (!user) {
+            console.log("User not found".red);
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        console.log(`User ${user.email} retrieved successfully`.green);
+
+        // Return the user data
+        res.status(200).json({
+            success: true,
+            user
+        });
+    } catch (error) {
+        console.log("Error fetching current user:", error.message.red);
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+});
+
+
 export {
     authenticateToken,
     refreshToken,
@@ -686,6 +722,7 @@ export {
     suLogin,
     continueWithGoogle,
     googleCallback,
+    getCurrentUser,
     sendResetPasswordLink,
     resetPassword
 }

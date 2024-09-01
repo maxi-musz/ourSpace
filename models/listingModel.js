@@ -31,26 +31,6 @@ const dateSchema = new mongoose.Schema({
     }
   }
 });
-  
-
-const arrivalDepartureDetailsSchema = new mongoose.Schema({
-  checkIn: {
-    type: String,  // YYYY-MM-DD format
-    required: true,
-    validate: {
-      validator: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v),  // Validate the date format
-      message: props => `${props.value} is not a valid date!`
-    }
-  },
-  checkOut: {
-    type: String,  // YYYY-MM-DD format
-    required: true,
-    validate: {
-      validator: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v),  // Validate the date format
-      message: props => `${props.value} is not a valid date!`
-    }
-  }
-});
 
 const numberOfGuestsSchema = new mongoose.Schema({
   adult: { type: Number },
