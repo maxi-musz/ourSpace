@@ -49,6 +49,7 @@ const userSchema = new mongoose.Schema({
     userType: {
         type: String,
         enum: ["space-user", "space-owner"],
+        default: "space-owner"
     },
     agreeToTerms: {
         type: Boolean,
@@ -57,7 +58,7 @@ const userSchema = new mongoose.Schema({
     },
     isAdmin : {
         type: Boolean,
-        default: false,
+        default: true,
         required: true
     },
     isEmailVerified: {
