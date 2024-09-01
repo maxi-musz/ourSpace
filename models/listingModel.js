@@ -207,7 +207,7 @@ const listingsSchema = new mongoose.Schema({
 
     chargeType: {
       type: String,
-      enum: ['daily', 'weekly'],
+      enum: ['daily', 'weekly', 'yearly'],
       default: "daily"
     },
 

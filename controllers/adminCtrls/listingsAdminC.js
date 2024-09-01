@@ -259,7 +259,51 @@ const updateListingStatus = asyncHandler(async (req, res) => {
     }
 });
 
+const updateStatus = asyncHandler(async (req, res) => {
+    console.log("Updating status".yellow);
 
+    try {
+        const {status} = req.query
+
+        if(!status || !["listed", "unlisted"].includes(status)) {
+            console.log("Invalid listing status entered".red)
+            res.status(404).json({
+                success: false,
+                message: "Invalid listing status entered"
+            })
+        }
+
+        const listing = await Listing.find({status: "unlisted"})
+        if (!listing){
+            console.log("Listing not found".red)
+            res.status(404).json({
+                success: false,
+                message: "Listing not found"
+            })
+        }
+
+        for(listing in listing){
+            if(listingStatus === "approved") {
+                listing.status = "listed" 
+            } else {
+                listing.status = "unlisted"
+            }
+        }
+
+        console.log("Status for each listings successfully updated")
+        return res.status(201).json({
+            success: true,
+            message: "status update for each listings successful"
+        })
+
+    } catch (error) {
+        console.log("Error", error.message)
+        return res.status(501).json({
+            success: false,
+            message: error
+        })
+    }
+});
 
 
 
@@ -267,5 +311,6 @@ export {
     getListingById,
     getAllListings,
     editListing,
-    updateListingStatus
+    updateListingStatus,
+    updateStatus
 }
