@@ -173,7 +173,7 @@ const searchListings = asyncHandler(async (req, res) => {
   const guests = numberOfGuests || { adult: 0, children: 0, pets: 0 };
 
   let filter = {
-    propertyStatus: "listed" // Only include listings with a status of "listed"
+    status: "listed" // Only include listings with a status of "listed"
   };
 
   // Filter by searchQuery which can be either state, propertyName, city, or propertyId
