@@ -521,9 +521,10 @@ const continueWithGoogle = asyncHandler(async (req, res, next) => {
             const { accessToken, refreshToken } = generateTokens(res, user._id);
             res.json({
                 success: true,
+                message: `You're successfully signed in as a ${user.userType}`,
                 accessToken,
                 refreshToken,
-                user
+                data: user
             });
         } else {
             // User does not exist, create a new user
@@ -539,8 +540,7 @@ const continueWithGoogle = asyncHandler(async (req, res, next) => {
             });
             await user.save();
             const { accessToken, refreshToken } = generateTokens(res, user._id);
-            console.log(`Successfully registered new user through google authentication as new ${userType}`.america)
-            console.log("User: ", user)
+            console.log(`You've successfully registerd as a new ${userType}`.america)
             res.json({
                 success: true,
                 message: `You've successfully registered as a new ${userType}`,
@@ -553,7 +553,7 @@ const continueWithGoogle = asyncHandler(async (req, res, next) => {
         console.error("Error during Google authentication:", error.message);
         res.status(400).json({
             success: false,
-            message: 'Google authentication failed',
+            message: `Google authentication failed: ${error.message || error}`,
             error: error.message || error,
         });
     }
