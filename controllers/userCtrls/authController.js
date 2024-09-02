@@ -144,12 +144,11 @@ const spaceUserSignUp = asyncHandler(async (req, res) => {
         });
         await user.save();
 
-        // Find the newly created user by email
         const newUser = await User.findOne({ email });
         if (newUser) {
             const userId = newUser._id;
 
-            // Check if an OTP exists for the user and delete if found
+    
             const existingOtp = await OTP.findOneAndDelete({ user: userId });
 
             if (existingOtp) {
