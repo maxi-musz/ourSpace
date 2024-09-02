@@ -140,7 +140,7 @@ const spaceUserSignUp = asyncHandler(async (req, res) => {
             phoneNumber,
             password,
             agreeToTerms,
-            userType: "space-owner"
+            userType: "space-user"
         });
         await user.save();
 
@@ -264,7 +264,7 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
             phoneNumber,
             password,
             agreeToTerms,
-            userType: "space-user"
+            userType: "space-owner"
         });
         await user.save();
 
