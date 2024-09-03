@@ -9,9 +9,9 @@ import session from "express-session";
 import passport from "./utils/passport.js";
 import axios from "axios";
 import MongoStore from 'connect-mongo';
-import colors from "colors"
+import colors from "colors";
+import http from "http";
 
-// Import your routes
 import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/userRoutes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoutes/listingsRoute.js";
@@ -28,15 +28,17 @@ import authAdminR from "./routes/adminRoutes/authAdminR.js";
 import usersAdminR from "./routes/adminRoutes/usersAdminR.js";
 import listingsAdminR from "./routes/adminRoutes/listingsAdminR.js";
 
+
+import configureSocketIO from "./config/socketConfig.js";
+import messageRoutes from "./routes/messageRoutes/messageRoutes.js"
+
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Morgan for logging
 app.use(morgan("dev"));
 
-// Configure MongoDB session store to avoid using the default MemoryStore
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -70,10 +72,10 @@ app.get("/api/v1", (req, res) => {
     res.send("ourSpace API is running");
 });
 
-// Connect to the database
+const server = http.createServer(app);
+
 db.connectDb();
 
-// Set up scheduled tasks using cron
 cron.schedule('*/2 * * * *', async () => {
     console.log('Calling ourSpace API every 2 minutes'.green);
     try {
@@ -84,7 +86,7 @@ cron.schedule('*/2 * * * *', async () => {
     }
 });
 
-// Schedule a task to run every 24hrs
+//24hrs
 cron.schedule('0 0 * * *', async () => {
     console.log('Running getWaitlistsAsCsv every 24 hours'.green);
     try {
@@ -94,12 +96,11 @@ cron.schedule('0 0 * * *', async () => {
     }
 });
 
-// Mount your routes
 app.use("/api/v1/waitlist", waitlistRoutes);
 app.use("/api/v1/users", authRoutes);
 app.use("/api/v1/listing", listingsRoute);
-app.use("/api/v1/reviews", reviewsRoute);
 app.use("/api/v1/settings", userSettingsR);
+
 
 // Admin routes
 app.use("/api/v1/admin/dashboard", adminDashboardR)
@@ -108,8 +109,11 @@ app.use("/api/v1/admin/auth", authAdminR);
 app.use("/api/v1/admin/users", usersAdminR);
 app.use("/api/v1/admin/listings", listingsAdminR);
 
-// Paystack routes
+configureSocketIO(server);
+app.use("/api/v1/messaging", messageRoutes)
+
 app.use('/api/v1/paystack', paystackRoutes);
+
 
 app.use("*", (req, res, next) => {
     console.log("Route not found");

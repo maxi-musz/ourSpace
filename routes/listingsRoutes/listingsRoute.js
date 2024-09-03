@@ -6,7 +6,8 @@ import {
     getBookingHistory,
     getSingleListing,
     getUserApprovedListings,
-    searchListings
+    searchListings,
+    checkAvailability
  } from '../../controllers/listingCtrlrs/listingCtrls.js';
 import upload from '../../uploadUtils/multer.js';
 import { editListing } from '../../controllers/adminCtrls/listingsAdminC.js';
@@ -33,7 +34,6 @@ router
 .route("/filter")
 .post(filterListings)
 
-// Get user listings
 router
 .route("/get-user-listings")
 .get(protect, getUserApprovedListings)
@@ -55,10 +55,11 @@ router
     { name: 'otherPictures', maxCount: 10 }
   ]), editListing);
 
-// Get listings Bookings
 router
 .route("/get-listing-bookings")
 .get(protect, getBookingHistory)
+
+router.route("/check-availability/:listingId").post(checkAvailability)
 
 export default router;
  
