@@ -8,13 +8,16 @@ import asyncHandler from '../../middleware/asyncHandler.js';
 export const initializeTransaction = asyncHandler(async (req, res) => {
     console.log("Initializing Paystack payment...".green);
 
-    const { email, amountInNaira, callBackUrl, userId, listingId, newBookedDays, firstName, lastName, phoneNumber } = req.body;
+    const {
+        email, amountInNaira, callBackUrl, userId, listingId, newBookedDays,
+        firstName, lastName, phoneNumber
+    } = req.body;
 
     // Input validation
     if (!email || !amountInNaira || !callBackUrl || !userId || !listingId) {
         return res.status(400).json({
             success: false,
-            message: 'All fields (email, amountInNaira, callBackUrl, userId, listingId and newBookedDays are required.',
+            message: 'All fields (email, amountInNaira, callBackUrl, userId, listingId and newBookedDays) are required.',
         });
     }
 
@@ -51,7 +54,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
                 first_name: firstName,
                 last_name: lastName,
                 phone: phoneNumber,
-                callback_url: callBackUrl
+                callback_url: callBackUrl,
             },
             {
                 headers: {
@@ -63,7 +66,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
 
         const { authorization_url, access_code, reference } = response.data.data;
 
-        console.log(`Amount: ${amountInKobo}`)
+        const callBackWithReference = `${callBackUrl}?reference=${reference}`;
 
         await Transaction.create({
             user: userId,
@@ -84,6 +87,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
                 authorization_url,
                 access_code,
                 reference,
+                callBackWithReference,  
             },
         });
     } catch (error) {
@@ -94,6 +98,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 });
+
 
 export const handleWebhook = async (req, res) => {
     const event = req.body;
