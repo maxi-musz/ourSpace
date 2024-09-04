@@ -8,8 +8,11 @@ import asyncHandler from '../../middleware/asyncHandler.js';
 export const initializeTransaction = asyncHandler(async (req, res) => {
     console.log("Initializing Paystack payment...".green);
 
+    const userId = req.user._id
+    console.log("userId", userId)
+
     const {
-        email, amountInNaira, callBackUrl, userId, listingId, newBookedDays,
+        email, amountInNaira, callBackUrl,listingId, newBookedDays,
         firstName, lastName, phoneNumber
     } = req.body;
 
