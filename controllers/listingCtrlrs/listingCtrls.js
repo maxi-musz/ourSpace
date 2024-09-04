@@ -343,10 +343,9 @@ const getSingleUserListing = asyncHandler(async (req, res) => {
   console.log("Fetching a single user listing".blue);
 
   const { listingId } = req.query;
-  const userId = req.user._id.toString();
 
   try {
-      console.log(`Searching for listing with ID: ${listingId}`.yellow);
+      console.log(`Searching for listing`.yellow);
 
       // Fetch the listing from the database using the provided ID
       const listing = await Listing.findById(listingId);
@@ -359,16 +358,6 @@ const getSingleUserListing = asyncHandler(async (req, res) => {
           });
       }
 
-      // Check if the requesting user is the owner of the listing
-      if (listing.user.toString() !== userId) {
-          console.log(`User ${userId} is not authorized to access listing ${listingId}`.red);
-          return res.status(403).json({
-              success: false,
-              message: "You are not authorized to access this listing",
-          });
-      }
-
-      console.log(`User ${userId} is authorized. Listing found`.green);
       
       res.status(200).json({
           success: true,

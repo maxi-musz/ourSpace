@@ -41,7 +41,7 @@ router
 // Get user listings
 router
 .route("/get-user-single-listings/:id")
-.get(protect, getSingleListing)
+.get(getSingleListing)
 
 
 router
