@@ -10,5 +10,5 @@ router.route('/initialize').post(protect, initializeTransaction);
 router.post('/webhook', handleWebhook);
 
 // Route to verify a transaction (for manual verification)
-router.post('/verify', verifyTransaction);
+router.route('/verify').post(protect, verifyTransaction);
 export default router;

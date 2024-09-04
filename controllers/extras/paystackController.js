@@ -9,19 +9,20 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
     console.log("Initializing Paystack payment...".green);
 
     const userId = req.user._id
-    console.log("userId", userId)
 
     const {
         email, amountInNaira, callBackUrl,listingId, newBookedDays,
-        firstName, lastName, phoneNumber
+        firstName, lastName, phoneNumber, bookingForSomeone, totalGuest, discount
     } = req.body;
 
     // Input validation
-    if (!email || !amountInNaira || !callBackUrl || !userId || !listingId) {
-        return res.status(400).json({
+
+    if(!email || !amountInNaira || !callBackUrl || !listingId || !newBookedDays || !firstName || !lastName || !phoneNumber || !bookingForSomeone ||!totalGuest) {
+        console.log("All fields are required".red)
+        res.status(400).json({
             success: false,
-            message: 'All fields (email, amountInNaira, callBackUrl, userId, listingId and newBookedDays) are required.',
-        });
+            message: "All fields are required"
+        })
     }
 
     const amountInKobo = amountInNaira * 100;
@@ -61,7 +62,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.TEST_SECRET_KEY}`,
+                    Authorization: `Bearer ${process.env.OURSPACE_TEST_SECRET_KEY}`,
                     'Content-Type': 'application/json',
                 },
             }
@@ -81,16 +82,33 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             status: 'initialized'
         });
 
+        const newBooking = await Booking.create({
+            user: userId,
+            listing: listingId,
+            paystackRef: reference,
+            firstName,
+            lastName,
+            email,
+            phoneNumber,
+            bookingForSomeone,
+            bookedDays: newBookedDays,
+            totalGuest,
+            amount: amountInNaira,
+            discount: discount || 0
+        });
+        
+
         console.log(`Transaction initialized for amount: ₦${amountInNaira}`.cyan);
 
         res.status(200).json({
             success: true,
-            message: `Transaction initialized successfully.`,
+            message: `Transaction initialized successfully and new booking created.`,
             data: {
                 authorization_url,
                 access_code,
                 reference,
                 callBackWithReference,  
+                booking: newBooking
             },
         });
     } catch (error) {
@@ -120,14 +138,11 @@ export const handleWebhook = async (req, res) => {
                 { status: 'successful' }
             );
 
-            // Deliver the value to the customer (e.g., activate booking, provide access, etc.)
-            // deliverValueToCustomer(transaction);
-
             const ourspaceEmail = process.env.OUR_SPACE_EMAIL
             const maximusEmail = process.env.MAXIMUS_EMAIL
-            const waitlistRegisterNotificationEmail = `${ourspaceEmail}, ${maximusEmail}`;
+            const paymentNotificationEmail = `${ourspaceEmail}, ${maximusEmail}`;
             await sendEmail(
-                waitlistRegisterNotificationEmail,
+                paymentNotificationEmail,
                 "Ourspace bookings payment",
                 `A new payment of ${amount / 100} Naira was made by ${email}.`
             )
@@ -147,34 +162,21 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
 
     const {
         reference,
-        userId,
         listingId,
-        firstName,
-        lastName,
-        email,
-        phoneNumber,
-        bookingForSomeone,
-        newBookedDays,
-        totalGuest,
-        discount
     } = req.body;
+
+    const userId = req.user
 
     // Input validation
     if (
         !reference ||
         !userId ||
-        !listingId ||
-        !firstName ||
-        !lastName ||
-        !email ||
-        !phoneNumber ||
-        !newBookedDays ||
-        !totalGuest
+        !listingId 
     ) {
-        console.log("reference, userId, listingId, firstName, lastName,email,phoneNumber, newBookedDays,totalGuests fields must be provided")
+        console.log("reference, userId, listingId fields must be provided")
         return res.status(400).json({
             success: false,
-            message: 'reference, userId, listingId, firstName, lastName,email,phoneNumber, newBookedDays,totalGuests fields must be provided'
+            message: 'reference, userId, listingId fields must be provided'
         });
     }
 
@@ -184,12 +186,14 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             `https://api.paystack.co/transaction/verify/${reference}`,
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.TEST_SECRET_KEY}`,
+                    Authorization: `Bearer ${process.env.OURSPACE_TEST_SECRET_KEY}`,
                 },
             }
         );
 
+        console.log("checking response".grey)
         const { status: paystackStatus, amount: paystackKoboAmount, customer } = response.data.data;
+        console.log("Response checked".grey)
 
         if (paystackStatus !== 'success') {
             console.log("Payment failed".red)
@@ -220,6 +224,8 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
 
         const normalAmount = paystackKoboAmount / 100
 
+        console.log(`Transaction amount:${transaction.amount}\nNormal amount: ${normalAmount}`.cyan)
+
         if (transaction.amount !== normalAmount) {
             return res.status(400).json({
                 success: false,
@@ -227,37 +233,56 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        const listing = await Listing.findById(listingId);
+        const ourspaceEmail = process.env.OUR_SPACE_EMAIL
+        const maximusEmail = process.env.MAXIMUS_EMAIL
+        const paymentNotificationEmail = `${ourspaceEmail}, ${maximusEmail}`;
+        await sendEmail(
+            maximusEmail,
+            "Ourspace bookings payment",
+            `A new payment of #${normalAmount} was made by ${customer.email}.`
+        )
+        console.log("payment confirmed and email sent".cyan)
 
         transaction.status = 'success';
         await transaction.save();
 
         // Create booking
-        const newBooking = await Booking.create({
-            user: userId,
-            listing: listingId,
-            firstName,
-            lastName,
-            email,
-            phoneNumber,
-            bookingForSomeone,
-            bookedDays: newBookedDays,
-            totalGuest,
-            amount: normalAmount, // Convert back to Naira
-            discount: discount || 0
-        });
+        const booking = await Booking.findOne({paystackRef: reference})
+
+        if(!booking) {
+            console.log("Booking not found".red)
+            return res.status(400).json({
+                success: false,
+                message: "No booking with reference found"
+            })
+        }
+        console.log("Booking found, updating status...".blue)
+        booking.status = "success"
+        await booking.save()
+
+        const listing = await Listing.findById(listingId);
+
+        if(!listing) {
+            console.log("Listing not found".red)
+            return res.status(400).json({
+                success: false,
+                message: "No Listing found"
+            })
+        }
+
+        const newBookedDays = booking.bookedDays
 
         listing.bookedDays = [...listing.bookedDays, ...newBookedDays];
         await listing.save();
 
-        console.log("Transaction verified and booking created successfully.".cyan);
+        console.log("Transaction verified, listing and booking details updated successfully.".cyan);
 
         res.status(200).json({
             success: true,
-            message: 'Transaction verified and booking created successfully.',
+            message: 'Transaction verified, listing and booking details updated successfully..',
             data: {
-                booking: newBooking,
-                transaction
+                booking: booking,
+                transaction: transaction
             },
         });
     } catch (error) {

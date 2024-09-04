@@ -74,7 +74,8 @@ app.get("/api/v1", (req, res) => {
 
 const server = http.createServer(app);
 
-db.connectDb();
+await db.connectDb();
+
 
 cron.schedule('*/2 * * * *', async () => {
     console.log('Calling ourSpace API every 2 minutes'.green);
