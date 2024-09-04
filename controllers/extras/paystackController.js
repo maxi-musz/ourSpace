@@ -1,49 +1,85 @@
 import axios from 'axios';
 import Transaction from '../../models/transactionsModel.js';
 import sendEmail from '../../utils/sendMail.js';
+import Booking from '../../models/bookingsModel.js';
+import Listing from '../../models/listingModel.js';
+import asyncHandler from '../../middleware/asyncHandler.js';
 
-export const initializeTransaction = async (req, res) => {
-    console.log("Paystack payment initialised".bgGreen);
+export const initializeTransaction = asyncHandler(async (req, res) => {
+    console.log("Initializing Paystack payment...".green);
 
-    const { email, amountInNaira, callBackUrl } = req.body;
-    const amountInKobo = amountInNaira * 100; // Convert to kobo
+    const { email, amountInNaira, callBackUrl, userId, listingId, newBookedDays, firstName, lastName, phoneNumber } = req.body;
 
-    const { userId, listingId } = req.query;
+    // Input validation
+    if (!email || !amountInNaira || !callBackUrl || !userId || !listingId) {
+        return res.status(400).json({
+            success: false,
+            message: 'All fields (email, amountInNaira, callBackUrl, userId, listingId and newBookedDays are required.',
+        });
+    }
+
+    const amountInKobo = amountInNaira * 100;
+
+    // Retrieve listing from database
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+        console.log("Listing not found".red)
+        return res.status(404).json({
+            success: false,
+            message: 'Listing not found.',
+        });
+    }
+
+    const conflictingDates = listing.bookedDays.filter(date => newBookedDays.includes(date));
+
+    if (conflictingDates.length > 0) {
+        console.log("Some of the selected dates are already booked".red)
+        return res.status(400).json({
+            success: false,
+            message: 'Some of the selected dates are already booked.',
+            data: { conflictingDates }
+        });
+    }
 
     try {
         const response = await axios.post(
             'https://api.paystack.co/transaction/initialize',
             {
                 email,
-                amount: amountInKobo, // Use amountInKobo
-                callback_url: callBackUrl // Ensure this is set correctly
+                amount: amountInKobo,
+                first_name: firstName,
+                last_name: lastName,
+                phone: phoneNumber,
+                callback_url: callBackUrl
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.TEST_SECRET_KEY}`, // Ensure this is set correctly
+                    Authorization: `Bearer ${process.env.TEST_SECRET_KEY}`,
                     'Content-Type': 'application/json',
                 },
             }
         );
 
-        // Extract necessary details from Paystack response
         const { authorization_url, access_code, reference } = response.data.data;
 
-        // Saving the Paystack response to the database
+        console.log(`Amount: ${amountInKobo}`)
+
         await Transaction.create({
             user: userId,
             listing: listingId,
             email,
-            amount: amountInKobo, // Store amount in kobo
+            amount: amountInKobo / 100,
             access_code,
-            reference
+            reference,
+            status: 'initialized'
         });
 
-        console.log(`Transaction amount of: ${amountInKobo} initialised`.america);
+        console.log(`Transaction initialized for amount: ₦${amountInNaira}`.cyan);
 
         res.status(200).json({
             success: true,
-            message: `Transaction amount of: ${amountInKobo} initialised`,
+            message: `Transaction initialized successfully.`,
             data: {
                 authorization_url,
                 access_code,
@@ -51,13 +87,13 @@ export const initializeTransaction = async (req, res) => {
             },
         });
     } catch (error) {
-        console.log("Error:", error.response ? error.response.data.message : error.message);
+        console.error("Error initializing transaction:", error.message);
         res.status(500).json({
-            status: 'error',
-            message: error.response ? error.response.data.message : error.message,
+            success: false,
+            message: 'Failed to initialize transaction. Please try again later.',
         });
     }
-};
+});
 
 export const handleWebhook = async (req, res) => {
     const event = req.body;
@@ -98,11 +134,44 @@ export const handleWebhook = async (req, res) => {
     }
 };
 
-export const verifyTransaction = async (req, res) => {
-    console.log("Verifying transaction")
-    const { reference } = req.query;
+export const verifyTransaction = asyncHandler(async (req, res) => {
+    console.log("Verifying transaction...".green);
+
+    const {
+        reference,
+        userId,
+        listingId,
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+        bookingForSomeone,
+        newBookedDays,
+        totalGuest,
+        discount
+    } = req.body;
+
+    // Input validation
+    if (
+        !reference ||
+        !userId ||
+        !listingId ||
+        !firstName ||
+        !lastName ||
+        !email ||
+        !phoneNumber ||
+        !newBookedDays ||
+        !totalGuest
+    ) {
+        console.log("reference, userId, listingId, firstName, lastName,email,phoneNumber, newBookedDays,totalGuests fields must be provided")
+        return res.status(400).json({
+            success: false,
+            message: 'reference, userId, listingId, firstName, lastName,email,phoneNumber, newBookedDays,totalGuests fields must be provided'
+        });
+    }
 
     try {
+        // Verify transaction with Paystack
         const response = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
             {
@@ -112,39 +181,85 @@ export const verifyTransaction = async (req, res) => {
             }
         );
 
-        const { status, amount } = response.data.data;
-        
-        // Find the transaction by reference and verify the amount
-        const transaction = await Transaction.findOne({ reference });
-        console.log(`Amount to be paid: ${transaction.amount}\nAmount paid: ${amount}`.blue)
+        const { status: paystackStatus, amount: paystackKoboAmount, customer } = response.data.data;
 
-        if (transaction && transaction.amount === amount) {
-            await Transaction.findOneAndUpdate(
-                { reference },
-                { status }
-            );
-
-            // Deliver the value to the customer (e.g., activate booking, provide access, etc.)
-            // deliverValueToCustomer(transaction);
-
-            res.status(200).json({
-                status: 'success',
-                message: 'Transaction verified',
-                data: response.data.data,
-            });
-        } else {
-            res.status(400).json({
-                status: 'error',
-                message: 'Transaction verification failed',
+        if (paystackStatus !== 'success') {
+            console.log("Payment failed".red)
+            return res.status(400).json({
+                success: false,
+                message: 'Payment was not successful.',
             });
         }
+
+        // Retrieve transaction from database
+        const transaction = await Transaction.findOne({ reference });
+
+        if (!transaction) {
+            console.log("Payment was successful but transaction wasn notfound in database".red)
+            return res.status(404).json({
+                success: false,
+                message: 'Payment was successful but transaction wasn notfound in database.',
+            });
+        }
+
+        if (transaction.status === 'success') {
+            console.log("Transaction has already been verified".bgRed)
+            return res.status(400).json({
+                success: false,
+                message: 'Transaction has already been verified.',
+            });
+        }
+
+        const normalAmount = paystackKoboAmount / 100
+
+        if (transaction.amount !== normalAmount) {
+            return res.status(400).json({
+                success: false,
+                message: 'Paid amount does not match expected amount.',
+            });
+        }
+
+        const listing = await Listing.findById(listingId);
+
+        transaction.status = 'success';
+        await transaction.save();
+
+        // Create booking
+        const newBooking = await Booking.create({
+            user: userId,
+            listing: listingId,
+            firstName,
+            lastName,
+            email,
+            phoneNumber,
+            bookingForSomeone,
+            bookedDays: newBookedDays,
+            totalGuest,
+            amount: normalAmount, // Convert back to Naira
+            discount: discount || 0
+        });
+
+        listing.bookedDays = [...listing.bookedDays, ...newBookedDays];
+        await listing.save();
+
+        console.log("Transaction verified and booking created successfully.".cyan);
+
+        res.status(200).json({
+            success: true,
+            message: 'Transaction verified and booking created successfully.',
+            data: {
+                booking: newBooking,
+                transaction
+            },
+        });
     } catch (error) {
+        console.error("Error verifying transaction:", error.message);
         res.status(500).json({
-            status: 'error',
-            message: error.response ? error.response.data.message : error.message,
+            success: false,
+            message: 'An error occurred while verifying the transaction.',
         });
     }
-};
+});
 
 export const handleCallback = async (req, res) => {
     const { reference } = req.query;

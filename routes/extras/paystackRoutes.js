@@ -9,5 +9,5 @@ router.post('/initialize', initializeTransaction);
 router.post('/webhook', handleWebhook);
 
 // Route to verify a transaction (for manual verification)
-router.get('/verify', verifyTransaction);
+router.post('/verify', verifyTransaction);
 export default router;
