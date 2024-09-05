@@ -17,7 +17,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
 
     // Input validation
 
-    if(!email || !amountInNaira || !callBackUrl || !listingId || !newBookedDays || !firstName || !lastName || !phoneNumber || !bookingForSomeone ||!totalGuest) {
+    if(!email || !amountInNaira || !callBackUrl || !listingId || !newBookedDays || !firstName || !lastName || !phoneNumber ||!totalGuest) {
         console.log("All fields are required".red)
         res.status(400).json({
             success: false,
