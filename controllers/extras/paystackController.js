@@ -107,7 +107,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
                 authorization_url,
                 access_code,
                 reference,
-                callBackWithReference,  
+                callBackWithReference,
                 booking: newBooking
             },
         });
@@ -115,7 +115,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         console.error("Error initializing transaction:", error.message);
         res.status(500).json({
             success: false,
-            message: 'Failed to initialize transaction. Please try again later.',
+            message: 'Failed to initialize transaction.', error,
         });
     }
 });
