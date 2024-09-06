@@ -18,6 +18,7 @@ import listingsRoute from "./routes/listingsRoutes/listingsRoute.js";
 import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import userSettingsR from "./routes/settingsRoute/userSettingsR.js"
+import profileRoutes from "./routes/profileRoutes/profileRoutes.js"
 
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 
@@ -101,6 +102,8 @@ app.use("/api/v1/waitlist", waitlistRoutes);
 app.use("/api/v1/users", authRoutes);
 app.use("/api/v1/listing", listingsRoute);
 app.use("/api/v1/settings", userSettingsR);
+app.use("/api/v1/profile", profileRoutes);
+
 
 
 // Admin routes

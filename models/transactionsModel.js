@@ -11,11 +11,15 @@ const transactionSchema = new mongoose.Schema({
         ref: 'Listing',
         required: true
     },
+    booking: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Booking',
+        required: true
+    },
     email: { type: String, required: true },
     amount: { type: Number, required: true },
-    access_code: { type: String, required: true },
-    reference: { type: String, required: true },
-    status: { type: String, default: 'pending' },
+    
+    status: { type: String, enum: ['pending', 'success'], default: 'pending' },
     createdAt: { type: Date, default: Date.now }
 });
 
