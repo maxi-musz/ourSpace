@@ -86,7 +86,7 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
     const bookings = await Booking.find(filter)
         .populate({
             path: 'listing',
-            select: 'propertyId propertyName propertyLocation livingRoomPictures',
+            select: 'propertyId propertyName propertyLocation livingRoomPictures chargePerNight bedroomTotal totalGuestsAllowed',
         });
 
     if (bookings.length < 1) {
@@ -98,13 +98,18 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
     }
 
     const formattedBookings = bookings.map(booking => ({
+        id: booking.listing._id,
         propertyId: booking.listing.propertyId,
         propertyName: booking.listing.propertyName,
         propertyLocation: booking.listing.propertyLocation,
         bookingStatus: booking.bookingStatus,
+        chargePerNight: booking.listing.chargePerNight,
+        bedroomTotal: booking.listing.bedroomTotal,
+        totalGuestsAllowed: booking.listing.totalGuestsAllowed, 
         propertyImage: booking.listing.livingRoomPictures[0],
         timestamp: booking.createdAt,
     }));
+    console.log(formattedBookings.price)
     
 
     console.log(`Total of ${bookings.length} bookings found`.magenta);
