@@ -11,14 +11,18 @@ const bookingSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    status: {
+    paystackAccessCode: { type: String, required: true },
+    paystackReference: { type: String, required: true },
+    paystackPaymentStatus: {
         type: String,
         enum: ['pending', 'success'],
         default: 'pending',
         required: true
     },
-    paystackRef: {
+    bookingStatus: {
         type: String,
+        enum: ['pending','upcoming', 'in-progress','completed', "cancelled"],
+        default: 'pending',
         required: true
     },
     firstName: {

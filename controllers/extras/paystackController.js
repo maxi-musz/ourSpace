@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Transaction from '../../models/transactionsModel.js';
 import sendEmail from '../../utils/sendMail.js';
-import Booking from '../../models/bookingsModel.js';
+import Booking from '../../models/bookingModel.js';
 import Listing from '../../models/listingModel.js';
 import asyncHandler from '../../middleware/asyncHandler.js';
 
@@ -72,20 +72,13 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
 
         const callBackWithReference = `${callBackUrl}?reference=${reference}`;
 
-        await Transaction.create({
-            user: userId,
-            listing: listingId,
-            email,
-            amount: amountInKobo / 100,
-            access_code,
-            reference,
-            status: 'initialized'
-        });
-
         const newBooking = await Booking.create({
             user: userId,
             listing: listingId,
             paystackRef: reference,
+            paystackAccessCode: access_code,
+            paystackReference: reference,
+            paystackPaymentStatus: "pending",
             firstName,
             lastName,
             email,
@@ -96,6 +89,8 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             amount: amountInNaira,
             discount: discount || 0
         });
+
+        await newBooking.save()
         
 
         console.log(`Transaction initialized for amount: ₦${amountInNaira}`.cyan);
@@ -108,7 +103,6 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
                 access_code,
                 reference,
                 callBackWithReference,
-                booking: newBooking
             },
         });
     } catch (error) {
@@ -160,23 +154,15 @@ export const handleWebhook = async (req, res) => {
 export const verifyTransaction = asyncHandler(async (req, res) => {
     console.log("Verifying transaction...".green);
 
-    const {
-        reference,
-        listingId,
-    } = req.body;
-
-    const userId = req.user
+    const { reference, listingId } = req.body;
+    const userId = req.user;
 
     // Input validation
-    if (
-        !reference ||
-        !userId ||
-        !listingId 
-    ) {
-        console.log("reference, userId, listingId fields must be provided")
+    if (!reference || !userId || !listingId) {
+        console.log("Reference, userId, and listingId fields must be provided");
         return res.status(400).json({
             success: false,
-            message: 'reference, userId, listingId fields must be provided'
+            message: 'Reference, userId, and listingId fields must be provided'
         });
     }
 
@@ -191,100 +177,94 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             }
         );
 
-        console.log("checking response".grey)
         const { status: paystackStatus, amount: paystackKoboAmount, customer } = response.data.data;
-        console.log("Response checked".grey)
 
         if (paystackStatus !== 'success') {
-            console.log("Payment failed".red)
+            console.log("Payment failed".red);
             return res.status(400).json({
                 success: false,
                 message: 'Payment was not successful.',
             });
         }
 
-        // Retrieve transaction from database
-        const transaction = await Transaction.findOne({ reference });
+        const booking = await Booking.findOne({ paystackReference: reference });
 
-        if (!transaction) {
-            console.log("Payment was successful but transaction wasn notfound in database".red)
+        if (!booking) {
+            console.log("Payment was successful, but the booking was not found in the database".red);
             return res.status(404).json({
                 success: false,
-                message: 'Payment was successful but transaction wasn notfound in database.',
+                message: 'Payment was successful, but the booking was not found in the database.',
             });
         }
 
-        if (transaction.status === 'success') {
-            console.log("Transaction has already been verified".bgRed)
+        if (booking.paystackPaymentStatus === 'success') {
+            console.log("booking has already been verified as successful".bgRed);
             return res.status(400).json({
                 success: false,
-                message: 'Transaction has already been verified.',
+                message: 'Transaction has already been verified as successful.',
             });
         }
 
-        const normalAmount = paystackKoboAmount / 100
+        const normalAmount = paystackKoboAmount / 100;
 
-        console.log(`Transaction amount:${transaction.amount}\nNormal amount: ${normalAmount}`.cyan)
-
-        if (transaction.amount !== normalAmount) {
+        if (booking.amount !== normalAmount) {
+            console.log("Paid amount does not match expected amount.".red)
             return res.status(400).json({
                 success: false,
                 message: 'Paid amount does not match expected amount.',
             });
         }
 
-        const ourspaceEmail = process.env.OUR_SPACE_EMAIL
-        const maximusEmail = process.env.MAXIMUS_EMAIL
+        const ourspaceEmail = process.env.OUR_SPACE_EMAIL;
+        const maximusEmail = process.env.MAXIMUS_EMAIL;
         const paymentNotificationEmail = `${ourspaceEmail}, ${maximusEmail}`;
+        
         await sendEmail(
             maximusEmail,
             "Ourspace bookings payment",
             `A new payment of #${normalAmount} was made by ${customer.email}.`
-        )
-        console.log("payment confirmed and email sent".cyan)
+        );
+        console.log("Payment confirmed, and email sent".cyan);
 
-        transaction.status = 'success';
-        await transaction.save();
+        // Update transaction status to 'success'
+        booking.paystackPaymentStatus = 'success';
+        booking.bookingStatus = 'upcoming';
+        await booking.save();
 
-        // Create booking
-        const booking = await Booking.findOne({paystackRef: reference})
-
-        if(!booking) {
-            console.log("Booking not found".red)
+        if (!booking) {
+            console.log("Booking not found".red);
             return res.status(400).json({
                 success: false,
                 message: "No booking with reference found"
-            })
+            });
         }
-        console.log("Booking found, updating status...".blue)
-        booking.status = "success"
-        await booking.save()
 
         const listing = await Listing.findById(listingId);
 
-        if(!listing) {
-            console.log("Listing not found".red)
+        if(listing) {
+            
+            const newBookedDays = booking.bookedDays;
+            listing.bookedDays = [...listing.bookedDays, ...newBookedDays];
+            await listing.save();
+
+            console.log("Transaction verified, listing and booking details updated successfully.".cyan);
+
+            // Final response
+            res.status(200).json({
+                success: true,
+                message: 'Transaction verified, listing and booking details updated successfully.',
+                data: {
+                    booking,
+                },
+            });
+        } else {
+            console.log("Listing not found, unable to update booked days".red);
             return res.status(400).json({
                 success: false,
-                message: "No Listing found"
-            })
+                message: "Listing not found, unable to update booked days"
+            });
         }
 
-        const newBookedDays = booking.bookedDays
-
-        listing.bookedDays = [...listing.bookedDays, ...newBookedDays];
-        await listing.save();
-
-        console.log("Transaction verified, listing and booking details updated successfully.".cyan);
-
-        res.status(200).json({
-            success: true,
-            message: 'Transaction verified, listing and booking details updated successfully..',
-            data: {
-                booking: booking,
-                transaction: transaction
-            },
-        });
     } catch (error) {
         console.error("Error verifying transaction:", error.message);
         res.status(500).json({
@@ -293,6 +273,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
         });
     }
 });
+
 
 export const handleCallback = async (req, res) => {
     const { reference } = req.query;

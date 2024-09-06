@@ -3,7 +3,7 @@ import asyncHandler from "../../middleware/asyncHandler.js";
 import Listing from "../../models/listingModel.js";
 import cloudinaryConfig from "../../uploadUtils/cloudinaryConfig.js";
 import formatListingData from "../../utils/formatListingData.js"
-import Booking from '../../models/bookingsModel.js';
+import Booking from '../../models/bookingModel.js';
 
 const getCoordinates = async (address) => {
   try {
