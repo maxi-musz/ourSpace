@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
 const notificationSchema = new mongoose.Schema({
-    listing: {
+    user: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'Listing',
+        ref: 'User',
     },
 
     title: {
@@ -13,8 +13,11 @@ const notificationSchema = new mongoose.Schema({
     },
     subTitle: {
         type: String,
-        required: true
+        required: true 
     },
+    displayImage: {
+        type: String
+    }
 },{
     timestamps : true
 })

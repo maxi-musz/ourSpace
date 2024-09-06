@@ -4,6 +4,7 @@ import sendEmail from '../../utils/sendMail.js';
 import Booking from '../../models/bookingModel.js';
 import Listing from '../../models/listingModel.js';
 import asyncHandler from '../../middleware/asyncHandler.js';
+import Notification from '../../models/notificationModel.js';
 
 export const initializeTransaction = asyncHandler(async (req, res) => {
     console.log("Initializing Paystack payment...".green);
@@ -239,7 +240,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        const listing = await Listing.findById(listingId);
+        const listing = await Listing.findById(listingId).populate('user');
 
         if(listing) {
             
@@ -249,7 +250,18 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
 
             console.log("Transaction verified, listing and booking details updated successfully.".cyan);
 
-            // Final response
+            const listingOwner = listing.user;
+            const displayImage = listingOwner.profilePic || '';
+
+            // create a new notification
+            await Notification.create({
+                title: listing.propertyName,
+                subTitle: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
+                displayImage: displayImage
+            });
+
+            console.log("Notification created successfully.".green);
+
             res.status(200).json({
                 success: true,
                 message: 'Transaction verified, listing and booking details updated successfully.',
