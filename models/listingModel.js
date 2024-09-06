@@ -244,8 +244,6 @@ const listingsSchema = new mongoose.Schema({
     },
     maximumGuestNumber: numberOfGuestsSchema,
 
-    funPlacesNearby: [String],
-
 }, {
   timestamps: true
 });

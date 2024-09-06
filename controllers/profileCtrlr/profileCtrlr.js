@@ -3,11 +3,13 @@ import User from "../../models/userModel.js";
 import Notification from "../../models/notificationModel.js";
 import Booking from "../../models/bookingModel.js"
 
-const getSpaceUserDashboard = asyncHandler(async (req, res) => {
-    console.log("Getting space user dashboard".yellow)
-    const userId = req.user; 
-    try {
 
+const getSpaceUserDashboard = asyncHandler(async (req, res) => {
+    console.log("Getting space user dashboard".yellow);
+
+    const userId = req.user;
+
+    try {
         const user = await User.findById(userId).select('-password');
         if (!user) {
             return res.status(404).json({
@@ -18,10 +20,26 @@ const getSpaceUserDashboard = asyncHandler(async (req, res) => {
 
         const notifications = await Notification.find({ user: userId });
 
-        const upcomingBookings = await Booking.find({ 
-            user: userId, 
-            bookingStatus: 'upcoming' 
+        const upcomingBookings = await Booking.find({
+            user: userId,
+            bookingStatus: 'upcoming',
+        })
+        .populate({
+            path: 'listing',
+            select: 'propertyId propertyName propertyLocation livingRoomPictures propertyLocation',
         });
+
+        // Map through upcomingBookings correctly
+        const formattedUpcomings = upcomingBookings.map(upcoming => ({
+            propertyName: upcoming.listing.propertyName,
+            bookingStatus: upcoming.bookingStatus,
+            status: upcoming.paystackPaymentStatus,
+            apartmentNumber: upcoming.listing.propertyLocation.apartmentNumber,
+            propertyImage: upcoming.listing.livingRoomPictures.length > 0 
+                ? upcoming.listing.livingRoomPictures[0] 
+                : 'default-image-url', // Fallback for missing images
+            timestamp: upcoming.createdAt,
+        }));
 
         res.status(200).json({
             success: true,
@@ -29,9 +47,10 @@ const getSpaceUserDashboard = asyncHandler(async (req, res) => {
             data: {
                 user,
                 notifications,
-                upcomingBookings
+                upcomingBookings: formattedUpcomings
             },
         });
+
     } catch (error) {
         console.error('Error fetching user dashboard:', error.message);
         res.status(500).json({
@@ -41,16 +60,17 @@ const getSpaceUserDashboard = asyncHandler(async (req, res) => {
     }
 });
 
+
 const getAllSUBookings = asyncHandler(async (req, res) => {
     console.log("Getting all space user bookings".yellow);
 
     const user = req.user;
-    const { bookingStatus } = req.query; 
+    const { bookingStatus } = req.query;
 
     const allowedStatuses = ['pending', 'upcoming', 'in-progress', 'completed', 'cancelled'];
 
     if (bookingStatus && !allowedStatuses.includes(bookingStatus)) {
-        console.log(`Invalid bookingStatus. Allowed values are: ${allowedStatuses.join(', ')}.`.red)
+        console.log(`Invalid bookingStatus. Allowed values are: ${allowedStatuses.join(', ')}.`.red);
         return res.status(400).json({
             success: false,
             message: `Invalid bookingStatus. Allowed values are: ${allowedStatuses.join(', ')}.`,
@@ -63,7 +83,11 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
         filter.bookingStatus = bookingStatus;
     }
 
-    const bookings = await Booking.find(filter);
+    const bookings = await Booking.find(filter)
+        .populate({
+            path: 'listing',
+            select: 'propertyId propertyName propertyLocation livingRoomPictures',
+        });
 
     if (bookings.length < 1) {
         console.log("Total of 0 bookings found".red);
@@ -73,15 +97,66 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
         });
     }
 
+    const formattedBookings = bookings.map(booking => ({
+        propertyId: booking.listing.propertyId,
+        propertyName: booking.listing.propertyName,
+        propertyLocation: booking.listing.propertyLocation,
+        bookingStatus: booking.bookingStatus,
+        propertyImage: booking.listing.livingRoomPictures[0],
+        timestamp: booking.createdAt,
+    }));
+    
+
     console.log(`Total of ${bookings.length} bookings found`.magenta);
     return res.status(200).json({
         success: true,
         message: `Total of ${bookings.length} bookings found`,
-        data: bookings,
+        data: formattedBookings,
     });
 });
 
 
+
+const getAllNotifications = asyncHandler(async(req, res)=> {
+    console.log("getting all notifications for user ".yellow)
+
+    const user = req.user
+
+    if(!user) {
+        console.log("User not found".red)
+        return res.status(400).json({
+            success: false,
+            message: "User not found"
+        })
+    }
+
+    try {
+
+        const notifications = await Notification.find({user})
+
+        if(notifications.length < 1) {
+            console.log("Total of 0 notifications found".red)
+            return res.status(200).json({
+                success: true,
+                message: "Total of 0 notificatons found"
+            })
+        }
+
+        console.log(`Total of ${notifications.length} found`.red)
+        return res.status(200).json({
+            success: true,
+            message: `Total of ${notifications.length} found`,
+            data: notifications
+        })
+        
+    } catch (error) {
+        console.log("Error gettingnotifications", error)
+        res.status(400).json({
+            success: false,
+            message: "Error gettingnotifications", error
+        })
+    }
+})
 
 const format = asyncHandler(async(req, res)=> {
     console.log("getting all space user bookings".yellow)
@@ -91,5 +166,6 @@ const format = asyncHandler(async(req, res)=> {
 
 export {
     getSpaceUserDashboard,
-    getAllSUBookings
+    getAllSUBookings,
+    getAllNotifications
 }
