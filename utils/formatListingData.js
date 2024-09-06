@@ -14,7 +14,6 @@ const formatListingData = (req) => {
       bedTotal: parseInt(req.body.bedTotal, 10),
       toiletTotal: parseInt(req.body.toiletTotal, 10),
       bathroomTotal: parseInt(req.body.bathroomTotal, 10),
-      // status: req.body.status,
       freeCancellation: req.body.freeCancellation === 'true',
       totalGuestsAllowed: parseInt(req.body.totalGuestsAllowed),
       // maximumGuestNumber: {
@@ -100,18 +99,12 @@ const formatListingData = (req) => {
           ? req.body.availability 
           : req.body.availability 
               ? req.body.availability.split(',') 
-              : [],                                 // List of YYYY-MM-DD strings
+              : [],                                 
       bookedDays: Array.isArray(req.body.bookedDays) 
           ? req.body.bookedDays 
           : req.body.bookedDays 
               ? req.body.bookedDays.split(',') 
-              : [],                                // List of YYYY-MM-DD strings
-
-      // funPlacesNearby: Array.isArray(req.body.funPlacesNearby) 
-      //     ? req.body.funPlacesNearby 
-      //     : req.body.funPlacesNearby 
-      //         ? req.body.funPlacesNearby.split(',') 
-      //         : [],
+              : [],                              
     };
 };
 
