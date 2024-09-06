@@ -55,7 +55,7 @@ const getSpaceUserDashboard = asyncHandler(async (req, res) => {
         console.error('Error fetching user dashboard:', error.message);
         res.status(500).json({
             success: false,
-            message: 'An error occurred while fetching the user dashboard',
+            message: 'An error occurred while fetching the user dashboard',error
         });
     }
 });

@@ -255,6 +255,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
 
             // create a new notification
             await Notification.create({
+                user: userId,
                 title: listing.propertyName,
                 subTitle: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
                 displayImage: displayImage
