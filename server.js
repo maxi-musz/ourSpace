@@ -16,7 +16,7 @@ import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/userRoutes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoutes/listingsRoute.js";
 import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
-import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
+// import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import userSettingsR from "./routes/settingsRoute/userSettingsR.js"
 import profileRoutes from "./routes/profileRoutes/profileRoutes.js"
 
