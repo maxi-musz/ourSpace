@@ -16,7 +16,7 @@ import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/userRoutes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoutes/listingsRoute.js";
 import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
-import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
+// import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";d
 import userSettingsR from "./routes/settingsRoute/userSettingsR.js"
 import profileRoutes from "./routes/profileRoutes/profileRoutes.js"
 
@@ -77,26 +77,28 @@ const server = http.createServer(app);
 
 await db.connectDb();
 
+if(process.env.NODE_ENV === "production") {
+    cron.schedule('*/2 * * * *', async () => {
+        console.log('Calling ourSpace API every 2 minutes'.green);
+        try {
+            const response = await axios.get('https://ourspace-0ggk.onrender.com/api/v1');
+            console.log('Response from ourSpace API:', response.data);
+        } catch (error) {
+            console.error('Error calling ourSpace API:', error.message);
+        }
+    });
+    
+    //24hrs
+    cron.schedule('0 0 * * *', async () => {
+        console.log('Running getWaitlistsAsCsv every 24 hours'.green);
+        try {
+            await getWaitlistsAsCsv();
+        } catch (error) {
+            console.error('Error executing getWaitlistsAsCsv:', error.message);
+        }
+    });
+}
 
-cron.schedule('*/2 * * * *', async () => {
-    console.log('Calling ourSpace API every 2 minutes'.green);
-    try {
-        const response = await axios.get('https://ourspace-0ggk.onrender.com/api/v1');
-        console.log('Response from ourSpace API:', response.data);
-    } catch (error) {
-        console.error('Error calling ourSpace API:', error.message);
-    }
-});
-
-//24hrs
-cron.schedule('0 0 * * *', async () => {
-    console.log('Running getWaitlistsAsCsv every 24 hours'.green);
-    try {
-        await getWaitlistsAsCsv();
-    } catch (error) {
-        console.error('Error executing getWaitlistsAsCsv:', error.message);
-    }
-});
 
 app.use("/api/v1/waitlist", waitlistRoutes);
 app.use("/api/v1/users", authRoutes);
