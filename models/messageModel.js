@@ -15,7 +15,7 @@ const messageSchema = new mongoose.Schema({
   listing: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Listing',
-    required: true,
+    required: false, // Make this optional if not all messages are tied to a listing
   },
   content: {
     type: String,
@@ -25,7 +25,16 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  isRead: {
+    type: Boolean,
+    default: false, // Track if the message has been read
+  }
+}, {
+  timestamps: true
 });
+
+// Add index for better query performance
+messageSchema.index({ sender: 1, receiver: 1, listing: 1 });
 
 const Message = mongoose.model('Message', messageSchema);
 

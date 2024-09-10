@@ -8,7 +8,6 @@ const formatListingData = (req) => {
       listedOnOtherPlatform: req.body.listedOnOtherPlatform,
       propertyName: req.body.propertyName,
       propertyType: req.body.propertyType,
-      propertyId: req.body.propertyId,
       bedroomTotal: parseInt(req.body.bedroomTotal, 10),
       livingRoomTotal: parseInt(req.body.livingRoomTotal, 10),
       bedTotal: parseInt(req.body.bedTotal, 10),
@@ -24,8 +23,6 @@ const formatListingData = (req) => {
       propertyLocation: {
         address: req.body['propertyLocation.address'],
         city: req.body['propertyLocation.city'],
-        latitude: parseInt(req.body['propertyLocation.latitude']),
-        longitude: parseInt(req.body['propertyLocation.longitude']),
         state: req.body['propertyLocation.state'],
         apartmentNumber: parseInt(req.body['propertyLocation.apartmentNumber'], 10),
         apartmentSize: parseInt(req.body['propertyLocation.apartmentSize'], 10)

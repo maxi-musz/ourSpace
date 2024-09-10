@@ -40,14 +40,14 @@ const createListing = asyncHandler(async (req, res) => {
     const userId = req.user._id.toString();
 
     try {
-        // if(!req.files.bedroomPictures || !req.files.livingRoomPictures ||!req.files.bathroomToiletPictures ||!req.files.kitchenPictures ||!req.files.facilityPictures || !req.files.otherPictures) {
-        //   console.log("One image at least is required from all the image sections".red)
+        if(!req.files.bedroomPictures || !req.files.livingRoomPictures ||!req.files.bathroomToiletPictures ||!req.files.kitchenPictures ||!req.files.facilityPictures || !req.files.otherPictures) {
+          console.log("One image at least is required from all the image sections".red)
 
-        //   return res.status(400).json({
-        //     success: false,
-        //     message: "One image at least is required from all the image sections"
-        //   })
-        // }
+          return res.status(400).json({
+            success: false,
+            message: "One image at least is required from all the image sections"
+          })
+        }
 
         console.log('Formatting listings');
 
@@ -65,17 +65,6 @@ const createListing = asyncHandler(async (req, res) => {
         let kitchenPictures = [];
         let facilityPictures = [];
         let otherPictures = [];
-
-        if(!req.files.bedroomPictures || !req.files.livingRoomPictures ||!req.files.bathroomToiletPictures ||!req.files.kitchenPictures ||!req.files.facilityPictures || !req.files.otherPictures) {
-          console.log("One image at least is required from all the image sections".red)
-
-          return res.status(400).json({
-            success: false,
-            message: "One image at least is required from all the image sections"
-          })
-        }
-
-        
 
         if (req.files.bedroomPictures) {
             console.log("Uploading bedroom pictures".grey)
