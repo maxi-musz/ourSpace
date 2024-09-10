@@ -1,5 +1,4 @@
 import axios from 'axios';
-import Transaction from '../../models/transactionsModel.js';
 import sendEmail from '../../utils/sendMail.js';
 import Booking from '../../models/bookingModel.js';
 import Listing from '../../models/listingModel.js';
@@ -312,9 +311,6 @@ export const handleCallback = async (req, res) => {
                 { reference },
                 { status }
             );
-
-            // Deliver the value to the customer (e.g., activate booking, provide access, etc.)
-            // deliverValueToCustomer(transaction);
 
             res.status(200).json({
                 status: 'success',

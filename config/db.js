@@ -22,7 +22,7 @@ async function connectDb() {
   } catch (error) {
     console.log(`Error: ${error.message}`);
     process.exit(1);
-  }
+  } 
 }
 
 async function disconnectDb() {
