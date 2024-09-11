@@ -4,6 +4,8 @@ import Message from "../models/messageModel.js";
 import User from "../models/userModel.js";
 import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 
+                                                                        // Cloudinary upload for pictures videos and voicenotes
+                                                                        
 const uploadMessageMediaToCloudinary = async (items) => {
   return Promise.all(items.map(async (item) => {
     if (typeof item === 'string' && item.startsWith('http')) {
@@ -20,6 +22,17 @@ const uploadMessageMediaToCloudinary = async (items) => {
       };
     }
   }));
+};
+// Voice notes
+const uploadVoiceNoteToCloudinary = async (voiceNote) => {
+  const result = await cloudinaryConfig.uploader.upload(voiceNote.path, {
+    folder: 'ourSpace/voice-notes',
+    resource_type: 'video', // Cloudinary treats audio files as video
+  });
+  return {
+    secure_url: result.secure_url,
+    public_id: result.public_id
+  };
 };
 
 const sendMessage = asyncHandler(async (req, res) => {
@@ -38,6 +51,14 @@ const sendMessage = asyncHandler(async (req, res) => {
     }
 
     let messageMedia = [];
+    let voiceNoteUrl = null;
+
+    const voiceNoteFile = req.files.voiceNote;
+
+    if(voiceNoteFile) {
+      voiceNoteUrl = await uploadVoiceNoteToCloudinary(voiceNoteFile)
+      console.log("Voice note successfully uploaded to cloudinary")
+    }
 
     // Handle media upload
     if (req.files) {
