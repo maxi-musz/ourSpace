@@ -23,6 +23,8 @@ const uploadMessageMediaToCloudinary = async (items) => {
 };
 
 const sendMessage = asyncHandler(async (req, res) => {
+  console.log("Sending a new message".yellow);
+
   try {
     const sender = req.user;
     const { listing, content, receiver } = req.body;
@@ -50,12 +52,12 @@ const sendMessage = asyncHandler(async (req, res) => {
     }
 
     // Create and save the message
-    const newMessage = new Message({ 
-      sender: sender._id, 
-      receiver: receiverUser._id, 
-      listing: propertyListing ? propertyListing._id : null, 
-      content, 
-      messageMedia 
+    const newMessage = new Message({
+      sender: sender._id,
+      receiver: receiverUser._id,
+      listing: propertyListing ? propertyListing._id : null,
+      content,
+      messageMedia,
     });
     await newMessage.save();
 
@@ -72,10 +74,9 @@ const sendMessage = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error("Error sending message:", error);
-    res.status(500).json({ message: "Error sending message", error });
+    res.status(500).json({ message: error.message });
   }
 });
-
 
 const getMessages = asyncHandler(async (req, res) => {
   try {

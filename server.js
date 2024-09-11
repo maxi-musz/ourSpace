@@ -11,8 +11,8 @@ import axios from "axios";
 import MongoStore from 'connect-mongo';
 import colors from "colors";
 import http from "http";
-import configureSocketIO from "./config/socketConfig.js";
 import { Server } from "socket.io";
+import configureSocketIO from "./config/socketConfig.js";
 
 import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/userRoutes/authRoutes.js";
@@ -21,21 +21,18 @@ import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import userSettingsR from "./routes/settingsRoute/userSettingsR.js"
 import profileRoutes from "./routes/profileRoutes/profileRoutes.js";
-import messageRoutes from "./routes/messageRoutes.js"
-
+import messageRoutes from "./routes/messageRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 
 // Admin Routes
-import adminDashboardR from "./routes/adminRoutes/adminDashboardR.js"
-import waitlistAdminRoute from "./routes/adminRoutes/waitlistAdminRoute.js"
+import adminDashboardR from "./routes/adminRoutes/adminDashboardR.js";
+import waitlistAdminRoute from "./routes/adminRoutes/waitlistAdminRoute.js";
 import authAdminR from "./routes/adminRoutes/authAdminR.js";
 import usersAdminR from "./routes/adminRoutes/usersAdminR.js";
 import listingsAdminR from "./routes/adminRoutes/listingsAdminR.js";
 
-
-
-
 dotenv.config();
+await db.connectDb();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -75,27 +72,22 @@ app.get("/api/v1", (req, res) => {
     res.send("ourSpace API is running");
 });
 
-
 // Socket.IO connection setup
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 
-io.on('connection', (socket) => {
-    console.log('New client connected:', socket.id);
-  
-    // Joining a room
-    socket.on('join', (userId) => {
-      socket.join(userId);
-      console.log(`User ${userId} joined room`);
-    });
-  
-    // Handle disconnect
-    socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
-    });
-  });
+app.use((req, res, next) => {
+  req.io = io; 
+  next();
+});
 
-await db.connectDb();
+configureSocketIO(io);
+
 
 
 if(process.env.NODE_ENV === "production") {
@@ -125,22 +117,18 @@ app.use("/api/v1/users", authRoutes);
 app.use("/api/v1/listing", listingsRoute);
 app.use("/api/v1/settings", userSettingsR);
 app.use("/api/v1/profile", profileRoutes);
-app.use("/api/v1/messages", messageRoutes)
-
-
+app.use("/api/v1/messages", messageRoutes);
 
 // Admin routes
-app.use("/api/v1/admin/dashboard", adminDashboardR)
+app.use("/api/v1/admin/dashboard", adminDashboardR);
 app.use("/api/v1/admin/waitlist", waitlistAdminRoute);
 app.use("/api/v1/admin/auth", authAdminR);
 app.use("/api/v1/admin/users", usersAdminR);
 app.use("/api/v1/admin/listings", listingsAdminR);
 
-configureSocketIO(server);
-app.use("/api/v1/messaging", messageRoutes)
 
+app.use("/api/v1/messaging", messageRoutes);
 app.use('/api/v1/paystack', paystackRoutes);
-
 
 app.use("*", (req, res, next) => {
     console.log("Route not found");

@@ -1,34 +1,24 @@
-// socketConfig.js
-
 import { Server } from "socket.io";
 import Message from "../models/messageModel.js";
 
-
-const configureSocketIO = (server) => {
-  const io = new Server(server, {
-    cors: {
-      origin: "http://your-frontend-url",
-      methods: ["GET", "POST"],
-    },
-  });
-
+const configureSocketIO = (io) => {
   io.on('connection', (socket) => {
-    console.log('A user connected');
+    console.log('A user connected:', socket.id);
 
-    socket.on('joinRoom', ({ listingId, userId }) => {
-      socket.join(listingId);
-      console.log(`User ${userId} joined room ${listingId}`);
+    socket.on('joinRoom', ({ userId }) => {
+      socket.join(userId);
+      console.log(`User ${userId} joined room`);
     });
 
-    socket.on('sendMessage', async ({ senderId, receiverId, listingId, content }) => {
-      const message = new Message({ sender: senderId, receiver: receiverId, listing: listingId, content });
+    socket.on('sendMessage', async ({ senderId, receiverId, content, messageMedia }) => {
+      const message = new Message({ sender: senderId, receiver: receiverId, content, messageMedia });
       await message.save();
 
-      io.to(listingId).emit('receiveMessage', message);
+      io.to(receiverId).emit('receiveMessage', message); // Correct the emit event for the receiver
     });
 
     socket.on('disconnect', () => {
-      console.log('A user disconnected');
+      console.log('A user disconnected:', socket.id);
     });
   });
 };
