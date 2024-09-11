@@ -104,62 +104,113 @@ const getAllMessages = asyncHandler(async (req, res) => {
   try {
     const currentUserId = req.user._id;
 
-    // I will aggregate messages, grouping by sender and retrieving the latest message from each sender
+    // Find successful bookings for the user, sorted by the most recent booking
+    const successfulBookings = await Booking.find({
+      user: currentUserId,
+      bookingStatus: 'success',
+    })
+      .sort({ bookingDate: -1 }) // Sort by the most recent booking
+      .populate({
+        path: 'listing',
+        select: 'apartmentName bedroomPictures',
+      });
+
+    // Ensure there's at least one successful booking
+    if (successfulBookings.length === 0) {
+      return res.status(404).json({ success: false, message: 'No successful bookings found' });
+    }
+
+    // Get the most recent booking
+    const latestBooking = successfulBookings[0]; // This gives us the most recent booking
+
+    // Extract property details from the latest booking
+    const propertyName = latestBooking.listing.apartmentName;
+    const listingImage = latestBooking.listing.bedroomPictures.length > 0 
+      ? latestBooking.listing.bedroomPictures[0]  // Directly select the first image URL
+      : null;
+
+    // Aggregation pipeline to get messages
     const messages = await Message.aggregate([
       {
         $match: {
-          $or: [{ sender: currentUserId }, { receiver: currentUserId }]
-        }
+          $or: [{ sender: currentUserId }, { receiver: currentUserId }],
+        },
       },
       {
-        $sort: { timestamp: -1 } // I then sort by the latest message
+        $sort: { timestamp: -1 }, // Sort by latest message
       },
       {
         $group: {
-          _id: "$sender", // Group by sender
-          lastMessage: { $first: "$$ROOT" } // I get the latest message from this group
-        }
+          _id: "$receiver", // Group by receiver or sender
+          lastMessage: { $first: "$$ROOT" }, // Get the latest message
+        },
       },
       {
         $lookup: {
           from: "users",
           localField: "lastMessage.sender",
           foreignField: "_id",
-          as: "senderDetails"
-        }
+          as: "senderDetails",
+        },
       },
       {
-        $unwind: "$senderDetails" // it's required to flatten the senderDetails array
+        $unwind: "$senderDetails", // Unwind sender details
+      },
+      {
+        $lookup: {
+          from: "listings",
+          localField: "lastMessage.listing", // Lookup on the listing field in messages
+          foreignField: "_id",
+          as: "listingDetails",
+        },
+      },
+      {
+        $unwind: { path: "$listingDetails", preserveNullAndEmptyArrays: true }, // In case some messages don't have a listing
       },
       {
         $project: {
-          _id: 0, // excluding the aggregation `_id`
+          _id: 0, // Exclude aggregation _id
           senderFirstName: "$senderDetails.firstName",
           senderLastName: "$senderDetails.lastName",
           senderProfilePic: "$senderDetails.profilePic",
           lastMessageContent: "$lastMessage.content",
           lastMessageMedia: "$lastMessage.messageMedia",
-          lastMessageTimestamp: "$lastMessage.timestamp"
-        }
-      }
+          lastMessageTimestamp: "$lastMessage.timestamp",
+          apartmentName: "$listingDetails.apartmentName", // Include apartment name from listing
+          apartmentImage: { $arrayElemAt: ["$listingDetails.bedroomPictures", 0] }, // Get the first bedroom picture
+        },
+      },
     ]);
 
+    // If no messages found, return property details for the latest booking
     if (!messages.length) {
-      return res.status(404).json({ success: true, message: 'No messages found at the moment' });
+      return res.status(200).json({
+        success: true,
+        message: 'No messages found at the moment',
+        data: [],
+        latestBooking: {
+          propertyName,
+          listingImage,
+        },
+      });
     }
 
+    // Add latest booking details to the message response
     res.status(200).json({
       success: true,
       message: 'Messages retrieved successfully',
       totalChats: messages.length,
-      data: messages
+      data: messages,
+      latestBooking: {
+        propertyName,
+        listingImage,
+      },
     });
   } catch (error) {
     console.error('Error retrieving messages:', error);
     res.status(500).json({ success: false, message: 'Error retrieving messages', error });
   }
 });
-
 
 
 export { sendMessage, getAllMessages };

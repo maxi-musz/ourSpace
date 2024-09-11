@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const mediaSchema = new mongoose.Schema({
-  secure_url: { type: String, required: true },
+  secure_url: { type: String },
   public_id: { type: String }
 });
 
@@ -23,7 +23,6 @@ const messageSchema = new mongoose.Schema({
   },
   content: {
     type: String,
-    required: true,
   },
 
   messageMedia:[mediaSchema],

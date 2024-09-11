@@ -31,17 +31,20 @@ const getSpaceUserDashboard = asyncHandler(async (req, res) => {
             select: 'propertyId propertyName propertyLocation livingRoomPictures propertyLocation',
         });
 
-        // Map through upcomingBookings correctly
-        const formattedUpcomings = upcomingBookings.map(upcoming => ({
-            propertyName: upcoming.listing.propertyName,
-            bookingStatus: upcoming.bookingStatus,
-            status: upcoming.paystackPaymentStatus,
-            apartmentNumber: upcoming.listing.propertyLocation.apartmentNumber,
-            propertyImage: upcoming.listing.livingRoomPictures.length > 0 
-                ? upcoming.listing.livingRoomPictures[0] 
-                : 'default-image-url', // Fallback for missing images
-            timestamp: upcoming.createdAt,
-        }));
+        // Map through upcomingBookings with updated schema
+        const formattedUpcomings = upcomingBookings.map(upcoming => {
+            const livingRoomPictures = upcoming.listing.livingRoomPictures;
+            return {
+                propertyName: upcoming.listing.propertyName,
+                bookingStatus: upcoming.bookingStatus,
+                status: upcoming.paystackPaymentStatus,
+                apartmentNumber: upcoming.listing.propertyLocation.apartmentNumber,
+                propertyImage: livingRoomPictures.length > 0 
+                    ? livingRoomPictures[0].secure_url 
+                    : 'default-image-url', // Fallback for missing images
+                timestamp: upcoming.createdAt,
+            };
+        });
 
         res.status(200).json({
             success: true,
@@ -57,10 +60,12 @@ const getSpaceUserDashboard = asyncHandler(async (req, res) => {
         console.error('Error fetching user dashboard:', error.message);
         res.status(500).json({
             success: false,
-            message: 'An error occurred while fetching the user dashboard',error
+            message: 'An error occurred while fetching the user dashboard',
+            error
         });
     }
 });
+
 
 
 const getAllSUBookings = asyncHandler(async (req, res) => {
