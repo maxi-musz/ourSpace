@@ -407,20 +407,19 @@ const editListing = asyncHandler(async (req, res) => {
 
   // Ensure removedImages is an array
   if (!Array.isArray(removedImages)) {
+    console.log("Removed images should be an array".red)
     return res.status(400).json({
       success: false,
       message: "Removed images should be an array"
     });
   }
 
-  console.log("Removed images:", removedImages);
-
   try {
-    console.log("Deleting images from Cloudinary");
+    console.log("Deleting images from Cloudinary".red);
     await deleteImagesFromCloudinary(removedImages);
 
     // Upload new images
-    console.log("Uploading new images");
+    console.log("Uploading new images".blue);
     const newImages = {
       bedroomPictures: await uploadListingImagesToCloudinary(req.files.bedroomPictures || []),
       livingRoomPictures: await uploadListingImagesToCloudinary(req.files.livingRoomPictures || []),
@@ -430,11 +429,8 @@ const editListing = asyncHandler(async (req, res) => {
       otherPictures: await uploadListingImagesToCloudinary(req.files.otherPictures || [])
     };
 
-    console.log("Latitude: ", req.body.latitude);
-    console.log("Longitude: ", req.body.longitude);
-
     // Update the listing
-    console.log("Updating listing");
+    console.log("Updating listing".green);
     const updatedListing = await Listing.findByIdAndUpdate(
       listingId,
       {
@@ -444,7 +440,7 @@ const editListing = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    console.log("Listing updated successfully:", updatedListing);
+    console.log("Listing updated successfully:".magenta);
 
     res.status(200).json({
       success: true,
@@ -518,7 +514,6 @@ const checkAvailability = asyncHandler(async (req, res) => {
       const { availability, bookedDays, maximumGuestNumber } = listing;
       const checkInDate = new Date(checkIn);
       const checkOutDate = new Date(checkOut);
-      console.log(`check in date: ${checkInDate}\nCheckout date: ${checkOutDate}`)
 
       const checkInToCheckOutDates = [];
       for (let d = new Date(checkInDate); d <= checkOutDate; d.setDate(d.getDate() + 1)) {
@@ -569,6 +564,7 @@ const checkAvailability = asyncHandler(async (req, res) => {
       });
   }
 });
+
 
 export { 
 createListing,

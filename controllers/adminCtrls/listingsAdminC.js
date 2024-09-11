@@ -115,8 +115,6 @@ const uploadListingImagesToCloudinary = async (items) => {
       }
     }));
 };
-
-// const editListing = asyncHandler(async (req, res) => {
 //     const listingId = req.params.id;
 //     const userId = req.user._id.toString();
 
