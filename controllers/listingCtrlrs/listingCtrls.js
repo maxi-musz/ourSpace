@@ -23,14 +23,17 @@ const getCoordinates = async (address) => {
 const uploadListingImagesToCloudinary = async (items) => {
   return Promise.all(items.map(async (item) => {
     if (typeof item === 'string' && item.startsWith('http')) {
-      // The item is an existing URL, return it as is
-      return item;
+     
+      return { secure_url: item, public_id: null };
     } else {
-      // The item is a file, upload it to Cloudinary
+      
       const result = await cloudinaryConfig.uploader.upload(item.path, {
         folder: 'ourSpace/listing-images',
       });
-      return result.secure_url; 
+      return {
+        secure_url: result.secure_url,
+        public_id: result.public_id
+      };
     }
   }));
 };

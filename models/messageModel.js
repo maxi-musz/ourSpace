@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
 
+const mediaSchema = new mongoose.Schema({
+  secure_url: { type: String, required: true },
+  public_id: { type: String }
+});
+
 const messageSchema = new mongoose.Schema({
   sender: {
     type: mongoose.Schema.Types.ObjectId,
@@ -20,6 +25,9 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+
+  messageMedia:[mediaSchema],
+
   timestamp: {
     type: Date,
     default: Date.now,

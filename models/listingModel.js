@@ -52,6 +52,11 @@ const infoForGuestsSchema = new mongoose.Schema({
   smokingAllowed: Boolean,
   cctvAvailable: Boolean
 });
+
+const imageSchema = new mongoose.Schema({
+  secure_url: { type: String, required: true },
+  public_id: { type: String }
+});
   
 const listingsSchema = new mongoose.Schema({
     user: {
@@ -115,30 +120,12 @@ const listingsSchema = new mongoose.Schema({
       type: String
     },
 
-    bedroomPictures: {
-      type: [String],
-      required: true
-    },
-    livingRoomPictures: {
-      type: [String],
-      required: true
-    },
-    bathroomToiletPictures: {
-      type: [String],
-      required: true
-    },
-    kitchenPictures: {
-      type: [String],
-      required: true
-    },
-    facilityPictures: {
-      type: [String],
-      required: true
-    },
-    otherPictures: {
-      type: [String],
-      required: true
-    },
+    bedroomPictures: [imageSchema],
+    livingRoomPictures: [imageSchema],
+    bathroomToiletPictures: [imageSchema],
+    kitchenPictures: [imageSchema],
+    facilityPictures: [imageSchema],
+    otherPictures: [imageSchema],
 
     availableAmenities: {
       propertyAmenities: [String],

@@ -11,6 +11,8 @@ import axios from "axios";
 import MongoStore from 'connect-mongo';
 import colors from "colors";
 import http from "http";
+import configureSocketIO from "./config/socketConfig.js";
+import { Server } from "socket.io";
 
 import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/userRoutes/authRoutes.js";
@@ -18,7 +20,8 @@ import listingsRoute from "./routes/listingsRoutes/listingsRoute.js";
 import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import userSettingsR from "./routes/settingsRoute/userSettingsR.js"
-import profileRoutes from "./routes/profileRoutes/profileRoutes.js"
+import profileRoutes from "./routes/profileRoutes/profileRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js"
 
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 
@@ -30,8 +33,7 @@ import usersAdminR from "./routes/adminRoutes/usersAdminR.js";
 import listingsAdminR from "./routes/adminRoutes/listingsAdminR.js";
 
 
-import configureSocketIO from "./config/socketConfig.js";
-import messageRoutes from "./routes/messageRoutes/messageRoutes.js"
+
 
 dotenv.config();
 
@@ -73,7 +75,25 @@ app.get("/api/v1", (req, res) => {
     res.send("ourSpace API is running");
 });
 
+
+// Socket.IO connection setup
 const server = http.createServer(app);
+const io = socketIo(server);
+
+io.on('connection', (socket) => {
+    console.log('New client connected:', socket.id);
+  
+    // Joining a room
+    socket.on('join', (userId) => {
+      socket.join(userId);
+      console.log(`User ${userId} joined room`);
+    });
+  
+    // Handle disconnect
+    socket.on('disconnect', () => {
+      console.log('Client disconnected:', socket.id);
+    });
+  });
 
 await db.connectDb();
 
@@ -105,6 +125,7 @@ app.use("/api/v1/users", authRoutes);
 app.use("/api/v1/listing", listingsRoute);
 app.use("/api/v1/settings", userSettingsR);
 app.use("/api/v1/profile", profileRoutes);
+app.use("/api/v1/messages", messageRoutes)
 
 
 
