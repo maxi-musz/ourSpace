@@ -1,4 +1,5 @@
 import asyncHandler from "../middleware/asyncHandler.js";
+import Booking from "../models/bookingModel.js";
 import Listing from "../models/listingModel.js";
 import Message from "../models/messageModel.js";
 import User from "../models/userModel.js";
@@ -99,30 +100,59 @@ const sendMessage = asyncHandler(async (req, res) => {
   }
 });
 
-const getMessages = asyncHandler(async (req, res) => {
+const getAllMessages = asyncHandler(async (req, res) => {
   try {
     const currentUserId = req.user._id;
 
-    // Find messages where the current user is either the sender or receiver
-    const messages = await Message.find({
-      $or: [
-        { sender: currentUserId },
-        { receiver: currentUserId }
-      ]
-    })
-    .populate('sender', 'firstName lastName profilePic')
-    .populate('receiver', 'firstName lastName profilePic')
-    .sort('timestamp');
+    // I will aggregate messages, grouping by sender and retrieving the latest message from each sender
+    const messages = await Message.aggregate([
+      {
+        $match: {
+          $or: [{ sender: currentUserId }, { receiver: currentUserId }]
+        }
+      },
+      {
+        $sort: { timestamp: -1 } // I then sort by the latest message
+      },
+      {
+        $group: {
+          _id: "$sender", // Group by sender
+          lastMessage: { $first: "$$ROOT" } // I get the latest message from this group
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "lastMessage.sender",
+          foreignField: "_id",
+          as: "senderDetails"
+        }
+      },
+      {
+        $unwind: "$senderDetails" // it's required to flatten the senderDetails array
+      },
+      {
+        $project: {
+          _id: 0, // excluding the aggregation `_id`
+          senderFirstName: "$senderDetails.firstName",
+          senderLastName: "$senderDetails.lastName",
+          senderProfilePic: "$senderDetails.profilePic",
+          lastMessageContent: "$lastMessage.content",
+          lastMessageMedia: "$lastMessage.messageMedia",
+          lastMessageTimestamp: "$lastMessage.timestamp"
+        }
+      }
+    ]);
 
     if (!messages.length) {
-      return res.status(404).json({ success: false, message: 'No messages found at the moment' });
+      return res.status(404).json({ success: true, message: 'No messages found at the moment' });
     }
 
     res.status(200).json({
       success: true,
       message: 'Messages retrieved successfully',
-      total: messages.length,
-      data: messages,
+      totalChats: messages.length,
+      data: messages
     });
   } catch (error) {
     console.error('Error retrieving messages:', error);
@@ -131,4 +161,5 @@ const getMessages = asyncHandler(async (req, res) => {
 });
 
 
-export { sendMessage, getMessages };
+
+export { sendMessage, getAllMessages };
