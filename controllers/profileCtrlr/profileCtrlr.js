@@ -51,7 +51,7 @@ const getSpaceUserDashboard = asyncHandler(async (req, res) => {
                 notifications,
                 upcomingBookings: formattedUpcomings
             },
-        });
+        }); 
 
     } catch (error) {
         console.error('Error fetching user dashboard:', error.message);
@@ -241,11 +241,13 @@ const getSpaceOwnerDashboard = asyncHandler(async (req, res) => {
         const currentDate = new Date().toISOString().split('T')[0];
 
         const activeBookings = await Booking.find({
-            listing: { $in: await Listing.find({ user: userId }).select('_id') },
+            listing: { $in: listings.map(listing => listing._id) },
             paystackPaymentStatus: 'success',
-            bookedDays: { $elemMatch: { $gte: currentDate } },
-            paystackPaymentStatus: 'success',
-        })
+            bookedDays: currentDate,
+        });
+
+        const uniqueUserIds = [...new Set(activeBookings.map(booking => booking.user.toString()))];
+        const currentSpaceUsers = uniqueUserIds.length;
 
         const messages = await Message.find({ receiver: userId })
             .populate({
@@ -271,9 +273,8 @@ const getSpaceOwnerDashboard = asyncHandler(async (req, res) => {
             message: "Dashboard successfully retrieved",
             data: {
                 totalListings: listings.length,
-                currentSpaceUsers: activeBookings.length,
+                currentSpaceUsers,
                 messages: formattedMessages,
-                user,
             },
         });
 
@@ -286,6 +287,7 @@ const getSpaceOwnerDashboard = asyncHandler(async (req, res) => {
         });
     }
 });
+
 
 
 const format = asyncHandler(async(req, res)=> {
