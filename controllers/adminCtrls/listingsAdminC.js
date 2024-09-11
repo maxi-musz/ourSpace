@@ -116,92 +116,92 @@ const uploadListingImagesToCloudinary = async (items) => {
     }));
 };
 
-const editListing = asyncHandler(async (req, res) => {
-    const listingId = req.params.id;
-    const userId = req.user._id.toString();
+// const editListing = asyncHandler(async (req, res) => {
+//     const listingId = req.params.id;
+//     const userId = req.user._id.toString();
 
-    try {
-        console.log('Editing listing...');
+//     try {
+//         console.log('Editing listing...');
 
-        // Fetch the existing listing
-        const listing = await Listing.findById(listingId);
+//         // Fetch the existing listing
+//         const listing = await Listing.findById(listingId);
 
-        if (!listing) {
-            console.log("Listing not found".red);
-            return res.status(404).json({
-                success: false,
-                message: "Listing not found"
-            });
-        }
+//         if (!listing) {
+//             console.log("Listing not found".red);
+//             return res.status(404).json({
+//                 success: false,
+//                 message: "Listing not found"
+//             });
+//         }
 
-        // Ensure the user owns the listing
-        if (listing.user.toString() !== userId || !listing.user.isAdmin !== true) {
-            console.log("Unauthorized access attempt".red);
-            return res.status(403).json({
-                success: false,
-                message: "You do not have permission to edit this listing"
-            });
-        }
+//         // Ensure the user owns the listing
+//         if (listing.user.toString() !== userId || !listing.user.isAdmin !== true) {
+//             console.log("Unauthorized access attempt".red);
+//             return res.status(403).json({
+//                 success: false,
+//                 message: "You do not have permission to edit this listing"
+//             });
+//         }
 
-        // Extract and format fields from request body using the utility function
-        const formattedData = formatListingData(req);
+//         // Extract and format fields from request body using the utility function
+//         const formattedData = formatListingData(req);
 
-        // If the address is updated, get the new latitude and longitude
-        if (formattedData.propertyLocation) {
-            const { address, city, state } = formattedData.propertyLocation;
-            const fullAddress = `${address}, ${city}, ${state}`;
-            const { latitude, longitude } = await getCoordinates(fullAddress);
+//         // If the address is updated, get the new latitude and longitude
+//         if (formattedData.propertyLocation) {
+//             const { address, city, state } = formattedData.propertyLocation;
+//             const fullAddress = `${address}, ${city}, ${state}`;
+//             const { latitude, longitude } = await getCoordinates(fullAddress);
 
-            formattedData.propertyLocation.latitude = latitude;
-            formattedData.propertyLocation.longitude = longitude;
-        }
+//             formattedData.propertyLocation.latitude = latitude;
+//             formattedData.propertyLocation.longitude = longitude;
+//         }
 
-        // Process image updates
-        let updatedImages = {};
+//         // Process image updates
+//         let updatedImages = {};
 
-        const processImages = async (field) => {
-            if (req.body[field] || req.files[field]) {
-                const existingImages = Array.isArray(req.body[field]) ? req.body[field] : [];
-                const newImages = req.files[field] || [];
-                updatedImages[field] = await uploadListingImagesToCloudinary([...existingImages, ...newImages]);
-            }
-        };
+//         const processImages = async (field) => {
+//             if (req.body[field] || req.files[field]) {
+//                 const existingImages = Array.isArray(req.body[field]) ? req.body[field] : [];
+//                 const newImages = req.files[field] || [];
+//                 updatedImages[field] = await uploadListingImagesToCloudinary([...existingImages, ...newImages]);
+//             }
+//         };
 
-        await processImages('bedroomPictures');
-        await processImages('livingRoomPictures');
-        await processImages('bathroomToiletPictures');
-        await processImages('kitchenPictures');
-        await processImages('facilityPictures');
-        await processImages('otherPictures');
+//         await processImages('bedroomPictures');
+//         await processImages('livingRoomPictures');
+//         await processImages('bathroomToiletPictures');
+//         await processImages('kitchenPictures');
+//         await processImages('facilityPictures');
+//         await processImages('otherPictures');
 
-        // Merge the updated fields with the existing listing
-        const updatedListing = await Listing.findByIdAndUpdate(
-            listingId,
-            {
-                ...formattedData,
-                ...updatedImages
-            },
-            { new: true, runValidators: true }
-        );
+//         // Merge the updated fields with the existing listing
+//         const updatedListing = await Listing.findByIdAndUpdate(
+//             listingId,
+//             {
+//                 ...formattedData,
+//                 ...updatedImages
+//             },
+//             { new: true, runValidators: true }
+//         );
 
-        const currentListing = await Listing.findById(listingId)
+//         const currentListing = await Listing.findById(listingId)
 
-        console.log("Listing successfully updated".magenta);
-        res.status(200).json({
-            success: true,
-            message: "Listing successfully updated",
-            data: currentListing
-        });
+//         console.log("Listing successfully updated".magenta);
+//         res.status(200).json({
+//             success: true,
+//             message: "Listing successfully updated",
+//             data: currentListing
+//         });
 
-    } catch (error) {
-        console.error('Error updating listing:', error);
-        res.status(500).json({
-            success: false,
-            message: `Server error: ${error.message}`,
-            error
-        });
-    }
-});
+//     } catch (error) {
+//         console.error('Error updating listing:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: `Server error: ${error.message}`,
+//             error
+//         });
+//     }
+// });
 
 const updateListingStatus = asyncHandler(async (req, res) => {
     console.log("Updating listing status".yellow);
@@ -336,7 +336,6 @@ const updateStatus = asyncHandler(async (req, res) => {
 export { 
     getListingById,
     getAllListings,
-    editListing,
     updateListingStatus,
     updateStatus,
     tempUpdateListingStatus

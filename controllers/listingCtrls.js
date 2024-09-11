@@ -1,9 +1,9 @@
 import opencage from 'opencage-api-client';
-import asyncHandler from "../../middleware/asyncHandler.js";
-import Listing from "../../models/listingModel.js";
-import cloudinaryConfig from "../../uploadUtils/cloudinaryConfig.js";
-import formatListingData from "../../utils/formatListingData.js"
-import Booking from '../../models/bookingModel.js';
+import asyncHandler from "../middleware/asyncHandler.js";
+import Listing from "../models/listingModel.js";
+import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
+import formatListingData from "../utils/formatListingData.js"
+import Booking from '../models/bookingModel.js';
 
 const getCoordinates = async (address) => {
   try {
@@ -20,6 +20,7 @@ const getCoordinates = async (address) => {
   }
 };
 
+// UPLOAD IMAGES
 const uploadListingImagesToCloudinary = async (items) => {
   return Promise.all(items.map(async (item) => {
     if (typeof item === 'string' && item.startsWith('http')) {
@@ -38,6 +39,23 @@ const uploadListingImagesToCloudinary = async (items) => {
   }));
 };
 
+//  DELETE IMAGES
+const deleteImagesFromCloudinary = async (publicIds) => {
+  return Promise.all(publicIds.map(async (publicId) => {
+    if (publicId) {
+      try {
+        const result = await cloudinaryConfig.uploader.destroy(publicId);
+        console.log(`Image with public_id ${publicId} deleted:`, result);
+        return result;
+      } catch (error) {
+        console.error(`Error deleting image with public_id ${publicId}:`, error);
+        throw error;
+      }
+    }
+  }));
+};
+
+//
 const createListing = asyncHandler(async (req, res) => {
 
     const userId = req.user._id.toString();
@@ -69,38 +87,16 @@ const createListing = asyncHandler(async (req, res) => {
         let facilityPictures = [];
         let otherPictures = [];
 
-        if (req.files.bedroomPictures) {
-            console.log("Uploading bedroom pictures".grey)
-            bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures)
-            console.log("Bedroom pictures uploaded".blue)
-            ;
-        }
-        if (req.files.livingRoomPictures) {
-            console.log("Uploading livingroom pictures".grey)
-            livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures)
-            console.log("living room pictures uploaded".blue)
-            ;
-        }
-        if (req.files.bathroomToiletPictures) {
-            console.log("Uploading bathroom toilet pictures".grey)
-            bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures)
-            console.log("Bathroom pictures uploaded".blue);
-        }
-        if (req.files.kitchenPictures) {
-            console.log("Uploading kitchen pictures".grey)
-            kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures)
-            console.log("Kitchen pictures uploaded".blue)
-        }
-        if (req.files.facilityPictures) {
-            console.log("Uploading facility pictures".grey)
-            facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
-            console.log("Bedroom pictures uploaded".blue)
-        }
-        if (req.files.otherPictures) {
-            console.log("Uploading other pictures".grey)
-            otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures)
-            console.log("Other pictures uploaded".blue)
-        }
+        console.log("Uploading pictures".cyan)
+        bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures)
+        livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures)
+        bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures)
+        kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures)
+        facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
+        facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
+        facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
+        otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures)
+
         console.log("Pictures uploaded".yellow);
 
         // Proceed with saving the formattedData to the database
@@ -137,7 +133,6 @@ const createListing = asyncHandler(async (req, res) => {
     }
 });
 
-
 const getSingleListing = asyncHandler(async (req, res) => {
   console.log("Fetching a single listing".blue);
 
@@ -172,7 +167,6 @@ const getSingleListing = asyncHandler(async (req, res) => {
       });
   }
 });
-
 
 const searchListings = asyncHandler(async (req, res) => {
   console.log("Searching for listings".blue);
@@ -238,7 +232,6 @@ const searchListings = asyncHandler(async (req, res) => {
       data: listings
   });
 });
-
 
 const filterListings = asyncHandler(async (req, res) => {
   console.log("Filtering listings based on user query...".blue);
@@ -385,91 +378,89 @@ const getSingleUserListing = asyncHandler(async (req, res) => {
 });
 
 const editListing = asyncHandler(async (req, res) => {
+  console.log("Editing listing".yellow);
+
+  // Fetch the existing listing
   const listingId = req.params.id;
-  const userId = req.user._id.toString();
+  const existingListing = await Listing.findById(listingId);
+
+  if (!existingListing) {
+    console.log("Listing not found".red);
+    return res.status(404).json({
+      success: false,
+      message: "Listing not found"
+    });
+  }
+
+  let removedImages = req.body.removedImages;
+
+  console.log("Removing images", removedImages);
+
+  if (typeof removedImages === 'string') {
+    try {
+      removedImages = JSON.parse(removedImages);
+    } catch (error) {
+      console.error('Error parsing removedImages:', error);
+      removedImages = removedImages.split(',').map(image => image.trim());
+    }
+  }
+
+  // Ensure removedImages is an array
+  if (!Array.isArray(removedImages)) {
+    return res.status(400).json({
+      success: false,
+      message: "Removed images should be an array"
+    });
+  }
+
+  console.log("Removed images:", removedImages);
 
   try {
-      console.log('Editing listing...');
+    console.log("Deleting images from Cloudinary");
+    await deleteImagesFromCloudinary(removedImages);
 
-      // Fetch the existing listing
-      const listing = await Listing.findById(listingId);
+    // Upload new images
+    console.log("Uploading new images");
+    const newImages = {
+      bedroomPictures: await uploadListingImagesToCloudinary(req.files.bedroomPictures || []),
+      livingRoomPictures: await uploadListingImagesToCloudinary(req.files.livingRoomPictures || []),
+      bathroomToiletPictures: await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures || []),
+      kitchenPictures: await uploadListingImagesToCloudinary(req.files.kitchenPictures || []),
+      facilityPictures: await uploadListingImagesToCloudinary(req.files.facilityPictures || []),
+      otherPictures: await uploadListingImagesToCloudinary(req.files.otherPictures || [])
+    };
 
-      if (!listing) {
-          console.log("Listing not found".red);
-          return res.status(404).json({
-              success: false,
-              message: "Listing not found"
-          });
-      }
+    console.log("Latitude: ", req.body.latitude);
+    console.log("Longitude: ", req.body.longitude);
 
-      // Ensure the user owns the listing
-      if (listing.user.toString() !== userId || !user.isAdmin) {
-          console.log("Unauthorized access attempt".red);
-          return res.status(403).json({
-              success: false,
-              message: "You do not have permission to edit this listing"
-          });
-      }
+    // Update the listing
+    console.log("Updating listing");
+    const updatedListing = await Listing.findByIdAndUpdate(
+      listingId,
+      {
+        ...req.body,
+        ...newImages
+      },
+      { new: true }
+    );
 
-      // Extract and format fields from request body using the utility function
-      const formattedData = formatListingData(req);
+    console.log("Listing updated successfully:", updatedListing);
 
-      // If the address is updated, get the new latitude and longitude
-      if (formattedData.propertyLocation) {
-          const { address, city, state } = formattedData.propertyLocation;
-          const fullAddress = `${address}, ${city}, ${state}`;
-          const { latitude, longitude } = await getCoordinates(fullAddress);
-
-          formattedData.propertyLocation.latitude = latitude;
-          formattedData.propertyLocation.longitude = longitude;
-      }
-
-      // Process image updates
-      let updatedImages = {};
-
-      const processImages = async (field) => {
-          if (req.body[field] || req.files[field]) {
-              const existingImages = Array.isArray(req.body[field]) ? req.body[field] : [];
-              const newImages = req.files[field] || [];
-              updatedImages[field] = await uploadListingImagesToCloudinary([...existingImages, ...newImages]);
-          }
-      };
-
-      await processImages('bedroomPictures');
-      await processImages('livingRoomPictures');
-      await processImages('bathroomToiletPictures');
-      await processImages('kitchenPictures');
-      await processImages('facilityPictures');
-      await processImages('otherPictures');
-
-      // Merge the updated fields with the existing listing
-      const updatedListing = await Listing.findByIdAndUpdate(
-          listingId,
-          {
-              ...formattedData,
-              ...updatedImages
-          },
-          { new: true, runValidators: true }
-      );
-
-      const currentListing = await Listing.findById(listingId)
-
-      console.log("Listing successfully updated".magenta);
-      res.status(200).json({
-          success: true,
-          message: "Listing successfully updated",
-          data: currentListing
-      });
-
+    res.status(200).json({
+      success: true,
+      message: "Listing updated successfully",
+      data: updatedListing
+    });
   } catch (error) {
-      console.error('Error updating listing:', error);
-      res.status(500).json({
-          success: false,
-          message: `Server error: ${error.message}`,
-          error
-      });
+    console.error('Error during image deletion or update:', error);
+    res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`,
+      error
+    });
   }
 });
+
 
 const getBookingHistory = asyncHandler(async (req, res) => {
   const { listingId } = req.query;

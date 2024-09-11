@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../../middleware/authMiddleware.js';
+import { protect } from '../middleware/authMiddleware.js';
 import { 
     createListing, 
     filterListings,
@@ -7,10 +7,10 @@ import {
     getSingleListing,
     getUserApprovedListings,
     searchListings,
-    checkAvailability
- } from '../../controllers/listingCtrlrs/listingCtrls.js';
-import upload from '../../uploadUtils/multer.js';
-import { editListing } from '../../controllers/adminCtrls/listingsAdminC.js';
+    checkAvailability,
+    editListing
+ } from '../controllers/listingCtrls.js';
+import upload from '../uploadUtils/multer.js';
 
 const router = express.Router();
 
