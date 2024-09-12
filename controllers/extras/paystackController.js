@@ -167,7 +167,6 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
     }
 
     try {
-        // Verify transaction with Paystack
         const response = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
             {

@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+const imageSchema = new mongoose.Schema({
+    secure_url: { type: String, required: true },
+    public_id: { type: String }
+  });
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -27,7 +31,7 @@ const userSchema = new mongoose.Schema({
         type: Number
     },
     country: {
-        type: String,
+        type: String, 
     },
     state: {
         type: String,
@@ -45,7 +49,8 @@ const userSchema = new mongoose.Schema({
         type: String
     },
     profilePic : {
-        type: String
+        url: {type: String},
+        publicId: { type: String}
     },
     userType: {
         type: String,
