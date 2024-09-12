@@ -117,10 +117,7 @@ const editProfileInfo = asyncHandler(async (req, res) => {
             message: "An error occurred while updating profile information",
         });
     }
-});
-
-  
-
+}); 
 
 export {
     editProfileInfo,
