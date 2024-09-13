@@ -249,14 +249,14 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             console.log("Transaction verified, listing and booking details updated successfully.".cyan);
 
             const listingOwner = listing.user;
-            const displayImage = listingOwner.profilePic || '';
+            const displayImage = listingOwner.profilePic.url || '';
 
             // create a new notification
             await Notification.create({
                 user: userId,
+                listing: listingId,
                 title: listing.propertyName,
                 subTitle: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
-                displayImage: displayImage
             });
 
             console.log("Notification created successfully.".green);

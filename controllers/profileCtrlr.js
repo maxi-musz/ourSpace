@@ -9,7 +9,7 @@ import Listing from "../models/listingModel.js";
 const getSpaceUserDashboard = asyncHandler(async (req, res) => {
     console.log("Getting space user dashboard".yellow);
 
-    const userId = req.user;
+    const userId = req.user._id;
 
     try {
         const user = await User.findById(userId).select('-password');
@@ -20,18 +20,33 @@ const getSpaceUserDashboard = asyncHandler(async (req, res) => {
             });
         }
 
-        const notifications = await Notification.find({ user: userId });
+        // Fetch notifications and exclude unwanted fields from listing
+        const notifications = await Notification.find({ user: userId })
+            .populate({
+                path: 'listing',
+                select: '_id',  // Exclude the entire listing object except for the populated fields
+                populate: {
+                    path: 'user',
+                    select: 'profilePic',  // Only return the user's profilePic
+                }
+            });
 
+        // Format notifications to include only the profilePic and other necessary fields
+        const formattedNotifications = notifications.map(notification => ({
+            ...notification._doc,
+            displayImage: notification?.listing?.user?.profilePic?.url || 'default-profile-pic-url',
+        }));
+
+        // Fetch upcoming bookings as before
         const upcomingBookings = await Booking.find({
             user: userId,
             bookingStatus: 'upcoming',
         })
         .populate({
             path: 'listing',
-            select: 'propertyId propertyName propertyLocation livingRoomPictures propertyLocation',
+            select: 'propertyId propertyName propertyLocation livingRoomPictures',
         });
 
-        // Map through upcomingBookings with updated schema
         const formattedUpcomings = upcomingBookings.map(upcoming => {
             const livingRoomPictures = upcoming.listing.livingRoomPictures;
             return {
@@ -39,34 +54,32 @@ const getSpaceUserDashboard = asyncHandler(async (req, res) => {
                 bookingStatus: upcoming.bookingStatus,
                 status: upcoming.paystackPaymentStatus,
                 apartmentNumber: upcoming.listing.propertyLocation.apartmentNumber,
-                propertyImage: livingRoomPictures.length > 0 
+                propertyImage: livingRoomPictures?.length > 0 
                     ? livingRoomPictures[0].secure_url 
-                    : 'default-image-url', // Fallback for missing images
+                    : 'default-image-url',
                 timestamp: upcoming.createdAt,
             };
         });
 
-        res.status(200).json({
+        res.status(200).json({ 
             success: true,
             message: "Dashboard successfully retrieved",
             data: {
                 user,
-                notifications,
-                upcomingBookings: formattedUpcomings
+                notifications: formattedNotifications,
+                upcomingBookings: formattedUpcomings,
             },
-        }); 
+        });
 
     } catch (error) {
         console.error('Error fetching user dashboard:', error.message);
         res.status(500).json({
             success: false,
             message: 'An error occurred while fetching the user dashboard',
-            error
+            error: error.message,
         });
     }
 });
-
-
 
 const getAllSUBookings = asyncHandler(async (req, res) => {
     console.log("Getting all space user bookings".yellow);
@@ -182,8 +195,6 @@ const getSUBookingHistory = asyncHandler(async (req, res) => {
     });
 });
 
-
-
 const getAllNotifications = asyncHandler(async(req, res)=> {
     console.log("getting all notifications for user ".yellow)
 
@@ -224,7 +235,6 @@ const getAllNotifications = asyncHandler(async(req, res)=> {
         })
     }
 })
-
 
 //                                                              space owners
 const getSpaceOwnerDashboard = asyncHandler(async (req, res) => {

@@ -54,17 +54,6 @@ const deleteImagesFromCloudinary = async (publicIds) => {
   }));
 };
 
-const rollbackUploadedImages = async (publicIds) => {
-  for (const publicId of publicIds) {
-      try {
-          const result = await cloudinaryConfig.uploader.destroy(publicId);
-          console.log(`Deleted image: ${publicId}`, result);
-      } catch (error) {
-          console.error(`Failed to delete image: ${publicId}`, error.message);
-      }
-  }
-};
-
 //
 const createListing = asyncHandler(async (req, res) => {
     console.log("Creating a new listing".blue)
