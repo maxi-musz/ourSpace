@@ -62,7 +62,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_TEST_PUBLIC_KEY}`,
+                    Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
                     'Content-Type': 'application/json',
                 },
             }
