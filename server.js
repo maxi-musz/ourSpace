@@ -102,14 +102,14 @@ if(process.env.NODE_ENV === "production") {
     });
     
     //24hrs
-    cron.schedule('0 0 * * *', async () => {
-        console.log('Running getWaitlistsAsCsv every 24 hours'.green);
-        try {
-            await getWaitlistsAsCsv();
-        } catch (error) {
-            console.error('Error executing getWaitlistsAsCsv:', error.message);
-        }
-    });
+    // cron.schedule('0 0 * * *', async () => {
+    //     console.log('Running getWaitlistsAsCsv every 24 hours'.green);
+    //     try {
+    //         await getWaitlistsAsCsv();
+    //     } catch (error) {
+    //         console.error('Error executing getWaitlistsAsCsv:', error.message);
+    //     }
+    // });
 }
 
 app.use("/api/v1/waitlist", waitlistRoutes);
