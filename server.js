@@ -94,7 +94,7 @@ if(process.env.NODE_ENV === "production") {
     cron.schedule('*/2 * * * *', async () => {
         console.log('Calling ourSpace API every 2 minutes'.green);
         try {
-            const response = await axios.get('https://ourspace-0ggk.onrender.com/api/v1');
+            const response = await axios.get('https://ourspace-dev.onrender.com/api/v1');
             console.log('Response from ourSpace API:', response.data);
         } catch (error) {
             console.error('Error calling ourSpace API:', error.message);
