@@ -119,8 +119,8 @@ const createListing = asyncHandler(async (req, res) => {
           facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
           otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures)
         } catch (error) {
-          console.log(`Error uploading images: ${error}`.red)
-          return res.status(500).json({ success: false, message: `Error uploading listing images: ${error.message}` });
+          console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
+          return res.status(500).json({ success: false, message: `Error uploading listing images: ${error.message || error}` });
         }
 
         console.log("Pictures uploaded".yellow);
