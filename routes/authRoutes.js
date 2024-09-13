@@ -13,8 +13,8 @@ import {
     sendResetPasswordLink,
     resetPassword,
     getCurrentUser,
-} from "../../controllers/userCtrls/authController.js"
-import { protect } from "../../middleware/authMiddleware.js";
+} from "../controllers/authController.js"
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 

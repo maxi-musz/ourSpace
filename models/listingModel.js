@@ -67,7 +67,6 @@ const listingsSchema = new mongoose.Schema({
     
     propertyId: {
       type: String,
-      default: generateListingId(),
       required: true
     },
     status: {
@@ -77,7 +76,7 @@ const listingsSchema = new mongoose.Schema({
     },
     listingStatus: { 
       type: String,
-      enum: ["approved", "rejected","active", "inactive", "pending", "draft", "archived", "blocked"],
+      enum: ["approved", "rejected","active", "inactive", "pending", "draft", "saved", "archived", "blocked"],
       default: "approved",
     },
     listedOnOtherPlatform: {
@@ -234,11 +233,6 @@ const listingsSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
-function generateListingId() {
-  const randomDigits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
-  return `OS${randomDigits}`;
-}
 
 listingsSchema.pre('save', function (next) {
   if (!this.availableAmenities) {

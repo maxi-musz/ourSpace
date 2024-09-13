@@ -15,12 +15,12 @@ import { Server } from "socket.io";
 import configureSocketIO from "./config/socketConfig.js";
 
 import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
-import authRoutes from "./routes/userRoutes/authRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoute.js";
 import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
-import userSettingsR from "./routes/settingsRoute/userSettingsR.js"
-import profileRoutes from "./routes/profileRoutes/profileRoutes.js";
+import userSettingsR from "./routes/userSettingsR.js"
+import profileRoutes from "./routes/profileRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 

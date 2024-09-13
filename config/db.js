@@ -3,9 +3,10 @@ const connection = {};
 
  
 async function connectDb() {
+  console.log("Connecting to db".cyan)
   try {
     if (connection.isConnected) {
-        console.log("Already connected to the database.");
+        console.log("Already connected to the database.".red);
         return;
       }
       if (mongoose.connections.length > 0) {

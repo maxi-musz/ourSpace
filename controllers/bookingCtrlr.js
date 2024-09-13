@@ -1,5 +1,5 @@
-import asyncHandler from "../../middleware/asyncHandler.js";
-import Listing from "../../models/listingModel.js"
+import asyncHandler from "../middleware/asyncHandler.js";
+import Listing from "../models/listingModel.js"
 
 const checkAvailability = asyncHandler(async (req, res) => {
     console.log("Checking availability before booking endpoint...".yellow);

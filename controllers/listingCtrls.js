@@ -39,7 +39,6 @@ const uploadListingImagesToCloudinary = async (items) => {
   }));
 };
 
-//  DELETE IMAGES
 const deleteImagesFromCloudinary = async (publicIds) => {
   return Promise.all(publicIds.map(async (publicId) => {
     if (publicId) {
@@ -55,10 +54,28 @@ const deleteImagesFromCloudinary = async (publicIds) => {
   }));
 };
 
+const rollbackUploadedImages = async (publicIds) => {
+  for (const publicId of publicIds) {
+      try {
+          const result = await cloudinaryConfig.uploader.destroy(publicId);
+          console.log(`Deleted image: ${publicId}`, result);
+      } catch (error) {
+          console.error(`Failed to delete image: ${publicId}`, error.message);
+      }
+  }
+};
+
 //
 const createListing = asyncHandler(async (req, res) => {
-
+    console.log("Creating a new listing".blue)
     const userId = req.user._id.toString();
+
+    let bedroomPictures = [];
+    let livingRoomPictures = [];
+    let bathroomToiletPictures = [];
+    let kitchenPictures = [];
+    let facilityPictures = [];
+    let otherPictures = [];
 
     try {
         if(!req.files.bedroomPictures || !req.files.livingRoomPictures ||!req.files.bathroomToiletPictures ||!req.files.kitchenPictures ||!req.files.facilityPictures || !req.files.otherPictures) {
@@ -74,36 +91,53 @@ const createListing = asyncHandler(async (req, res) => {
 
         const formattedData = formatListingData(req);
 
-        const { address, city, state } = formattedData.propertyLocation;
-        const fullAddress = `${address}, ${city}, ${state}`;
-        const { latitude, longitude } = await getCoordinates(fullAddress);
+        let latitude, longitude;
+
+        try {
+            const { address, city, state } = formattedData.propertyLocation;
+            const fullAddress = `${address}, ${city}, ${state}`;
+            const coordinates = await getCoordinates(fullAddress);  // Changed here
+
+            // Assign latitude and longitude
+            latitude = coordinates.latitude;
+            longitude = coordinates.longitude;
+
+            console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
+        } catch (error) {
+            console.log(`Error getting coordinates: ${error}`.red);
+            return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
+        }
 
         console.log(`Latitdue: ${latitude} \nLongitude: ${longitude}`.yellow)
 
-        let bedroomPictures = [];
-        let livingRoomPictures = [];
-        let bathroomToiletPictures = [];
-        let kitchenPictures = [];
-        let facilityPictures = [];
-        let otherPictures = [];
-
-        console.log("Uploading pictures".cyan)
-        bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures)
-        livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures)
-        bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures)
-        kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures)
-        facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
-        facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
-        facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
-        otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures)
+        try {
+          console.log("Uploading pictures".cyan)
+          bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures)
+          livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures)
+          bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures)
+          kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures)
+          facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
+          otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures)
+        } catch (error) {
+          console.log(`Error uploading images: ${error}`.red)
+          return res.status(500).json({ success: false, message: `Error uploading listing images: ${error.message}` });
+        }
 
         console.log("Pictures uploaded".yellow);
 
-        // Proceed with saving the formattedData to the database
+        const validStatuses = ['approved', 'rejected', 'active', 'inactive', 'pending', 'draft',"saved", 'archived', 'blocked'];
+        const listingStatus = validStatuses.includes(req.body.listingStatus) ? req.body.listingStatus : 'pending';
+
+        function generateListingId() {
+          const randomDigits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
+          return `OS${randomDigits}`;
+        }
+
         const newListing = await Listing.create({
             ...formattedData,
             user: userId,
-            listingStatus: req.body.listingStatus === 'draft' ? 'draft' : 'pending',
+            propertyId: generateListingId(),
+            listingStatus: listingStatus,
             propertyLocation: {
               ...formattedData.propertyLocation,
               latitude,
@@ -124,7 +158,24 @@ const createListing = asyncHandler(async (req, res) => {
             data: newListing
         });
     } catch (error) {
-        console.error('Error creating property listing:', error);
+        console.error('Error creating property listing:', error.stack || error);
+
+        const allPublicIds = [
+          ...bedroomPictures.map(image => image.public_id),
+          ...livingRoomPictures.map(image => image.public_id),
+          ...bathroomToiletPictures.map(image => image.public_id),
+          ...kitchenPictures.map(image => image.public_id),
+          ...facilityPictures.map(image => image.public_id),
+          ...otherPictures.map(image => image.public_id)
+      ];
+
+      // Try to delete the images in case of error
+      try {
+          await deleteImagesFromCloudinary(allPublicIds);
+      } catch (deleteError) {
+          console.error("Error during image deletion:", deleteError);
+      }
+
         res.status(500).json({
             success: false,
             message: `Server error: ${error.message}`,

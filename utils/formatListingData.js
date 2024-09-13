@@ -13,7 +13,7 @@ const formatListingData = (req) => {
       bedTotal: parseInt(req.body.bedTotal, 10),
       toiletTotal: parseInt(req.body.toiletTotal, 10),
       bathroomTotal: parseInt(req.body.bathroomTotal, 10),
-      freeCancellation: req.body.freeCancellation === 'true',
+      freeCancellation: req.body.freeCancellation === 'true' || req.body.freeCancellation === true, 
       totalGuestsAllowed: parseInt(req.body.totalGuestsAllowed),
       // maximumGuestNumber: {
       //   adult: parseInt(req.body['maximumGuestNumber.adult'], 10),
@@ -86,7 +86,7 @@ const formatListingData = (req) => {
 
       chargePerNight: parseFloat(req.body.chargePerNight),
       
-      discount: req.body.discount === 'true',
+      discount: req.body.discount === 'true' || req.body.discount === true,
 
       cancellationOption: req.body.cancellationOption,
 
@@ -95,7 +95,7 @@ const formatListingData = (req) => {
       availability: Array.isArray(req.body.availability) 
           ? req.body.availability 
           : req.body.availability 
-              ? req.body.availability.split(',') 
+              ? req.body.availability.split(',').map(date => date.trim()) 
               : [],                                 
       bookedDays: Array.isArray(req.body.bookedDays) 
           ? req.body.bookedDays 

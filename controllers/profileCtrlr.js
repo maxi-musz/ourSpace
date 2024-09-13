@@ -1,9 +1,9 @@
-import asyncHandler from "../../middleware/asyncHandler.js"
-import User from "../../models/userModel.js";
-import Notification from "../../models/notificationModel.js";
-import Booking from "../../models/bookingModel.js"
-import Message from "../../models/messageModel.js"
-import Listing from "../../models/listingModel.js";
+import asyncHandler from "../middleware/asyncHandler.js"
+import User from "../models/userModel.js";
+import Notification from "../models/notificationModel.js";
+import Booking from "../models/bookingModel.js"
+import Message from "../models/messageModel.js"
+import Listing from "../models/listingModel.js";
 
 
 const getSpaceUserDashboard = asyncHandler(async (req, res) => {

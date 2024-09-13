@@ -1,6 +1,6 @@
-import asyncHandler from "../../middleware/asyncHandler.js";
-import User from "../../models/userModel.js";
-import cloudinaryConfig from "../../uploadUtils/cloudinaryConfig.js";
+import asyncHandler from "../middleware/asyncHandler.js";
+import User from "../models/userModel.js";
+import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 
 const uploadProfileImageToCloudinary = async (file) => {
     try {

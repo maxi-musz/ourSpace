@@ -4,14 +4,14 @@ import crypto from 'crypto';
 import bcrypt from "bcryptjs"
 import { OAuth2Client } from 'google-auth-library';;
 
-import User from "../../models/userModel.js";
-import asyncHandler from "../../middleware/asyncHandler.js";
+import User from "../models/userModel.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 import validator from "validator";
-import generateTokens from "../../utils/generateTokens.js";
-import OTP from "../../models/otpModel.js";
-import { generateOTP, saveOTPToDatabase, sendOTPByEmail, verifyOTP } from "../../utils/authUtils.js"
-import sendEmail from '../../utils/sendMail.js';
-import { passwordResetEmailTemplate } from '../../email_templates/passwordResetEmailTemplate.js';
+import generateTokens from "../utils/generateTokens.js";
+import OTP from "../models/otpModel.js";
+import { generateOTP, saveOTPToDatabase, sendOTPByEmail, verifyOTP } from "../utils/authUtils.js"
+import sendEmail from '../utils/sendMail.js';
+import { passwordResetEmailTemplate } from '../email_templates/passwordResetEmailTemplate.js';
 import axios from 'axios';
 
 const authenticateToken = asyncHandler(async(req, res)=> {
