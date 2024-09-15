@@ -414,7 +414,15 @@ const suLogin = asyncHandler(async (req, res) => {
         }
 
         const user = await User.findOne({ email });
-        console.log("Email:", email);
+
+        if(user.userType === "space-owner"){
+            console.log("Error signing in, user is not a space user, trying signing in as space owner...".red)
+            return res.status(401).json({
+                success: false,
+                message: "Error signing in, user is not a space user, trying signing in as space owner..."
+            })
+        }
+
         
         if (!user) {
             console.log('User not found'.red);
@@ -467,7 +475,14 @@ const soLogin = asyncHandler(async (req, res) => {
 
         // Find user by sanitized and normalized email
         const user = await User.findOne({ email });
-        console.log("Email:", email);
+
+        if(user.userType === "space-user"){
+            console.log("Error signing in, user is not a space owner, trying signing in as space user...".red)
+            return res.status(401).json({
+                success: false,
+                message: "Error signing in, user is not a space owner, trying signing in as space user..."
+            })
+        }
 
         // Check if user exists and the password matches
         if (user && (await user.matchPassword(password))) {
