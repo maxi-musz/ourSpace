@@ -17,6 +17,7 @@ import configureSocketIO from "./config/socketConfig.js";
 import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoute.js";
+import bookingsRoute from "./routes/bookingsRoute.js"
 import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import userSettingsR from "./routes/userSettingsR.js"
@@ -115,6 +116,7 @@ if(process.env.NODE_ENV === "production") {
 app.use("/api/v1/waitlist", waitlistRoutes);
 app.use("/api/v1/users", authRoutes);
 app.use("/api/v1/listing", listingsRoute);
+app.use("/api/v1/bookings", bookingsRoute)
 app.use("/api/v1/settings", userSettingsR);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/messages", messageRoutes);

@@ -415,7 +415,7 @@ const getSingleUserListing = asyncHandler(async (req, res) => {
           error,
       });
   }
-});
+}); 
 
 const editListing = asyncHandler(async (req, res) => {
   console.log("Editing listing".yellow);
@@ -498,114 +498,6 @@ const editListing = asyncHandler(async (req, res) => {
 });
 
 
-const getBookingHistory = asyncHandler(async (req, res) => {
-  const { listingId } = req.query;
-
-  try {
-      console.log(`Fetching booking history for listing ID: ${listingId}`.blue);
-
-      const bookings = await Booking.find({ listing: listingId })
-          .populate('user', 'name')
-          .sort({ date: -1 });
-
-      console.log(`Booking history retrieved for listing ID: ${listingId}`.green);
-
-      const formattedBookings = bookings.map(booking => ({
-          date: booking.date,
-          description: booking.description,
-          guestName: booking.user.name,
-          nightsSpent: booking.nightsSpent,
-          amountPaid: booking.amountPaid,
-      }));
-
-      res.status(200).json({
-          success: true,
-          message: "Booking history retrieved successfully",
-          total: formattedBookings.length,
-          data: formattedBookings,
-      });
-  } catch (error) {
-      console.error('Error fetching booking history:', error);
-      res.status(500).json({
-          success: false,
-          message: `Server error: ${error.message}`,
-          error,
-      });
-  }
-});
-
-const checkAvailability = asyncHandler(async (req, res) => {
-  console.log("Checking availability before booking endpoint...".yellow);
-
-  const { listingId } = req.params;
-  const { checkIn, checkOut, spaceUsers } = req.body;
-
-  console.log(listingId)
-  console.log(`check in: ${checkIn}\nCheckout: ${checkOut}`)
-
-  try {
-      const listing = await Listing.findById(listingId);
-
-      if (!listing) {
-          console.log("Listing not found".red);
-          return res.status(404).json({ success: false, message: "Listing not found" });
-      }
-
-      const { availability, bookedDays, maximumGuestNumber } = listing;
-      const checkInDate = new Date(checkIn);
-      const checkOutDate = new Date(checkOut);
-
-      const checkInToCheckOutDates = [];
-      for (let d = new Date(checkInDate); d <= checkOutDate; d.setDate(d.getDate() + 1)) {
-          checkInToCheckOutDates.push(d.toISOString().split('T')[0]);
-      }
-
-      if (availability.length > 0) {
-          const unavailableDates = checkInToCheckOutDates.filter(date => !availability.includes(date));
-          if (unavailableDates.length > 0) {
-              console.log(`Listing is not available for dates: ${unavailableDates.join(", ")}`.red);
-              return res.status(400).json({
-                  success: false,
-                  message: `Listing is not available for the following dates: ${unavailableDates.join(", ")}`,
-              });
-          }
-      }
-
-      const conflictDates = checkInToCheckOutDates.filter(date => bookedDays.includes(date));
-      if (conflictDates.length > 0) {
-          console.log(`Listing is booked on the following dates: ${conflictDates.join(", ")}`.red);
-          return res.status(400).json({
-              success: false,
-              message: `Listing is booked on the following dates: ${conflictDates.join(", ")}`,
-              bookedDates: conflictDates,
-          });
-      }
-
-      if (spaceUsers > maximumGuestNumber) {
-          console.log(`Number of guests (${spaceUsers}) exceeds the maximum allowed (${maximumGuestNumber})`.red);
-          return res.status(400).json({
-              success: false,
-              message: `The number of guests exceeds the maximum allowed. Maximum allowed is ${maximumGuestNumber}.`,
-          });
-      }
-
-      console.log("Listing is available for booking".green);
-      res.status(200).json({
-          success: true,
-          message: "Listing is available for booking",
-          availableDates: checkInToCheckOutDates,
-      });
-
-  } catch (error) {
-      console.log(`Error checking availability: ${error.message}`.red);
-      res.status(500).json({
-          success: false,
-          message: "An error occurred while checking availability",
-      });
-  }
-});
-
-
 export { 
 createListing,
 searchListings,
@@ -614,6 +506,4 @@ getUserApprovedListings,
 getSingleListing,
 getSingleUserListing,
 editListing,
-getBookingHistory,
-checkAvailability
 };
