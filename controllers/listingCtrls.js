@@ -57,7 +57,6 @@ const deleteImagesFromCloudinary = async (publicIds) => {
 //
 const createListing = asyncHandler(async (req, res) => {
   console.log("Creating a new listing".blue);
-  console.log('Request Body:', req.body);
   const userId = req.user._id.toString();
 
   let bedroomPictures = [];
