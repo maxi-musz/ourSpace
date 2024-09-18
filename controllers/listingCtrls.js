@@ -102,6 +102,7 @@ const createListing = asyncHandler(async (req, res) => {
       }
 
       console.log('Formatting listings');
+      const formattedData = formatListingData(req);
 
       let latitude, longitude;
 
