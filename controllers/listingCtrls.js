@@ -102,7 +102,6 @@ const createListing = asyncHandler(async (req, res) => {
       }
 
       console.log('Formatting listings');
-      const formattedData = formatListingData(req);
 
       let latitude, longitude;
 
@@ -508,20 +507,32 @@ const editListing = asyncHandler(async (req, res) => {
   // Format the listing data using the same logic as createListing
   const formattedData = formatListingData(req);
 
-  // Upload new images and combine with existing ones
+  let latitude, longitude;
+
+  // Fetch coordinates based on the address
+  try {
+    const { address, city, state } = formattedData.propertyLocation;
+    const fullAddress = `${address}, ${city}, ${state}`;
+    const coordinates = await getCoordinates(fullAddress);
+
+    latitude = coordinates.latitude;
+    longitude = coordinates.longitude;
+
+    console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
+  } catch (error) {
+      console.log(`Error getting coordinates: ${error}`.red);
+      return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
+  }
+
   let updatedImages = {};
   try {
       console.log("Uploading new images and merging with existing images".blue);
 
-      // For each category, combine new and old images
       for (let category of imageCategories) {
-          // Upload new images if provided
           const newImages = req.files[category] ? await uploadListingImagesToCloudinary(req.files[category]) : [];
 
-          // Keep old images that weren't deleted
           const existingImages = existingListing[category].filter(image => !removedImages.includes(image.public_id));
 
-          // Merge old and new images
           updatedImages[category] = [...existingImages, ...newImages];
       }
   } catch (error) {
@@ -539,6 +550,11 @@ const editListing = asyncHandler(async (req, res) => {
           listingId,
           {
               ...formattedData,
+              propertyLocation: {
+                ...formattedData.propertyLocation,
+                latitude,
+                longitude
+            },
               ...updatedImages // Add the merged image arrays
           },
           { new: true }
