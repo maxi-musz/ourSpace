@@ -340,7 +340,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
         if(listing) {
             
             const newBookedDays = booking.bookedDays;
-            listing.bookedDays = [...listing.bookedDays, ...newBookedDays];
+            listing.bookedDays = [...listing.calendar.bookedDays, ...newBookedDays];
             await listing.save();
 
             console.log("Transaction verified, listing and booking details updated successfully.".cyan);
