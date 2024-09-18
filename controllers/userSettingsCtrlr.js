@@ -91,7 +91,7 @@ const editProfileInfo = asyncHandler(async (req, res) => {
             // Upload the new profile picture
             try {
                 const profilePicData = await uploadProfileImageToCloudinary(req.file);
-                user.profilePic = profilePicData;
+                user.profilePic.publicId = profilePicData;
             } catch (error) {
                 console.error('Error uploading profile picture:', error);
             }

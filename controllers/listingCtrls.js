@@ -232,15 +232,10 @@ const searchListings = asyncHandler(async (req, res) => {
   console.log("Searching for listings".blue);
 
   const { searchQuery, checkIn, checkOut, numberOfGuests } = req.body;
-  console.log(`Search Query: ${searchQuery}, Number of Guests: ${JSON.stringify(numberOfGuests)}`);
-
   const guests = numberOfGuests || { adult: 0, children: 0, pets: 0 };
 
-  let filter = {
-    status: "listed" // Only include listings with a status of "listed"
-  };
+  let filter = { status: "listed" };
 
-  // Filter by searchQuery which can be either state, propertyName, city, or propertyId
   if (searchQuery) {
       filter.$or = [
           { "propertyLocation.state": { $regex: searchQuery, $options: 'i' } },
@@ -250,24 +245,29 @@ const searchListings = asyncHandler(async (req, res) => {
       ];
   }
 
-  // Fetch listings based on the filter
   let listings = await Listing.find(filter);
 
   listings = listings.filter(listing => {
       if (!checkIn || !checkOut) return true;
 
-      const { bookedDays, maximumGuestNumber: listingGuests } = listing;
+      const { calendar, maximumGuestNumber: listingGuests } = listing;
+      const { unavailableDays } = calendar;
 
       const checkInDate = new Date(checkIn);
       const checkOutDate = new Date(checkOut);
-      const bookedDaysSet = new Set(bookedDays.map(day => new Date(day).toISOString().split('T')[0]));
-
-      for (let date = checkInDate; date <= checkOutDate; date.setDate(date.getDate() + 1)) {
-          if (bookedDaysSet.has(date.toISOString().split('T')[0])) {
-              return false;
-          }
+      
+      const checkInToCheckOutDates = [];
+      for (let d = new Date(checkInDate); d <= checkOutDate; d.setDate(d.getDate() + 1)) {
+          checkInToCheckOutDates.push(d.toISOString().split('T')[0]);
       }
 
+      // Check for conflicts with unavailable days
+      const conflictDates = checkInToCheckOutDates.filter(date => unavailableDays.includes(date));
+      if (conflictDates.length > 0) {
+          return false;
+      }
+
+      // Check guest limits
       if (numberOfGuests) {
           if (
               (guests.adult > listingGuests.adult) ||
@@ -282,14 +282,12 @@ const searchListings = asyncHandler(async (req, res) => {
   });
 
   const searchIds = listings.map(listing => listing._id.toString());
-  console.log(`Total of ${listings.length} listings found`.magenta);
-
   res.status(200).json({
       success: true,
       totalResults: listings.length,
       message: `Total of ${listings.length} listings found`,
       searchResultId: searchIds,
-      data: listings
+      data: listings,
   });
 });
 

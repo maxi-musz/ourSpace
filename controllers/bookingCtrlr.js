@@ -11,50 +11,42 @@ export const checkAvailability = asyncHandler(async (req, res) => {
     const { listingId } = req.params;
     const { checkIn, checkOut, spaceUsers } = req.body;
 
-    const requiredFields = {
-        listingId,
-        checkIn,
-        checkOut,
-        spaceUsers
-    }
+    const requiredFields = { listingId, checkIn, checkOut, spaceUsers };
 
     const missingFields = Object.entries(requiredFields)
-    .filter(([key, value]) => !value)
-    .map(([key]) => key);
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
 
     if (missingFields.length > 0) {
-        console.log("Missing fields:", missingFields.join(', ').red);
         return res.status(400).json({
             success: false,
-            message: `Missing the following field(s): ${missingFields.join(', ')}`
+            message: `Missing the following field(s): ${missingFields.join(', ')}`,
         });
     }
-
-    console.log(listingId)
-    console.log(`check in: ${checkIn}\nCheckout: ${checkOut}`)
 
     try {
         const listing = await Listing.findById(listingId);
 
         if (!listing) {
-            console.log("Listing not found".red);
             return res.status(404).json({ success: false, message: "Listing not found" });
         }
 
-        const { availability, bookedDays, maximumGuestNumber } = listing;
+        const { availability, calendar, maximumGuestNumber } = listing;
+        const { unavailableDays } = calendar;
+
         const checkInDate = new Date(checkIn);
         const checkOutDate = new Date(checkOut);
-        console.log(`check in date: ${checkInDate}\nCheckout date: ${checkOutDate}`)
 
+        // Generate the array of dates from checkIn to checkOut
         const checkInToCheckOutDates = [];
         for (let d = new Date(checkInDate); d <= checkOutDate; d.setDate(d.getDate() + 1)) {
             checkInToCheckOutDates.push(d.toISOString().split('T')[0]);
         }
 
+        // Check if the listing is available (if availability is enforced)
         if (availability.length > 0) {
             const unavailableDates = checkInToCheckOutDates.filter(date => !availability.includes(date));
             if (unavailableDates.length > 0) {
-                console.log(`Listing is not available for dates: ${unavailableDates.join(", ")}`.red);
                 return res.status(400).json({
                     success: false,
                     message: `Listing is not available for the following dates: ${unavailableDates.join(", ")}`,
@@ -62,25 +54,23 @@ export const checkAvailability = asyncHandler(async (req, res) => {
             }
         }
 
-        const conflictDates = checkInToCheckOutDates.filter(date => bookedDays.includes(date));
+        // Check for conflicts with unavailable days (union of booked and blocked days)
+        const conflictDates = checkInToCheckOutDates.filter(date => unavailableDays.includes(date));
         if (conflictDates.length > 0) {
-            console.log(`Listing is booked on the following dates: ${conflictDates.join(", ")}`.red);
             return res.status(400).json({
                 success: false,
-                message: `Listing is booked on the following dates: ${conflictDates.join(", ")}`,
+                message: `Listing is unavailable for the following dates: ${conflictDates.join(", ")}`,
                 bookedDates: conflictDates,
             });
         }
 
         if (spaceUsers > maximumGuestNumber) {
-            console.log(`Number of guests (${spaceUsers}) exceeds the maximum allowed (${maximumGuestNumber})`.red);
             return res.status(400).json({
                 success: false,
                 message: `The number of guests exceeds the maximum allowed. Maximum allowed is ${maximumGuestNumber}.`,
             });
         }
 
-        console.log("Listing is available for booking".green);
         res.status(200).json({
             success: true,
             message: "Listing is available for booking",
@@ -95,6 +85,7 @@ export const checkAvailability = asyncHandler(async (req, res) => {
         });
     }
 });
+
 
 export const initializeTransaction = asyncHandler(async (req, res) => {
     console.log("Initializing Paystack payment...".green);
