@@ -694,11 +694,10 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
     try {
         console.log(req.user)
-        // Extract user ID from the request object (assuming it's set by the authentication middleware)
         const userId = req.user.id;
 
         // Fetch the user from the database
-        const user = await User.findById(userId).select('-password'); // Exclude the password field
+        const user = await User.findById(userId).select('-password'); 
 
         if (!user) {
             console.log("User not found".red);

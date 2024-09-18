@@ -11,7 +11,7 @@ const uploadProfileImageToCloudinary = async (file) => {
                 folder: 'ourSpace/profile-pictures',
             });
             return {
-                url: result.secure_url,
+                secure_url: result.secure_url,
                 publicId: result.public_id
             };
         }
@@ -20,7 +20,6 @@ const uploadProfileImageToCloudinary = async (file) => {
         throw new Error('Failed to upload profile picture');
     }
 };
-
 
 // DELETE IMAGES
 const deleteImageFromCloudinary = async (publicId) => {
@@ -91,7 +90,7 @@ const editProfileInfo = asyncHandler(async (req, res) => {
             // Upload the new profile picture
             try {
                 const profilePicData = await uploadProfileImageToCloudinary(req.file);
-                user.profilePic.publicId = profilePicData;
+                user.profilePic = profilePicData;
             } catch (error) {
                 console.error('Error uploading profile picture:', error);
             }

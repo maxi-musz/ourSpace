@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema({
         type: String
     },
     profilePic : {
-        url: {type: String},
+        secure_url: {type: String},
         publicId: { type: String}
     },
     userType: {
