@@ -560,11 +560,21 @@ const editListing = asyncHandler(async (req, res) => {
           { new: true }
       );
 
+      const finalListing  = await Listing.findById(listingId)
+
+      if(!finalListing) {
+        console.log("Listing not found".red)
+        return res.status(404).json({
+          success: false,
+          message: "Listing cannot be found again after updating"
+        })
+      }
+
       console.log("Listing updated successfully".magenta);
       res.status(200).json({
           success: true,
           message: "Listing updated successfully",
-          data: updatedListing
+          data: finalListing
       });
   } catch (error) {
       console.error("Error updating listing:", error);
