@@ -31,7 +31,7 @@ export const checkAvailability = asyncHandler(async (req, res) => {
             return res.status(404).json({ success: false, message: "Listing not found" });
         }
 
-        const { availability, calendar, maximumGuestNumber } = listing;
+        const { availability = [], calendar, maximumGuestNumber } = listing; // Default empty array if availability is undefined
         const { unavailableDays } = calendar;
 
         const checkInDate = new Date(checkIn);
@@ -44,7 +44,7 @@ export const checkAvailability = asyncHandler(async (req, res) => {
         }
 
         // Check if the listing is available (if availability is enforced)
-        if (availability.length > 0) {
+        if (Array.isArray(availability) && availability.length > 0) {
             const unavailableDates = checkInToCheckOutDates.filter(date => !availability.includes(date));
             if (unavailableDates.length > 0) {
                 return res.status(400).json({
@@ -85,6 +85,7 @@ export const checkAvailability = asyncHandler(async (req, res) => {
         });
     }
 });
+
 
 
 export const initializeTransaction = asyncHandler(async (req, res) => {
