@@ -56,7 +56,7 @@ const deleteImagesFromCloudinary = async (publicIds) => {
 
 //
 const createListing = asyncHandler(async (req, res) => {
-  console.log("Creating a new listing".blue)
+  console.log("Creating a new listing".blue);
   console.log('Request Body:', req.body);
   const userId = req.user._id.toString();
 
@@ -67,28 +67,51 @@ const createListing = asyncHandler(async (req, res) => {
   let facilityPictures = [];
   let otherPictures = [];
 
+  // Define the image categories required
+  const imageCategories = [
+      'bedroomPictures', 
+      'livingRoomPictures', 
+      'bathroomToiletPictures', 
+      'kitchenPictures', 
+      'facilityPictures', 
+      'otherPictures'
+  ];
+
+  // Centralized image deletion function
+  const deleteUploadedImages = async (imageArrays) => {
+      const allPublicIds = imageArrays.flat().map(image => image.public_id);
+      if (allPublicIds.length > 0) {
+          try {
+              await deleteImagesFromCloudinary(allPublicIds);
+          } catch (deleteError) {
+              console.error("Error during image deletion:", deleteError);
+          }
+      }
+  };
+
   try {
-      if (!req.files.bedroomPictures || !req.files.livingRoomPictures || !req.files.bathroomToiletPictures || !req.files.kitchenPictures || !req.files.facilityPictures || !req.files.otherPictures) {
-          console.log("One image at least is required from all the image sections".red)
+      // Validate that all required image categories have at least one image
+      const missingCategories = imageCategories.filter(category => !req.files[category]);
+      if (missingCategories.length > 0) {
+          console.log("At least one image is required from the image sections".red);
 
           return res.status(400).json({
               success: false,
-              message: "One image at least is required from all the image sections"
+              message: `At least one image is required from the image sections: ${missingCategories.join(', ')}`
           });
       }
 
       console.log('Formatting listings');
-
       const formattedData = formatListingData(req);
 
       let latitude, longitude;
 
+      // Fetch coordinates based on the address
       try {
           const { address, city, state } = formattedData.propertyLocation;
           const fullAddress = `${address}, ${city}, ${state}`;
           const coordinates = await getCoordinates(fullAddress);
 
-          // Assign latitude and longitude
           latitude = coordinates.latitude;
           longitude = coordinates.longitude;
 
@@ -98,48 +121,49 @@ const createListing = asyncHandler(async (req, res) => {
           return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
       }
 
-      console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow)
+      console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
 
+      // Upload images concurrently
       try {
           console.log("Uploading pictures".cyan);
-          bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures);
-          livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures);
-          bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures);
-          kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures);
-          facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures);
-          otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures);
+
+          const uploadPromises = imageCategories.map(category =>
+              uploadListingImagesToCloudinary(req.files[category])
+          );
+
+          const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
+
+          // Assign images to variables
+          bedroomPictures = bedroomPics;
+          livingRoomPictures = livingRoomPics;
+          bathroomToiletPictures = bathroomToiletPics;
+          kitchenPictures = kitchenPics;
+          facilityPictures = facilityPics;
+          otherPictures = otherPics;
 
           console.log("Pictures uploaded".yellow);
       } catch (error) {
-          
-          const allPublicIds = [
-              ...bedroomPictures.map(image => image.public_id),
-              ...livingRoomPictures.map(image => image.public_id),
-              ...bathroomToiletPictures.map(image => image.public_id),
-              ...kitchenPictures.map(image => image.public_id),
-              ...facilityPictures.map(image => image.public_id),
-              ...otherPictures.map(image => image.public_id)
-          ];
-
-          
-          try {
-              await deleteImagesFromCloudinary(allPublicIds);
-          } catch (deleteError) {
-              console.error("Error during image deletion:", deleteError);
-          }
-
           console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
-          return res.status(500).json({ success: false, message: `Error uploading listing images: ${error.message || error}` });
+
+          // Delete uploaded images in case of failure
+          await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
+
+          return res.status(500).json({
+              success: false,
+              message: `Error uploading listing images: ${error.message || error}`
+          });
       }
 
       const validStatuses = ['approved', 'rejected', 'active', 'inactive', 'pending', 'draft', 'saved', 'archived', 'blocked'];
       const listingStatus = validStatuses.includes(req.body.listingStatus) ? req.body.listingStatus : 'pending';
 
+      // Generate a unique listing ID
       function generateListingId() {
           const randomDigits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
           return `OS${randomDigits}`;
       }
 
+      // Create a new listing in the database
       const newListing = await Listing.create({
           ...formattedData,
           user: userId,
@@ -167,22 +191,8 @@ const createListing = asyncHandler(async (req, res) => {
   } catch (error) {
       console.error('Error creating property listing:', error.stack || error);
 
-      // Collect all public_ids of the uploaded images
-      const allPublicIds = [
-          ...bedroomPictures.map(image => image.public_id),
-          ...livingRoomPictures.map(image => image.public_id),
-          ...bathroomToiletPictures.map(image => image.public_id),
-          ...kitchenPictures.map(image => image.public_id),
-          ...facilityPictures.map(image => image.public_id),
-          ...otherPictures.map(image => image.public_id)
-      ];
-
-      // Attempt to delete the images in case of error
-      try {
-          await deleteImagesFromCloudinary(allPublicIds);
-      } catch (deleteError) {
-          console.error("Error during image deletion:", deleteError);
-      }
+      // Delete uploaded images if any error occurs after the upload
+      await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
 
       return res.status(500).json({
           success: false,
@@ -191,7 +201,6 @@ const createListing = asyncHandler(async (req, res) => {
       });
   }
 });
-
 
 const getSingleListing = asyncHandler(async (req, res) => {
   console.log("Fetching a single listing".blue);
@@ -443,78 +452,113 @@ const editListing = asyncHandler(async (req, res) => {
   const existingListing = await Listing.findById(listingId);
 
   if (!existingListing) {
-    console.log("Listing not found".red);
-    return res.status(404).json({
-      success: false,
-      message: "Listing not found"
-    });
+      console.log("Listing not found".red);
+      return res.status(404).json({
+          success: false,
+          message: "Listing not found"
+      });
+  }
+
+  // Ensure at least one image is present in all the required sections
+  const imageCategories = ['bedroomPictures', 'livingRoomPictures', 'bathroomToiletPictures', 'kitchenPictures', 'facilityPictures', 'otherPictures'];
+  const missingCategories = imageCategories.filter(category => !existingListing[category] && !req.files[category]);
+  if (missingCategories.length > 0) {
+      console.log("At least one image is required from all the image sections".red);
+
+      return res.status(400).json({
+          success: false,
+          message: `At least one image is required from all the image sections: ${missingCategories.join(', ')}`
+      });
   }
 
   let removedImages = req.body.removedImages;
 
-  console.log("Removing images", removedImages);
+  // Handle removed images
+  if (removedImages) {
+      console.log("Removing images", removedImages);
+      if (typeof removedImages === 'string') {
+          try {
+              removedImages = JSON.parse(removedImages);
+          } catch (error) {
+              console.error('Error parsing removedImages:', error);
+              removedImages = removedImages.split(',').map(image => image.trim());
+          }
+      }
 
-  if (typeof removedImages === 'string') {
-    try {
-      removedImages = JSON.parse(removedImages);
-    } catch (error) {
-      console.error('Error parsing removedImages:', error);
-      removedImages = removedImages.split(',').map(image => image.trim());
-    }
+      if (!Array.isArray(removedImages)) {
+          console.log("Removed images should be an array".red);
+          return res.status(400).json({
+              success: false,
+              message: "Removed images should be an array"
+          });
+      }
+
+      try {
+          console.log("Deleting images from Cloudinary".red);
+          await deleteImagesFromCloudinary(removedImages);
+      } catch (error) {
+          console.error("Error during image deletion:", error);
+          return res.status(500).json({
+              success: false,
+              message: `Error deleting images: ${error.message}`
+          });
+      }
   }
 
-  // Ensure removedImages is an array
-  if (!Array.isArray(removedImages)) {
-    console.log("Removed images should be an array".red)
-    return res.status(400).json({
-      success: false,
-      message: "Removed images should be an array"
-    });
-  }
+  // Format the listing data using the same logic as createListing
+  const formattedData = formatListingData(req);
 
+  // Upload new images and combine with existing ones
+  let updatedImages = {};
   try {
-    console.log("Deleting images from Cloudinary".red);
-    await deleteImagesFromCloudinary(removedImages);
+      console.log("Uploading new images and merging with existing images".blue);
 
-    // Upload new images
-    console.log("Uploading new images".blue);
-    const newImages = {
-      bedroomPictures: await uploadListingImagesToCloudinary(req.files.bedroomPictures || []),
-      livingRoomPictures: await uploadListingImagesToCloudinary(req.files.livingRoomPictures || []),
-      bathroomToiletPictures: await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures || []),
-      kitchenPictures: await uploadListingImagesToCloudinary(req.files.kitchenPictures || []),
-      facilityPictures: await uploadListingImagesToCloudinary(req.files.facilityPictures || []),
-      otherPictures: await uploadListingImagesToCloudinary(req.files.otherPictures || [])
-    };
+      // For each category, combine new and old images
+      for (let category of imageCategories) {
+          // Upload new images if provided
+          const newImages = req.files[category] ? await uploadListingImagesToCloudinary(req.files[category]) : [];
 
-    // Update the listing
-    console.log("Updating listing".green);
-    const updatedListing = await Listing.findByIdAndUpdate(
-      listingId,
-      {
-        ...req.body,
-        ...newImages
-      },
-      { new: true }
-    );
+          // Keep old images that weren't deleted
+          const existingImages = existingListing[category].filter(image => !removedImages.includes(image.public_id));
 
-    console.log("Listing updated successfully:".magenta);
-
-    res.status(200).json({
-      success: true,
-      message: "Listing updated successfully",
-      data: updatedListing
-    });
+          // Merge old and new images
+          updatedImages[category] = [...existingImages, ...newImages];
+      }
   } catch (error) {
-    console.error('Error during image deletion or update:', error);
-    res.status(500).json({
-      success: false,
-      message: `Server error: ${error.message}`,
-      error
-    });
+      console.error("Error during image upload:", error);
+      return res.status(500).json({
+          success: false,
+          message: `Error uploading new images: ${error.message}`
+      });
+  }
+
+  // Update the listing with the new data and images
+  try {
+      console.log("Updating listing".green);
+      const updatedListing = await Listing.findByIdAndUpdate(
+          listingId,
+          {
+              ...formattedData,
+              ...updatedImages // Add the merged image arrays
+          },
+          { new: true }
+      );
+
+      console.log("Listing updated successfully".magenta);
+      res.status(200).json({
+          success: true,
+          message: "Listing updated successfully",
+          data: updatedListing
+      });
+  } catch (error) {
+      console.error("Error updating listing:", error);
+      return res.status(500).json({
+          success: false,
+          message: `Server error: ${error.message}`,
+          error
+      });
   }
 });
-
 
 export { 
 createListing,
