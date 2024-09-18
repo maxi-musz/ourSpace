@@ -208,14 +208,25 @@ const listingsSchema = new mongoose.Schema({
       required: [true, "Cancellation option is required"]
     },
 
-    availability: {
-      type: [String],
-      default: []
-    },
-
-    bookedDays: {
-      type: [String],
-      default: []
+    calendar: {
+      availableDays: {
+        type: [String],
+        default: []
+      },
+      blockedDays: {
+        type: [String],
+        default: []
+      },
+      bookedDays: {
+        type: [String],
+        default: []
+      },
+      unavailableDays: {
+        type: [String],
+        default: function() {
+          return [...new Set([...this.calendar.blockedDays, ...this.calendar.bookedDays])];
+        }
+      }
     },
 
     totalGuestsAllowed: {
@@ -246,6 +257,21 @@ listingsSchema.pre('save', function (next) {
   ]);
 
   this.availableAmenities.allAmenities = Array.from(amenities);
+  next();
+});
+
+listingsSchema.pre('save', function (next) {
+  if (!this.calendar) {
+    this.calendar = {};
+  }
+
+  // Combine blockedDays and bookedDays to form unavailableDays
+  const unavailableDays = new Set([
+    ...(this.calendar.blockedDays || []),
+    ...(this.calendar.bookedDays || [])
+  ]);
+
+  this.calendar.unavailableDays = Array.from(unavailableDays);
   next();
 });
   

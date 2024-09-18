@@ -56,100 +56,119 @@ const deleteImagesFromCloudinary = async (publicIds) => {
 
 //
 const createListing = asyncHandler(async (req, res) => {
-    console.log("Creating a new listing".blue)
-    const userId = req.user._id.toString();
+  console.log("Creating a new listing".blue)
+  console.log('Request Body:', req.body);
+  const userId = req.user._id.toString();
 
-    let bedroomPictures = [];
-    let livingRoomPictures = [];
-    let bathroomToiletPictures = [];
-    let kitchenPictures = [];
-    let facilityPictures = [];
-    let otherPictures = [];
+  let bedroomPictures = [];
+  let livingRoomPictures = [];
+  let bathroomToiletPictures = [];
+  let kitchenPictures = [];
+  let facilityPictures = [];
+  let otherPictures = [];
 
-    try {
-        if(!req.files.bedroomPictures || !req.files.livingRoomPictures ||!req.files.bathroomToiletPictures ||!req.files.kitchenPictures ||!req.files.facilityPictures || !req.files.otherPictures) {
+  try {
+      if (!req.files.bedroomPictures || !req.files.livingRoomPictures || !req.files.bathroomToiletPictures || !req.files.kitchenPictures || !req.files.facilityPictures || !req.files.otherPictures) {
           console.log("One image at least is required from all the image sections".red)
 
           return res.status(400).json({
-            success: false,
-            message: "One image at least is required from all the image sections"
-          })
-        }
+              success: false,
+              message: "One image at least is required from all the image sections"
+          });
+      }
 
-        console.log('Formatting listings');
+      console.log('Formatting listings');
 
-        const formattedData = formatListingData(req);
+      const formattedData = formatListingData(req);
 
-        let latitude, longitude;
+      let latitude, longitude;
 
-        try {
-            const { address, city, state } = formattedData.propertyLocation;
-            const fullAddress = `${address}, ${city}, ${state}`;
-            const coordinates = await getCoordinates(fullAddress);  // Changed here
+      try {
+          const { address, city, state } = formattedData.propertyLocation;
+          const fullAddress = `${address}, ${city}, ${state}`;
+          const coordinates = await getCoordinates(fullAddress);
 
-            // Assign latitude and longitude
-            latitude = coordinates.latitude;
-            longitude = coordinates.longitude;
+          // Assign latitude and longitude
+          latitude = coordinates.latitude;
+          longitude = coordinates.longitude;
 
-            console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
-        } catch (error) {
-            console.log(`Error getting coordinates: ${error}`.red);
-            return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
-        }
+          console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
+      } catch (error) {
+          console.log(`Error getting coordinates: ${error}`.red);
+          return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
+      }
 
-        console.log(`Latitdue: ${latitude} \nLongitude: ${longitude}`.yellow)
+      console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow)
 
-        try {
-          console.log("Uploading pictures".cyan)
-          bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures)
-          livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures)
-          bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures)
-          kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures)
-          facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures)
-          otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures)
-        } catch (error) {
+      try {
+          console.log("Uploading pictures".cyan);
+          bedroomPictures = await uploadListingImagesToCloudinary(req.files.bedroomPictures);
+          livingRoomPictures = await uploadListingImagesToCloudinary(req.files.livingRoomPictures);
+          bathroomToiletPictures = await uploadListingImagesToCloudinary(req.files.bathroomToiletPictures);
+          kitchenPictures = await uploadListingImagesToCloudinary(req.files.kitchenPictures);
+          facilityPictures = await uploadListingImagesToCloudinary(req.files.facilityPictures);
+          otherPictures = await uploadListingImagesToCloudinary(req.files.otherPictures);
+
+          console.log("Pictures uploaded".yellow);
+      } catch (error) {
+          
+          const allPublicIds = [
+              ...bedroomPictures.map(image => image.public_id),
+              ...livingRoomPictures.map(image => image.public_id),
+              ...bathroomToiletPictures.map(image => image.public_id),
+              ...kitchenPictures.map(image => image.public_id),
+              ...facilityPictures.map(image => image.public_id),
+              ...otherPictures.map(image => image.public_id)
+          ];
+
+          
+          try {
+              await deleteImagesFromCloudinary(allPublicIds);
+          } catch (deleteError) {
+              console.error("Error during image deletion:", deleteError);
+          }
+
           console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
           return res.status(500).json({ success: false, message: `Error uploading listing images: ${error.message || error}` });
-        }
+      }
 
-        console.log("Pictures uploaded".yellow);
+      const validStatuses = ['approved', 'rejected', 'active', 'inactive', 'pending', 'draft', 'saved', 'archived', 'blocked'];
+      const listingStatus = validStatuses.includes(req.body.listingStatus) ? req.body.listingStatus : 'pending';
 
-        const validStatuses = ['approved', 'rejected', 'active', 'inactive', 'pending', 'draft',"saved", 'archived', 'blocked'];
-        const listingStatus = validStatuses.includes(req.body.listingStatus) ? req.body.listingStatus : 'pending';
-
-        function generateListingId() {
+      function generateListingId() {
           const randomDigits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
           return `OS${randomDigits}`;
-        }
+      }
 
-        const newListing = await Listing.create({
-            ...formattedData,
-            user: userId,
-            propertyId: generateListingId(),
-            listingStatus: listingStatus,
-            propertyLocation: {
+      const newListing = await Listing.create({
+          ...formattedData,
+          user: userId,
+          propertyId: generateListingId(),
+          listingStatus: listingStatus,
+          propertyLocation: {
               ...formattedData.propertyLocation,
               latitude,
               longitude
-            },
-            bedroomPictures,
-            livingRoomPictures,
-            bathroomToiletPictures,
-            kitchenPictures,
-            facilityPictures,
-            otherPictures
-        });
+          },
+          bedroomPictures,
+          livingRoomPictures,
+          bathroomToiletPictures,
+          kitchenPictures,
+          facilityPictures,
+          otherPictures
+      });
 
-        console.log("New Listing successfully created".magenta)
-        res.status(201).json({
-            success: true,
-            message: "You've successfully created a new listing",
-            data: newListing
-        });
-    } catch (error) {
-        console.error('Error creating property listing:', error.stack || error);
+      console.log("New Listing successfully created".magenta);
+      return res.status(201).json({
+          success: true,
+          message: "You've successfully created a new listing",
+          data: newListing
+      });
+  } catch (error) {
+      console.error('Error creating property listing:', error.stack || error);
 
-        const allPublicIds = [
+      // Collect all public_ids of the uploaded images
+      const allPublicIds = [
           ...bedroomPictures.map(image => image.public_id),
           ...livingRoomPictures.map(image => image.public_id),
           ...bathroomToiletPictures.map(image => image.public_id),
@@ -158,20 +177,21 @@ const createListing = asyncHandler(async (req, res) => {
           ...otherPictures.map(image => image.public_id)
       ];
 
-      // Try to delete the images in case of error
+      // Attempt to delete the images in case of error
       try {
           await deleteImagesFromCloudinary(allPublicIds);
       } catch (deleteError) {
           console.error("Error during image deletion:", deleteError);
       }
 
-        res.status(500).json({
-            success: false,
-            message: `Server error: ${error.message}`,
-            error
-        });
-    }
+      return res.status(500).json({
+          success: false,
+          message: `Server error: ${error.message}`,
+          error
+      });
+  }
 });
+
 
 const getSingleListing = asyncHandler(async (req, res) => {
   console.log("Fetching a single listing".blue);
