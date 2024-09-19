@@ -18,8 +18,8 @@ import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoute.js";
 import bookingsRoute from "./routes/bookingsRoute.js"
-import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
-import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
+// import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
+// import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import userSettingsR from "./routes/userSettingsR.js"
 import profileRoutes from "./routes/profileRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
