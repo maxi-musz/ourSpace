@@ -28,7 +28,7 @@ const uploadMessageMediaToCloudinary = async (items) => {
 const uploadVoiceNoteToCloudinary = async (voiceNote) => {
   const result = await cloudinaryConfig.uploader.upload(voiceNote.path, {
     folder: 'ourSpace/voice-notes',
-    resource_type: 'video', // Cloudinary treats audio files as video
+    resource_type: 'video',
   });
   return {
     secure_url: result.secure_url,
@@ -36,6 +36,7 @@ const uploadVoiceNoteToCloudinary = async (voiceNote) => {
   };
 };
 
+//                                                                            send message
 const sendMessage = asyncHandler(async (req, res) => {
   console.log("Sending a new message".yellow);
 
@@ -100,117 +101,83 @@ const sendMessage = asyncHandler(async (req, res) => {
   }
 });
 
+//                                                                            get all messages
 const getAllMessages = asyncHandler(async (req, res) => {
   try {
-    const currentUserId = req.user._id;
+    const currentUserId = req.user._id; // Assuming the current logged-in user
 
-    // Find successful bookings for the user, sorted by the most recent booking
-    const successfulBookings = await Booking.find({
-      user: currentUserId,
-      bookingStatus: 'success',
+    // Find all messages for the current user
+    const messages = await Message.find({
+      $or: [{ sender: currentUserId }, { receiver: currentUserId }],
     })
-      .sort({ bookingDate: -1 }) // Sort by the most recent booking
-      .populate({
-        path: 'listing',
-        select: 'apartmentName bedroomPictures',
-      });
+      .populate('sender', 'firstName lastName profilePic')
+      .populate('receiver', 'firstName lastName profilePic')
+      .populate('listing', 'propertyName bedroomPictures')
+      .sort({ timestamp: -1 }); // Sort by the latest message first
 
-    // Ensure there's at least one successful booking
-    if (successfulBookings.length === 0) {
-      return res.status(404).json({ success: false, message: 'No successful bookings found' });
-    }
+    // Group messages by listing and other user (either sender or receiver)
+    const groupedMessages = {};
+    
+    messages.forEach((message) => {
+      const otherUserId = message.sender._id.equals(currentUserId)
+        ? message.receiver._id
+        : message.sender._id;
 
-    // Get the most recent booking
-    const latestBooking = successfulBookings[0]; // This gives us the most recent booking
+      const listingId = message.listing ? message.listing._id.toString() : 'no_listing';
 
-    // Extract property details from the latest booking
-    const propertyName = latestBooking.listing.apartmentName;
-    const listingImage = latestBooking.listing.bedroomPictures.length > 0 
-      ? latestBooking.listing.bedroomPictures[0]  // Directly select the first image URL
-      : null;
+      // Create a unique key for the combination of listing and other user
+      const key = `${otherUserId}-${listingId}`;
 
-    // Aggregation pipeline to get messages
-    const messages = await Message.aggregate([
-      {
-        $match: {
-          $or: [{ sender: currentUserId }, { receiver: currentUserId }],
-        },
-      },
-      {
-        $sort: { timestamp: -1 }, // Sort by latest message
-      },
-      {
-        $group: {
-          _id: "$receiver", // Group by receiver or sender
-          lastMessage: { $first: "$$ROOT" }, // Get the latest message
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "lastMessage.sender",
-          foreignField: "_id",
-          as: "senderDetails",
-        },
-      },
-      {
-        $unwind: "$senderDetails", // Unwind sender details
-      },
-      {
-        $lookup: {
-          from: "listings",
-          localField: "lastMessage.listing", // Lookup on the listing field in messages
-          foreignField: "_id",
-          as: "listingDetails",
-        },
-      },
-      {
-        $unwind: { path: "$listingDetails", preserveNullAndEmptyArrays: true }, // In case some messages don't have a listing
-      },
-      {
-        $project: {
-          _id: 0, // Exclude aggregation _id
-          senderFirstName: "$senderDetails.firstName",
-          senderLastName: "$senderDetails.lastName",
-          senderProfilePic: "$senderDetails.profilePic",
-          lastMessageContent: "$lastMessage.content",
-          lastMessageMedia: "$lastMessage.messageMedia",
-          lastMessageTimestamp: "$lastMessage.timestamp",
-          apartmentName: "$listingDetails.apartmentName", // Include apartment name from listing
-          apartmentImage: { $arrayElemAt: ["$listingDetails.bedroomPictures", 0] }, // Get the first bedroom picture
-        },
-      },
-    ]);
+      if (!groupedMessages[key]) {
+        groupedMessages[key] = {
+          propertyOwner: {
+            name: `${message.sender.firstName} ${message.sender.lastName}`,
+            profilePic: message.sender.profilePic.secure_url,
+          },
+          propertyUser: {
+            name: `${message.receiver.firstName} ${message.receiver.lastName}`,
+            profilePic: message.receiver.profilePic.secure_url,
+          },
+          property: message.listing
+            ? {
+                name: message.listing.propertyName,
+                image: message.listing.bedroomPictures?.[0]?.secure_url || null,
+              }
+            : null,
+          lastMessageContent: message.content,
+          lastMessageTimestamp: message.timestamp,
+          unreadCount: 0, // We'll count unread messages below
+        };
+      }
 
-    // If no messages found, return property details for the latest booking
-    if (!messages.length) {
+      // Count unread messages for the current user
+      if (!message.isRead && message.receiver._id.equals(currentUserId)) {
+        groupedMessages[key].unreadCount += 1;
+      }
+    });
+
+    // Convert grouped messages object to an array
+    const messageThreads = Object.values(groupedMessages);
+
+    // If no messages found, return an empty array
+    if (messageThreads.length === 0) {
       return res.status(200).json({
         success: true,
-        message: 'No messages found at the moment',
+        message: 'No messages found',
         data: [],
-        latestBooking: {
-          propertyName,
-          listingImage,
-        },
       });
     }
 
-    // Add latest booking details to the message response
+    // Return the list of chat threads
     res.status(200).json({
       success: true,
       message: 'Messages retrieved successfully',
-      totalChats: messages.length,
-      data: messages,
-      latestBooking: {
-        propertyName,
-        listingImage,
-      },
+      data: messageThreads,
     });
   } catch (error) {
     console.error('Error retrieving messages:', error);
     res.status(500).json({ success: false, message: 'Error retrieving messages', error });
   }
 });
-
 
 export { sendMessage, getAllMessages };

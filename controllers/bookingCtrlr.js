@@ -4,6 +4,7 @@ import Listing from "../models/listingModel.js"
 import sendEmail from "../utils/sendMail.js"
 import Booking from '../models/bookingModel.js';
 import Notification from '../models/notificationModel.js';
+import Message from '../models/messageModel.js';
 
 export const checkAvailability = asyncHandler(async (req, res) => {
     console.log("Checking availability before booking endpoint...".blue);
@@ -357,6 +358,13 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
 
             console.log("Notification created successfully.".green);
+
+            await Message.create({
+                sender: listingOwner,
+                receiver: userId,
+                listing: listingId,
+                content: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`
+            })
 
             res.status(200).json({
                 success: true,
