@@ -59,7 +59,7 @@ const createListing = asyncHandler(async (req, res) => {
   console.log("Creating a new listing".blue);
   const userId = req.user._id.toString();
 
-  if(req.user.usertype !== "space-owner") {
+  if(req.user.userType !== "space-owner") {
     console.log("Only space owners can create a listing".red)
     return res.status(404).json({
       success: false,
