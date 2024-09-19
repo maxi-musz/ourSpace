@@ -38,6 +38,7 @@ const uploadVoiceNoteToCloudinary = async (voiceNote) => {
 
 //                                                                            get all messages
 const getAllMessages = asyncHandler(async (req, res) => {
+  console.log("Getting all messages".yellow)
   try {
     const currentUserId = req.user._id; // Assuming the current logged-in user
 
@@ -94,11 +95,10 @@ const getAllMessages = asyncHandler(async (req, res) => {
       }
     });
 
-    // Convert grouped messages object to an array
     const messageThreads = Object.values(groupedMessages);
 
-    // If no messages found, return an empty array
     if (messageThreads.length === 0) {
+      console.log("No messages found at the moment".red)
       return res.status(200).json({
         success: true,
         message: 'No messages found',
@@ -107,9 +107,11 @@ const getAllMessages = asyncHandler(async (req, res) => {
     }
 
     // Return the list of chat threads
+    console.log("Messages retrived successfully".magenta)
     res.status(200).json({
       success: true,
       message: 'Messages retrieved successfully',
+      total: messageThreads.length,
       data: messageThreads,
     });
   } catch (error) {

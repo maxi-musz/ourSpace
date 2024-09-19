@@ -87,8 +87,6 @@ export const checkAvailability = asyncHandler(async (req, res) => {
     }
 });
 
-
-
 export const initializeTransaction = asyncHandler(async (req, res) => {
     console.log("Initializing Paystack payment...".green);
 
@@ -136,7 +134,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 
-    const conflictingDates = listing.bookedDays.filter(date => newBookedDays.includes(date));
+    const conflictingDates = listing.calendar.unavailableDays.filter(date => newBookedDays.includes(date));
 
     if (conflictingDates.length > 0) {
         console.log("Some of the selected dates are already booked".red)
