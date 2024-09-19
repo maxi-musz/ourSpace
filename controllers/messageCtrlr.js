@@ -36,71 +36,6 @@ const uploadVoiceNoteToCloudinary = async (voiceNote) => {
   };
 };
 
-//                                                                            send message
-const sendMessage = asyncHandler(async (req, res) => {
-  console.log("Sending a new message".yellow);
-
-  try {
-    const sender = req.user;
-    const { listing, content, receiver } = req.body;
-
-    const receiverUser = await User.findById(receiver);
-    const propertyListing = listing ? await Listing.findById(listing) : null;
-
-    if (!receiverUser) {
-      console.log("Invalid receiver");
-      return res.status(400).json({ message: 'Invalid receiver' });
-    }
-
-    let messageMedia = [];
-    let voiceNoteUrl = null;
-
-    const voiceNoteFile = req.files.voiceNote;
-
-    if(voiceNoteFile) {
-      voiceNoteUrl = await uploadVoiceNoteToCloudinary(voiceNoteFile)
-      console.log("Voice note successfully uploaded to cloudinary")
-    }
-
-    // Handle media upload
-    if (req.files) {
-      console.log("Processing uploaded files");
-      messageMedia = await uploadMessageMediaToCloudinary(req.files);
-      console.log("Medias uploaded to Cloudinary".cyan);
-    } else {
-      console.log("No media file uploaded");
-      return res.status(400).json({
-        message: "No media file uploaded"
-      });
-    }
-
-    // Create and save the message
-    const newMessage = new Message({
-      sender: sender._id,
-      receiver: receiverUser._id,
-      listing: propertyListing ? propertyListing._id : null,
-      content,
-      messageMedia,
-    });
-    await newMessage.save();
-
-    // Emit the new message event to the receiver using Socket.IO
-    req.io.to(receiverUser._id.toString()).emit('new_message', newMessage);
-
-    console.log("Message sent".magenta);
-    res.status(201).json({
-      success: true,
-      message: "Message successfully sent",
-      data: {
-        newMessage
-      }
-    });
-  } catch (error) {
-    console.error("Error sending message:", error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
 //                                                                            get all messages
 const getAllMessages = asyncHandler(async (req, res) => {
   try {
@@ -131,15 +66,18 @@ const getAllMessages = asyncHandler(async (req, res) => {
       if (!groupedMessages[key]) {
         groupedMessages[key] = {
           propertyOwner: {
+            id: message.sender._id,
             name: `${message.sender.firstName} ${message.sender.lastName}`,
             profilePic: message.sender.profilePic.secure_url,
           },
           propertyUser: {
+            id: currentUserId,
             name: `${message.receiver.firstName} ${message.receiver.lastName}`,
             profilePic: message.receiver.profilePic.secure_url,
           },
           property: message.listing
             ? {
+                id: message.listing._id,
                 name: message.listing.propertyName,
                 image: message.listing.bedroomPictures?.[0]?.secure_url || null,
               }
@@ -180,4 +118,132 @@ const getAllMessages = asyncHandler(async (req, res) => {
   }
 });
 
-export { sendMessage, getAllMessages };
+const getMessagesForAListing = asyncHandler(async (req, res) => {
+  try {
+    const currentUserId = req.user._id;
+    const { listingId, otherUserId } = req.body;
+
+    // Find all messages between the current user and the other user for a specific listing
+    const messages = await Message.find({
+      $and: [
+        { listing: listingId }, // Messages related to the listing
+        {
+          $or: [
+            { sender: currentUserId, receiver: otherUserId }, // Current user is the sender
+            { sender: otherUserId, receiver: currentUserId }, // Current user is the receiver
+          ],
+        },
+      ],
+    })
+      .sort({ timestamp: 1 }) // Sort by timestamp (oldest to newest)
+      .exec();
+
+    if (!messages || messages.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No messages found for this listing',
+        data: [],
+      });
+    }
+
+    // Return only the messages content, timestamp, and media
+    res.status(200).json({
+      success: true,
+      message: 'Messages retrieved successfully for the listing',
+      total: messages.length,
+      data: messages.map(message => ({
+        content: message.content,
+        timestamp: message.timestamp,
+        messageMedia: message.messageMedia, // Include media if any
+      })),
+    });
+  } catch (error) {
+    console.error('Error retrieving messages for the listing:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving messages for the listing',
+      error: error.message,
+    });
+  }
+});
+
+//                                                                            send message
+const sendMessage = asyncHandler(async (req, res) => {
+  console.log("Sending a new message".yellow);
+
+  try {
+    const sender = req.user;
+    const { listingId, content, receiver } = req.body;
+
+    const receiverUser = await User.findById(receiver);
+    const propertyListing = await Listing.findById(listingId);
+
+    if(!propertyListing) {
+      console.log("Listing not found".red)
+      return res.status(400).json({
+        success: false,
+        message: "This listing isn't available again or has been deleted by owner"
+      })
+    }
+
+    if (!receiverUser) {
+      console.log("Invalid receiver");
+      return res.status(400).json({ message: 'User does not exist or account hasa been suspended or deleted' });
+    }
+
+    let messageMedia = [];
+    let voiceNoteUrl = null;
+
+    const voiceNoteFile = req.files.voiceNote;
+
+    if(voiceNoteFile) {
+      voiceNoteUrl = await uploadVoiceNoteToCloudinary(voiceNoteFile)
+      console.log("Voice note successfully uploaded to cloudinary")
+    }
+
+    // Handle media upload
+    if (req.files) {
+      console.log("Processing uploaded files");
+      messageMedia = await uploadMessageMediaToCloudinary(req.files);
+      console.log("Medias uploaded to Cloudinary".cyan);
+    } else {
+      console.log("No media file uploaded");
+      return res.status(400).json({
+        message: "No media file uploaded"
+      });
+    }
+
+    // Create and save the message
+    const newMessage = new Message({
+      sender: sender._id,
+      receiver: receiverUser._id,
+      listing: propertyListing._id,
+      content,
+      messageMedia,
+    });
+    await newMessage.save();
+
+    // Emit the new message event to the receiver using Socket.IO
+    req.io.to(receiverUser._id.toString()).emit('new_message', newMessage);
+
+    console.log("Message sent".magenta);
+    res.status(201).json({
+      success: true,
+      message: "Message successfully sent",
+      data: {
+        newMessage
+      }
+    });
+  } catch (error) {
+    console.error("Error sending message:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+
+export { 
+  sendMessage, 
+  getAllMessages,
+  getMessagesForAListing
+};
