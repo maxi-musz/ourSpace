@@ -9,6 +9,6 @@ const router = express.Router();
 
 router.route("/send-message").post(protect, upload.array('messageMedia'),sendMessage)
 router.route("/get-all-messages").get(protect, getAllMessages)
-router.route("/get-messages-for-a-listing").get(protect, getMessagesForAListing)
+router.route("/get-messages-for-a-listing").post(protect, getMessagesForAListing)
 
 export default router;
