@@ -178,9 +178,9 @@ const sendMessage = asyncHandler(async (req, res) => {
 
   try {
     const sender = req.user;
-    const { listingId, content, receiver } = req.body;
+    const { listingId, content, receiverId } = req.body;
 
-    const receiverUser = await User.findById(receiver);
+    const receiverUser = await User.findById(receiverId);
     const propertyListing = await Listing.findById(listingId);
 
     if (!propertyListing) {
