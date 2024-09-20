@@ -36,11 +36,182 @@ const uploadVoiceNoteToCloudinary = async (voiceNote) => {
   };
 };
 
+
+const spaceOwnerGetAllChats = async (req, res) => {
+  console.log("Space owner get all chats".yellow)
+  try {
+    // Get the signed-in user's ID
+    const userId = req.user._id;
+
+    if(req.user.userType !== "space-owner") {
+      console.log("Only space owners are aloowed".red)
+      return res.status(404).json({
+        success: false,
+        message: "Only space owners are aloowed"
+      })
+    }
+
+    // Find all messages where the listing belongs to the currently signed-in user
+    const messages = await Message.find({
+      receiver: userId
+    })
+    .populate({
+      path: 'receiver',
+      select: '_id firstName lastName profilePic', // Populate receiver's info
+    })
+    .populate({
+      path: "sender",
+      select: "_id firstName lastName profilePic"
+    })
+    .populate({
+      path: 'listing',
+      match: { user: userId }, // Ensure the listing belongs to the signed-in user
+      select: '_id propertyName bedroomPictures', // Populate listing info
+    });
+
+    console.log(`Total of `)
+
+    // Filter out messages without valid listing matches
+    const filteredMessages = messages.filter(message => message.listing);
+
+    // Create a map to group messages by listingId
+    const groupedMessages = {};
+    filteredMessages.forEach((message) => {
+      const listingId = message.listing._id.toString();
+      if (!groupedMessages[listingId]) {
+        // Structure the output
+        groupedMessages[listingId] = {
+          propertyOwner: {
+            id: req.user._id, 
+            name: message.receiver.firstName + " " + message.receiver.lastName,
+            profilePic: message.receiver.profilePic
+          },
+          propertyUser: {
+            id: message.sender._id,
+            name: message.sender.firstName + " " + message.sender.lastName, 
+            profilePic: message.sender.profilePic
+          },
+          property: {
+            id: message.listing._id,
+            name: message.listing.propertyName,
+            image: message.listing.bedroomPictures[0] // First image in bedroomPictures array
+          },
+          lastMessageContent: message.content,
+          lastMessageTimestamp: message.createdAt // Adjust to the field for timestamp
+        };
+      }
+    });
+
+    // Convert the map to an array of messages
+    const result = Object.values(groupedMessages);
+
+    res.status(200).json({
+      success: true,
+      message: "All messages retrieved successfully",
+      total: result.length,
+      data: result
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const spaceUserGetAllChats = async (req, res) => {
+  console.log("Space user get all chats".yellow);
+  try {
+    // Get the signed-in user's ID
+    const userId = req.user._id;
+
+    if (req.user.userType !== "space-user") {
+      console.log("Only space users are allowed".red);
+      return res.status(404).json({
+        success: false,
+        message: "Only space users are allowed"
+      });
+    }
+
+    // Find all messages where the user is either the sender or the receiver
+    const messages = await Message.find({
+      $or: [{ sender: userId }, { receiver: userId }]
+    })
+    .populate({
+      path: 'receiver',
+      select: '_id firstName lastName profilePic', // Populate receiver's info
+    })
+    .populate({
+      path: "sender",
+      select: "_id firstName lastName profilePic"
+    })
+    .populate({
+      path: 'listing',
+      select: '_id propertyName bedroomPictures user', // Populate listing info, including property owner
+      populate: {
+        path: 'user', // Populate the property owner
+        select: '_id firstName lastName profilePic' // Include these fields from the owner
+      }
+    });
+
+    // Filter out messages without valid listing matches
+    const filteredMessages = messages.filter(message => message.listing);
+
+    // Create a map to group messages by listingId and track unread messages
+    const groupedMessages = {};
+    filteredMessages.forEach((message) => {
+      const listingId = message.listing._id.toString();
+
+      // Count unread messages (for simplicity assuming an `isRead` field)
+      const isUnread = message.isRead === false && message.receiver._id.toString() === userId;
+
+      if (!groupedMessages[listingId]) {
+        // Structure the output, keeping only the latest message
+        groupedMessages[listingId] = {
+          propertyOwner: {
+            id: message.listing.user._id,
+            name: message.listing.user.firstName + " " + message.listing.user.lastName,
+            profilePic: message.listing.user.profilePic
+          },
+          propertyUser: {
+            id: req.user._id,
+            name: req.user.firstName + " " + req.user.lastName,
+            profilePic: req.user.profilePic
+          },
+          property: {
+            id: message.listing._id,
+            name: message.listing.propertyName,
+            image: message.listing.bedroomPictures[0] // First image in bedroomPictures array
+          },
+          lastMessageContent: message.content,
+          lastMessageTimestamp: message.createdAt,
+          unreadCount: isUnread ? 1 : 0
+        };
+      } else if (isUnread) {
+        groupedMessages[listingId].unreadCount += 1;
+      }
+    });
+
+    // Convert the map to an array of messages
+    const result = Object.values(groupedMessages);
+
+    res.status(200).json({
+      success: true,
+      message: "Messages retrieved successfully",
+      total: result.length,
+      data: result
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 //                                                                            get all messages
 const getAllMessages = asyncHandler(async (req, res) => {
-  console.log("Getting all messages".yellow)
+  console.log("Getting all messages".yellow);
+
   try {
-    const currentUserId = req.user._id; // Assuming the current logged-in user
+    const currentUserId = req.user._id; // Logged-in user ID
+    const userType = req.user.userType; // Check the user type
 
     // Find all messages for the current user
     const messages = await Message.find({
@@ -48,13 +219,18 @@ const getAllMessages = asyncHandler(async (req, res) => {
     })
       .populate('sender', 'firstName lastName profilePic')
       .populate('receiver', 'firstName lastName profilePic')
-      .populate('listing', 'propertyName bedroomPictures')
+      .populate('listing', 'propertyName bedroomPictures owner')
       .sort({ timestamp: -1 }); // Sort by the latest message first
 
     // Group messages by listing and other user (either sender or receiver)
     const groupedMessages = {};
-    
+
     messages.forEach((message) => {
+      // Filter for space owners to see only their property-related messages
+      if (userType === 'space-owner' && message.listing && !message.listing.owner.equals(currentUserId)) {
+        return; // Skip messages unrelated to the owner's listings
+      }
+
       const otherUserId = message.sender._id.equals(currentUserId)
         ? message.receiver._id
         : message.sender._id;
@@ -64,17 +240,18 @@ const getAllMessages = asyncHandler(async (req, res) => {
       // Create a unique key for the combination of listing and other user
       const key = `${otherUserId}-${listingId}`;
 
+      // If there's no entry for this key, or if this message is more recent, update the grouped message
       if (!groupedMessages[key]) {
         groupedMessages[key] = {
           propertyOwner: {
             id: message.sender._id,
             name: `${message.sender.firstName} ${message.sender.lastName}`,
-            profilePic: message.sender.profilePic.secure_url,
+            profilePic: message.sender.profilePic?.secure_url || null,
           },
           propertyUser: {
-            id: currentUserId,
+            id: message.receiver._id,
             name: `${message.receiver.firstName} ${message.receiver.lastName}`,
-            profilePic: message.receiver.profilePic.secure_url,
+            profilePic: message.receiver.profilePic?.secure_url || null,
           },
           property: message.listing
             ? {
@@ -85,7 +262,7 @@ const getAllMessages = asyncHandler(async (req, res) => {
             : null,
           lastMessageContent: message.content,
           lastMessageTimestamp: message.timestamp,
-          unreadCount: 0, // We'll count unread messages below
+          unreadCount: 0, // Count unread messages below
         };
       }
 
@@ -98,7 +275,7 @@ const getAllMessages = asyncHandler(async (req, res) => {
     const messageThreads = Object.values(groupedMessages);
 
     if (messageThreads.length === 0) {
-      console.log("No messages found at the moment".red)
+      console.log("No messages found at the moment".red);
       return res.status(200).json({
         success: true,
         message: 'No messages found',
@@ -107,7 +284,7 @@ const getAllMessages = asyncHandler(async (req, res) => {
     }
 
     // Return the list of chat threads
-    console.log("Messages retrived successfully".magenta)
+    console.log("Messages retrieved successfully".magenta);
     res.status(200).json({
       success: true,
       message: 'Messages retrieved successfully',
@@ -253,6 +430,9 @@ const sendMessage = asyncHandler(async (req, res) => {
 
 export { 
   sendMessage, 
+  spaceOwnerGetAllChats,
+  spaceUserGetAllChats,
   getAllMessages,
   getMessagesForAListing
 };
+
