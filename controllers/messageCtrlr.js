@@ -155,6 +155,7 @@ const getMessagesForAListing = asyncHandler(async (req, res) => {
       total: messages.length,
       data: messages.map(message => ({
         content: message.content,
+        sender: message.sender,
         timestamp: message.timestamp,
         messageMedia: message.messageMedia, // Include media if any
       })),
