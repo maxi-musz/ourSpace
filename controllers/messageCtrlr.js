@@ -138,6 +138,7 @@ const getMessagesForAListing = asyncHandler(async (req, res) => {
       ],
     })
       .sort({ timestamp: 1 }) // Sort by timestamp (oldest to newest)
+      .populate('sender', 'profilePic') // Populate the sender's profilePic
       .exec();
 
     if (!messages || messages.length === 0) {
@@ -154,6 +155,7 @@ const getMessagesForAListing = asyncHandler(async (req, res) => {
       message: 'Messages retrieved successfully for the listing',
       total: messages.length,
       data: messages.map(message => ({
+        displayImage: message.sender.profilePic,
         content: message.content,
         sender: message.sender,
         timestamp: message.timestamp,
@@ -169,6 +171,7 @@ const getMessagesForAListing = asyncHandler(async (req, res) => {
     });
   }
 });
+
 
 //                                                                            send message
 const sendMessage = asyncHandler(async (req, res) => {
