@@ -87,7 +87,21 @@ app.use((req, res, next) => {
   next();
 });
 
-configureSocketIO(io);
+// Handle incoming WebSocket connections
+io.on('connection', (socket) => {
+    console.log('A user connected:', socket.id);
+  
+    // Join a room based on the user's ID (for private messages)
+    socket.on('join', (userId) => {
+      socket.join(userId); // Join a room with the user's ID
+      console.log(`User with ID ${userId} joined their room`);
+    });
+  
+    // Disconnect event
+    socket.on('disconnect', () => {
+      console.log('User disconnected:', socket.id);
+    });
+  });
 
 
 
@@ -132,6 +146,14 @@ app.use("/api/v1/admin/listings", listingsAdminR);
 app.use("/api/v1/messaging", messageRoutes);
 app.use('/api/v1/paystack', paystackRoutes);
 
+app.post('/api/v1/join', (req, res) => {
+    const { userId } = req.body;
+  
+    // Emit join event for testing
+    io.emit('join', userId);
+    res.status(200).json({ success: true, message: `User ${userId} joined the room` });
+  });
+
 app.use("*", (req, res, next) => {
     console.log("Route not found");
     res.status(404).json({
@@ -140,6 +162,6 @@ app.use("*", (req, res, next) => {
     });
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
     console.log(`Server running on port ${port}`.blue);
 });
