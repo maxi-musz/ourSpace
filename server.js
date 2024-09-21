@@ -95,6 +95,12 @@ io.on('connection', (socket) => {
         console.log("Updated users:", users); // Log users list
         io.emit('newUserResponse', users);
     });
+
+    // Handle joining rooms (for testing)
+    socket.on('join', (userId) => {
+      socket.join(userId); // Join a room based on userId
+      console.log(`User with ID ${userId} joined their room`);
+  });
     
     // Handle disconnection
     socket.on('disconnect', () => {
@@ -106,11 +112,7 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Handle joining rooms (for testing)
-    socket.on('join', (userId) => {
-        socket.join(userId); // Join a room based on userId
-        console.log(`User with ID ${userId} joined their room`);
-    });
+    
 });
 
 app.use((req, res, next) => {
