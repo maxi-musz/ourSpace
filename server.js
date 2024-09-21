@@ -102,6 +102,7 @@ io.on('connection', (socket) => {
         // Update users list
         users = users.filter(user => user.socketID !== socket.id);
         io.emit('loggedIn', users);
+        console.log(`User: ${users} has successfully logged in`.magenta)
     });
 
     // Handle joining rooms (for testing)
