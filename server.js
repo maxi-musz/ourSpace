@@ -31,7 +31,7 @@ import waitlistAdminRoute from "./routes/adminRoutes/waitlistAdminRoute.js";
 import authAdminR from "./routes/adminRoutes/authAdminR.js";
 import usersAdminR from "./routes/adminRoutes/usersAdminR.js";
 import listingsAdminR from "./routes/adminRoutes/listingsAdminR.js";
-import { getAllMessages } from "./controllers/messageCtrlr.js";
+import { spaceOwnerGetAllChats, spaceUserGetAllChats } from "./controllers/messageCtrlr.js";
 
 dotenv.config();
 await db.connectDb();
@@ -89,10 +89,18 @@ io.on('connection', (socket) => {
       console.log(`testing data for message: ${data}`)
     });
 
-    socket.on('get-all-chats', async (data)=> {
-      const res = await getAllMessages(data)
+    socket.on('so-get-all-chats', async (data)=> {
+      const res = await spaceOwnerGetAllChats(data)
 
-      io.emit("get-all-chats", res)
+      console.log("Emitting data to Isiaq".blue)
+      io.emit("so-get-all-chats", res)
+    })
+
+    socket.on('su-get-all-chats', async (data)=> {
+      const res = await spaceUserGetAllChats(data)
+
+      console.log("Emitting data to Isiaq".blue)
+      io.emit("so-get-all-chats", res)
     })
 
     socket.on('message', (data) => {

@@ -1,7 +1,7 @@
 import express from "express";
 
 import {admin, protect} from "../middleware/authMiddleware.js"
-import { getAllMessages, getMessagesForAListing, sendMessage, spaceOwnerGetAllChats, spaceUserGetAllChats } from "../controllers/messageCtrlr.js";
+import {getMessagesForAListing, sendMessage, spaceOwnerGetAllChats, spaceUserGetAllChats } from "../controllers/messageCtrlr.js";
 import upload from "../uploadUtils/multer.js";
 
 

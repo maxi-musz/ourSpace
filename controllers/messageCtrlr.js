@@ -36,12 +36,14 @@ const uploadVoiceNoteToCloudinary = async (voiceNote) => {
   };
 };
 
-
-const spaceOwnerGetAllChats = async (req, res) => {
+//                                  get all chats for space owners
+const spaceOwnerGetAllChats = async (req) => {
   console.log("Space owner get all chats".yellow)
   try {
-    // Get the signed-in user's ID
     const userId = req.user._id;
+    const currentUserId = data.user._id
+
+    console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
 
     if(req.user.userType !== "space-owner") {
       console.log("Only space owners are aloowed".red)
@@ -105,6 +107,9 @@ const spaceOwnerGetAllChats = async (req, res) => {
     // Convert the map to an array of messages
     const result = Object.values(groupedMessages);
 
+    console.log("Result of get all chat for space users sent to frontend".green)
+    return result
+
     res.status(200).json({
       success: true,
       message: "All messages retrieved successfully",
@@ -112,17 +117,21 @@ const spaceOwnerGetAllChats = async (req, res) => {
       data: result
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error getting all chats for space owner", error);
+    return("Error getting all chats for space owner", error)
   }
 };
 
-const spaceUserGetAllChats = async (req, res) => {
+//                                  get all chats for space users
+const spaceUserGetAllChats = async (req) => {
   console.log("Space user get all chats".yellow);
   try {
-    // Get the signed-in user's ID
-    const userId = req.user._id;
 
+    const userId = req.user._id;
+    const currentUserId = data.user._id
+
+    console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
+  
     if (req.user.userType !== "space-user") {
       console.log("Only space users are allowed".red);
       return res.status(404).json({
@@ -192,110 +201,20 @@ const spaceUserGetAllChats = async (req, res) => {
 
     // Convert the map to an array of messages
     const result = Object.values(groupedMessages);
+    console.log("Result of get all chat for space users sent to frontend".green)
+    return result
 
-    res.status(200).json({
-      success: true,
-      message: "Messages retrieved successfully",
-      total: result.length,
-      data: result
-    });
+    // res.status(200).json({
+    //   success: true,
+    //   message: "Messages retrieved successfully",
+    //   total: result.length,
+    //   data: result
+    // });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error getting all chats for space users", error);
+    return ("Error getting all chats for space users", error)
   }
 };
-
-//                                                                            get all messages
-const getAllMessages = asyncHandler(async (req) => {
-  console.log("Getting all messages".yellow);
-
-  try {
-    const currentUserId = req.user._id; // Logged-in user ID
-    const userType = req.user.userType; // Check the user type
-
-    console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
-
-    // Find all messages for the current user
-    const messages = await Message.find({
-      $or: [{ sender: currentUserId }, { receiver: currentUserId }],
-    })
-      .populate('sender', 'firstName lastName profilePic')
-      .populate('receiver', 'firstName lastName profilePic')
-      .populate('listing', 'propertyName bedroomPictures owner')
-      .sort({ timestamp: -1 }); // Sort by the latest message first
-
-    // Group messages by listing and other user (either sender or receiver)
-    const groupedMessages = {};
-
-    messages.forEach((message) => {
-      // Filter for space owners to see only their property-related messages
-      if (userType === 'space-owner' && message.listing && !message.listing.owner.equals(currentUserId)) {
-        return; // Skip messages unrelated to the owner's listings
-      }
-
-      const otherUserId = message.sender._id.equals(currentUserId)
-        ? message.receiver._id
-        : message.sender._id;
-
-      const listingId = message.listing ? message.listing._id.toString() : 'no_listing';
-
-      // Create a unique key for the combination of listing and other user
-      const key = `${otherUserId}-${listingId}`;
-
-      // If there's no entry for this key, or if this message is more recent, update the grouped message
-      if (!groupedMessages[key]) {
-        groupedMessages[key] = {
-          propertyOwner: {
-            id: message.sender._id,
-            name: `${message.sender.firstName} ${message.sender.lastName}`,
-            profilePic: message.sender.profilePic?.secure_url || null,
-          },
-          propertyUser: {
-            id: message.receiver._id,
-            name: `${message.receiver.firstName} ${message.receiver.lastName}`,
-            profilePic: message.receiver.profilePic?.secure_url || null,
-          },
-          property: message.listing
-            ? {
-                id: message.listing._id,
-                name: message.listing.propertyName,
-                image: message.listing.bedroomPictures?.[0]?.secure_url || null,
-              }
-            : null,
-          lastMessageContent: message.content,
-          lastMessageTimestamp: message.timestamp,
-          unreadCount: 0, // Count unread messages below
-        };
-      }
-
-      // Count unread messages for the current user
-      if (!message.isRead && message.receiver._id.equals(currentUserId)) {
-        groupedMessages[key].unreadCount += 1;
-      }
-    });
-
-    const messageThreads = Object.values(groupedMessages);
-
-    if (messageThreads.length === 0) {
-      console.log("No messages found at the moment".red);
-      return messageThreads;
-    }
-
-    return messageThreads
-
-    // Return the list of chat threads
-    console.log("Messages retrieved successfully".magenta);
-    res.status(200).json({
-      success: true,
-      message: 'Messages retrieved successfully',
-      total: messageThreads.length,
-      data: messageThreads,
-    });
-  } catch (error) {
-    console.error('Error retrieving messages:', error);
-    return (error)
-  }
-});
 
 const getMessagesForAListing = asyncHandler(async (req, res) => {
   try {
@@ -345,7 +264,7 @@ const getMessagesForAListing = asyncHandler(async (req, res) => {
   }
 });
 
-//                                                                            send message
+//                                 send message
 const sendMessage = asyncHandler(async (req, res) => {
   console.log("Sending a new message".yellow);
 
@@ -428,7 +347,6 @@ export {
   sendMessage, 
   spaceOwnerGetAllChats,
   spaceUserGetAllChats,
-  getAllMessages,
   getMessagesForAListing
 };
 
