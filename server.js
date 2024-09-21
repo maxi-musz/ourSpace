@@ -101,8 +101,9 @@ io.on('connection', (socket) => {
         console.log('🔥: A user disconnected:', socket.id);
         // Update users list
         users = users.filter(user => user.socketID !== socket.id);
-        socket.on('loggedIn', users);
-        console.log(`User: ${users} has successfully logged in`.magenta)
+        socket.on('loggedIn', (data) => {
+          console.log(data)
+        });
     });
 
     // Handle joining rooms (for testing)
