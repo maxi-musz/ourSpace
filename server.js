@@ -85,9 +85,9 @@ io.on('connection', (socket) => {
 
     // Listen for messages
     socket.on('loggedIn', (data) => {
-      console.log(data.magenta)
+      console.log(data)
     });
-    
+
     socket.on('message', (data) => {
         console.log("Message received:", data); // Log received message
         io.emit('messageResponse', data);
