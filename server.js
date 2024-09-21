@@ -82,12 +82,12 @@ const io = new Server(server, {
 
 // Socket.IO connection event
 io.on('connection', (socket) => {
-    console.log(`⚡: ${socket.id} user just connected!`);
+    // console.log(`⚡: ${socket.id} user just connected!`);
 
     // Listen for messages
-    socket.on('loggedIn', (data) => {
-      console.log(`testing data for message: ${data}`)
-    });
+    // socket.on('loggedIn', (data) => {
+    //   console.log(`testing data for message: ${data}`)
+    // });
 
     socket.on('so-get-all-chats', async (data)=> {
       const res = await spaceOwnerGetAllChats(data)
