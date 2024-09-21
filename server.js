@@ -69,6 +69,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 let users = [];
+
 // Socket.IO connection setup
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -82,28 +83,26 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
     console.log(`⚡: ${socket.id} user just connected!`);
 
-    socket.on('message',(data) => {
-      io.emit('messageResponse', data)
-    })
+    // Listen for messages
+    socket.on('message', (data) => {
+        console.log("Message received:", data); // Log received message
+        io.emit('messageResponse', data);
+    });
 
-    //Listens when a new user joins the server
-  socket.on('newUser', (data) => {
-    //Adds the new user to the list of users
-    users.push(data);
-    console.log(users);
-    //Sends the list of users to the client
-    io.emit('newUserResponse', users);
-  });
+    // Listen when a new user joins the server
+    socket.on('newUser', (data) => {
+        users.push(data);
+        console.log("Updated users:", users); // Log users list
+        io.emit('newUserResponse', users);
+    });
     
-  socket.on('disconnect', () => {
-    console.log('🔥: A user disconnected');
-    //Updates the list of users when a user disconnects from the server
-    users = users.filter((user) => user.socketID !== socket.id);
-    // console.log(users);
-    //Sends the list of users to the client
-    io.emit('loggedIn', users);
-    socket.disconnect();
-  });
+    // Handle disconnection
+    socket.on('disconnect', () => {
+        console.log('🔥: A user disconnected:', socket.id);
+        // Update users list
+        users = users.filter(user => user.socketID !== socket.id);
+        io.emit('loggedIn', users);
+    });
 
     // Handle joining rooms (for testing)
     socket.on('join', (userId) => {
@@ -116,6 +115,7 @@ app.use((req, res, next) => {
     req.io = io; 
     next();
 });
+
 
 app.get("/api/v1", (req, res) => {
     console.log("ourSpace API is running".blue);
