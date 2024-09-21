@@ -31,7 +31,7 @@ import waitlistAdminRoute from "./routes/adminRoutes/waitlistAdminRoute.js";
 import authAdminR from "./routes/adminRoutes/authAdminR.js";
 import usersAdminR from "./routes/adminRoutes/usersAdminR.js";
 import listingsAdminR from "./routes/adminRoutes/listingsAdminR.js";
-import { spaceOwnerGetAllChats, spaceUserGetAllChats } from "./controllers/messageCtrlr.js";
+import { getMessagesForAListing, spaceOwnerGetAllChats, spaceUserGetAllChats } from "./controllers/messageCtrlr.js";
 
 dotenv.config();
 await db.connectDb();
@@ -101,6 +101,13 @@ io.on('connection', (socket) => {
 
       console.log("Emitting data to Isiaq".blue)
       io.emit("su-get-all-chats", res)
+    })
+
+    socket.on('conversations', async (data)=> {
+        const res = await getMessagesForAListing(data)
+  
+        console.log("Emitting conversations for a listing to Isiaq".blue)
+        io.emit("conversations", res)
     })
 
     socket.on('message', (data) => {

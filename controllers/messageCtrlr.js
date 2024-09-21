@@ -216,10 +216,10 @@ const spaceUserGetAllChats = async (req) => {
   }
 };
 
-const getMessagesForAListing = asyncHandler(async (req, res) => {
+const getMessagesForAListing = asyncHandler(async (data) => {
   try {
-    const currentUserId = req.user._id;
-    const { listingId, otherUserId } = req.body;
+    const {currentUserId, listingId, otherUserId } = data;
+    console.log(`current user id: ${currentUserId}\nListingId: ${listingId}\n Other user Id: ${otherUserId}`)
 
     // Find all messages between the current user and the other user for a specific listing
     const messages = await Message.find({
@@ -246,21 +246,22 @@ const getMessagesForAListing = asyncHandler(async (req, res) => {
     }
 
     // Return only the messages content, timestamp, and media
-    res.status(200).json({
+    
+    return {
       success: true,
       message: 'Messages retrieved successfully for the listing',
       total: messages.length,
       data: messages.map(message => ({
-        senderId: currentUserId,
+        senderId: message.sender._id,
         displayImage: message.sender.profilePic,
         content: message.content,
         timestamp: message.timestamp,
-        messageMedia: message.messageMedia, // Include media if any
+        messageMedia: message.messageMedia,
       })),
-    });
+    };
   } catch (error) {
-    console.log("Something went wrong", error)
-    return ("Something went wrong", error)
+    console.log("Something went wrong", error);
+    return { success: false, message: "Something went wrong", error };
   }
 });
 
