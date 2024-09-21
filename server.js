@@ -55,7 +55,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 const corsOptions = {
-    origin: "https://e3d8-102-88-69-245.ngrok-free.app",
+    origin: "*",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
     optionsSuccessStatus: 200
@@ -73,7 +73,7 @@ let users = [];
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "https://e3d8-102-88-69-245.ngrok-free.app",
+        origin: "http://localhost:3000",
         methods: ["GET", "POST"]
     }
 });
