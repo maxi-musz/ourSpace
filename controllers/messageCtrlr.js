@@ -128,7 +128,7 @@ const spaceUserGetAllChats = async (req) => {
   try {
 
     const userId = req.user._id;
-    const currentUserId = data.user._id
+    const userType = req.user.userType;
 
     console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
   
