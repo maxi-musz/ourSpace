@@ -85,7 +85,7 @@ io.on('connection', (socket) => {
 
     // Listen for messages
     socket.on('loggedIn', (data) => {
-      console.log(data)
+      console.log(`testing data for message: ${data}`)
     });
 
     socket.on('message', (data) => {
