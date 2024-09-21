@@ -84,6 +84,10 @@ io.on('connection', (socket) => {
     console.log(`⚡: ${socket.id} user just connected!`);
 
     // Listen for messages
+    socket.on('loggedIn', (data) => {
+      console.log(data.magenta)
+    });
+    
     socket.on('message', (data) => {
         console.log("Message received:", data); // Log received message
         io.emit('messageResponse', data);
@@ -95,24 +99,19 @@ io.on('connection', (socket) => {
         console.log("Updated users:", users); // Log users list
         io.emit('newUserResponse', users);
     });
-
-    // Handle joining rooms (for testing)
-    socket.on('join', (userId) => {
-      socket.join(userId); // Join a room based on userId
-      console.log(`User with ID ${userId} joined their room`);
-  });
     
     // Handle disconnection
     socket.on('disconnect', () => {
         console.log('🔥: A user disconnected:', socket.id);
         // Update users list
         users = users.filter(user => user.socketID !== socket.id);
-        socket.on('loggedIn', (data) => {
-          console.log(data)
-        });
     });
 
-    
+    // Handle joining rooms (for testing)
+    socket.on('join', (userId) => {
+        socket.join(userId); // Join a room based on userId
+        console.log(`User with ID ${userId} joined their room`);
+    });
 });
 
 app.use((req, res, next) => {
