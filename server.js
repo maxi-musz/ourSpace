@@ -17,10 +17,10 @@ import configureSocketIO from "./config/socketConfig.js";
 import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoute.js";
-import bookingsRoute from "./routes/bookingsRoute.js"
+import bookingsRoute from "./routes/bookingsRoute.js";
 import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
-import userSettingsR from "./routes/userSettingsR.js"
+import userSettingsR from "./routes/userSettingsR.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
@@ -55,7 +55,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 const corsOptions = {
-    origin: "*",
+    origin: "https://e3d8-102-88-69-245.ngrok-free.app",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
     optionsSuccessStatus: 200
@@ -68,43 +68,61 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser());
 
+let users = [];
+// Socket.IO connection setup
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "https://e3d8-102-88-69-245.ngrok-free.app",
+        methods: ["GET", "POST"]
+    }
+});
+
+// Socket.IO connection event
+io.on('connection', (socket) => {
+    console.log(`⚡: ${socket.id} user just connected!`);
+
+    socket.on('message',(data) => {
+      io.emit('messageResponse', data)
+    })
+
+    //Listens when a new user joins the server
+  socket.on('newUser', (data) => {
+    //Adds the new user to the list of users
+    users.push(data);
+    console.log(users);
+    //Sends the list of users to the client
+    io.emit('newUserResponse', users);
+  });
+    
+  socket.on('disconnect', () => {
+    console.log('🔥: A user disconnected');
+    //Updates the list of users when a user disconnects from the server
+    users = users.filter((user) => user.socketID !== socket.id);
+    // console.log(users);
+    //Sends the list of users to the client
+    io.emit('loggedIn', users);
+    socket.disconnect();
+  });
+
+    // Handle joining rooms (for testing)
+    socket.on('join', (userId) => {
+        socket.join(userId); // Join a room based on userId
+        console.log(`User with ID ${userId} joined their room`);
+    });
+});
+
+app.use((req, res, next) => {
+    req.io = io; 
+    next();
+});
+
 app.get("/api/v1", (req, res) => {
     console.log("ourSpace API is running".blue);
     res.send("ourSpace API is running");
 });
 
-// Socket.IO connection setup
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:3000/",
-    methods: ["GET", "POST"]
-  }
-});
-
-app.use((req, res, next) => {
-  req.io = io; 
-  next();
-});
-
-// Handle incoming WebSocket connections
-io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
-  
-    // Join a room based on the user's ID (for private messages)
-    socket.on('join', (userId) => {
-      socket.join(userId); // Join a room with the user's ID
-      console.log(`User with ID ${userId} joined their room`);
-    });
-  
-    // Disconnect event
-    socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id);
-    });
-  });
-
-
-
+// Cron jobs
 if(process.env.NODE_ENV === "production") {
     cron.schedule('*/2 * * * *', async () => {
         console.log('Calling ourSpace API every 2 minutes'.green);
@@ -115,22 +133,12 @@ if(process.env.NODE_ENV === "production") {
             console.error('Error calling ourSpace API:', error.message);
         }
     });
-    
-    //24hrs
-    // cron.schedule('0 0 * * *', async () => {
-    //     console.log('Running getWaitlistsAsCsv every 24 hours'.green);
-    //     try {
-    //         await getWaitlistsAsCsv();
-    //     } catch (error) {
-    //         console.error('Error executing getWaitlistsAsCsv:', error.message);
-    //     }
-    // });
 }
 
 app.use("/api/v1/waitlist", waitlistRoutes);
 app.use("/api/v1/users", authRoutes);
 app.use("/api/v1/listing", listingsRoute);
-app.use("/api/v1/bookings", bookingsRoute)
+app.use("/api/v1/bookings", bookingsRoute);
 app.use("/api/v1/settings", userSettingsR);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/messages", messageRoutes);
@@ -142,17 +150,14 @@ app.use("/api/v1/admin/auth", authAdminR);
 app.use("/api/v1/admin/users", usersAdminR);
 app.use("/api/v1/admin/listings", listingsAdminR);
 
-
 app.use("/api/v1/messaging", messageRoutes);
 app.use('/api/v1/paystack', paystackRoutes);
 
 app.post('/api/v1/join', (req, res) => {
     const { userId } = req.body;
-  
-    // Emit join event for testing
     io.emit('join', userId);
     res.status(200).json({ success: true, message: `User ${userId} joined the room` });
-  });
+});
 
 app.use("*", (req, res, next) => {
     console.log("Route not found");
