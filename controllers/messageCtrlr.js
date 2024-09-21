@@ -127,7 +127,7 @@ const spaceUserGetAllChats = async (req) => {
   console.log("Space user get all chats".yellow);
   try {
 
-    const userId = req.user._id;
+    const currentUserId = req.user._id;
     const userType = req.user.userType;
 
     console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
@@ -142,7 +142,7 @@ const spaceUserGetAllChats = async (req) => {
 
     // Find all messages where the user is either the sender or the receiver
     const messages = await Message.find({
-      $or: [{ sender: userId }, { receiver: userId }]
+      $or: [{ sender: currentUserId }, { receiver: currentUserId }]
     })
     .populate({
       path: 'receiver',
@@ -170,7 +170,7 @@ const spaceUserGetAllChats = async (req) => {
       const listingId = message.listing._id.toString();
 
       // Count unread messages (for simplicity assuming an `isRead` field)
-      const isUnread = message.isRead === false && message.receiver._id.toString() === userId;
+      const isUnread = message.isRead === false && message.receiver._id.toString() === currentUserId;
 
       if (!groupedMessages[listingId]) {
         // Structure the output, keeping only the latest message
