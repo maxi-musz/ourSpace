@@ -31,6 +31,7 @@ import waitlistAdminRoute from "./routes/adminRoutes/waitlistAdminRoute.js";
 import authAdminR from "./routes/adminRoutes/authAdminR.js";
 import usersAdminR from "./routes/adminRoutes/usersAdminR.js";
 import listingsAdminR from "./routes/adminRoutes/listingsAdminR.js";
+import { getAllMessages } from "./controllers/messageCtrlr.js";
 
 dotenv.config();
 await db.connectDb();
@@ -87,6 +88,12 @@ io.on('connection', (socket) => {
     socket.on('loggedIn', (data) => {
       console.log(`testing data for message: ${data}`)
     });
+
+    socket.on('get-all-chats', async (data)=> {
+      const res = await getAllMessages(data)
+
+      io.emit("get-all-chats", res)
+    })
 
     socket.on('message', (data) => {
         console.log("Message received:", data); // Log received message

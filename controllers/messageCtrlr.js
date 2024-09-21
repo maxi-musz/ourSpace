@@ -206,12 +206,14 @@ const spaceUserGetAllChats = async (req, res) => {
 };
 
 //                                                                            get all messages
-const getAllMessages = asyncHandler(async (req, res) => {
+const getAllMessages = asyncHandler(async (req) => {
   console.log("Getting all messages".yellow);
 
   try {
     const currentUserId = req.user._id; // Logged-in user ID
     const userType = req.user.userType; // Check the user type
+
+    console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
 
     // Find all messages for the current user
     const messages = await Message.find({
@@ -276,12 +278,10 @@ const getAllMessages = asyncHandler(async (req, res) => {
 
     if (messageThreads.length === 0) {
       console.log("No messages found at the moment".red);
-      return res.status(200).json({
-        success: true,
-        message: 'No messages found',
-        data: [],
-      });
+      return messageThreads;
     }
+
+    return messageThreads
 
     // Return the list of chat threads
     console.log("Messages retrieved successfully".magenta);
@@ -293,7 +293,7 @@ const getAllMessages = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error('Error retrieving messages:', error);
-    res.status(500).json({ success: false, message: 'Error retrieving messages', error });
+    return (error)
   }
 });
 
@@ -340,12 +340,8 @@ const getMessagesForAListing = asyncHandler(async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Error retrieving messages for the listing:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving messages for the listing',
-      error: error.message,
-    });
+    console.log("Something went wrong", error)
+    return ("Something went wrong", error)
   }
 });
 
