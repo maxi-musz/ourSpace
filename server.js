@@ -100,7 +100,7 @@ io.on('connection', (socket) => {
       const res = await spaceUserGetAllChats(data)
 
       console.log("Emitting data to Isiaq".blue)
-      io.emit("so-get-all-chats", res)
+      io.emit("su-get-all-chats", res)
     })
 
     socket.on('message', (data) => {
