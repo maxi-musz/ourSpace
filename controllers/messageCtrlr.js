@@ -40,7 +40,7 @@ const uploadVoiceNoteToCloudinary = async (voiceNote) => {
 const spaceOwnerGetAllChats = async (req) => {
   console.log("Space owner get all chats".yellow)
   try {
-    
+
     const currentUserId = req.user._id
     const userType = req.user.userType;
 
@@ -239,11 +239,11 @@ const getMessagesForAListing = asyncHandler(async (data) => {
       .exec();
 
     if (!messages || messages.length === 0) {
-      return res.status(200).json({
+      return {
         success: true,
         message: 'No messages found for this listing',
         data: [],
-      });
+      };
     }
 
     // Return only the messages content, timestamp, and media
