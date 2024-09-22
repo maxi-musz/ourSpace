@@ -26,25 +26,21 @@ import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 // };
 
 
-const uploadMessageMediaToCloudinary = async (items) => {
-  return Promise.all(items.map(async (item) => {
-    // Check if the item is a URL (if the file is already uploaded)
-    if (typeof item === 'string' && item.startsWith('http')) {
-      return { secure_url: item, public_id: null };
-    } else {
-      // Upload to Cloudinary
-      const result = await cloudinaryConfig.uploader.upload(`data:image/*;base64,${item}`, {
-        folder: 'ourSpace/message-media',
-      });
-      return {
-        secure_url: result.secure_url,
-        public_id: result.public_id
-      };
-    }
-  }));
+const uploadMessageMediaToCloudinary = async (item) => {
+  // Check if the item is a URL (if the file is already uploaded)
+  if (typeof item === 'string' && item.startsWith('http')) {
+    return { secure_url: item, public_id: null };
+  } else {
+    // Upload to Cloudinary
+    const result = await cloudinaryConfig.uploader.upload(`data:image/*;base64,${item}`, {
+      folder: 'ourSpace/message-media',
+    });
+    return {
+      secure_url: result.secure_url,
+      public_id: result.public_id
+    };
+  }
 };
-
-
 
 // Voice notes
 const uploadVoiceNoteToCloudinary = async (voiceNote) => {
@@ -322,7 +318,7 @@ const sendMessage = asyncHandler(async (data) => {
   console.log("Sending a new message".yellow);
 
   try {
-    const { sender, listingId, content, receiverId, messageMedia = [], voiceNote } = data;
+    const { sender, listingId, content, receiverId, messageMedia, voiceNote } = data;
 
     // Fetching receiver and listing details
     const receiverUser = await User.findById(receiverId);
@@ -351,6 +347,7 @@ const sendMessage = asyncHandler(async (data) => {
 
     // Upload message media if exists
     if (messageMedia.length > 0) {
+      console.log("Uploaded media file: ", messageMedia)
       console.log("Processing uploaded media files".cyan);
       uploadedMedia = await uploadMessageMediaToCloudinary(messageMedia);
       console.log("Media uploaded to Cloudinary".green);

@@ -50,10 +50,10 @@ const socketHandlers = (io) => {
       const { sender, listingId, content, receiverId } = data;
 
       // Log key parts of the message for debugging
-      console.log(`sender: ${sender}`.blue);
-      console.log(`receiverId: ${receiverId}`.cyan);
-      console.log(`listingId: ${listingId}`.green);
-      console.log(`content: ${content}`.magenta);
+      // console.log(`sender: ${sender}`.blue);
+      // console.log(`receiverId: ${receiverId}`.cyan);
+      // console.log(`listingId: ${listingId}`.green);
+      // console.log(`content: ${content}`.magenta);
 
       // Send message and get response
       const res = await sendMessage(data); 
