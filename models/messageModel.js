@@ -29,6 +29,7 @@ const messageSchema = new mongoose.Schema({
     type: String,
   },
   messageMedia: [mediaSchema],
+  voiceNote: [mediaSchema],
   timestamp: {
     type: Date,
     default: Date.now,

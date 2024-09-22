@@ -352,13 +352,10 @@ const sendMessage = asyncHandler(async (data) => {
       console.log("Media uploaded to Cloudinary".green);
     }
 
-    let voiceNoteUrl = null;
+    let voiceNoteMedia = null;
     if (voiceNote) {
       console.log("Processing voice note file".cyan);
-      const voiceNoteResult = await cloudinaryConfig.uploader.upload(`data:audio/*;base64,${voiceNote}`, {
-        folder: 'ourSpace/message-voice-notes',
-      });
-      voiceNoteUrl = voiceNoteResult.secure_url;
+      voiceNoteMedia = await uploadMessageMediaToCloudinary(voiceNote)
       console.log("Voice note uploaded to Cloudinary".green);
     }
 
@@ -368,8 +365,8 @@ const sendMessage = asyncHandler(async (data) => {
       receiver: receiverUser._id,
       listing: propertyListing._id,
       content,
-      messageMedia: uploadedMedia ? [uploadedMedia] : [], // Ensure it's an array
-      voiceNote: voiceNoteUrl,
+      messageMedia: uploadedMedia ? [uploadedMedia] : [],
+      voiceNote: voiceNoteMedia ? [voiceNoteMedia] : [],
     });
 
     await newMessage.save();
@@ -383,7 +380,7 @@ const sendMessage = asyncHandler(async (data) => {
       content: newMessage.content,
       timestamp: newMessage.createdAt,
       messageMedia: newMessage.messageMedia || [],
-      voiceNote: newMessage.voiceNote || null
+      voiceNote: newMessage.voiceNoteMedia || []
     };
 
     return {
