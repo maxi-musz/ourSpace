@@ -40,8 +40,9 @@ const uploadVoiceNoteToCloudinary = async (voiceNote) => {
 const spaceOwnerGetAllChats = async (req) => {
   console.log("Space owner get all chats".yellow)
   try {
-    const userId = req.user._id;
+    
     const currentUserId = req.user._id
+    const userType = req.user.userType;
 
     console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
 
@@ -55,7 +56,7 @@ const spaceOwnerGetAllChats = async (req) => {
 
     // Find all messages where the listing belongs to the currently signed-in user
     const messages = await Message.find({
-      receiver: userId
+      $or: [{ sender: currentUserId }, { receiver: currentUserId }]
     })
     .populate({
       path: 'receiver',
@@ -67,8 +68,8 @@ const spaceOwnerGetAllChats = async (req) => {
     })
     .populate({
       path: 'listing',
-      match: { user: userId }, // Ensure the listing belongs to the signed-in user
-      select: '_id propertyName bedroomPictures', // Populate listing info
+      match: { user: currentUserId }, 
+      select: '_id propertyName bedroomPictures', 
     });
 
     console.log(`Total of `)
