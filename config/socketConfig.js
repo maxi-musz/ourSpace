@@ -34,7 +34,12 @@ const socketHandlers = (io) => {
     });
 
     // Typing event
-    socket.on('typing', (data) => socket.broadcast.emit('typing-response', data));
+    socket.on('typing', (data) => {
+      const { senderName, receiverId } = data;
+    
+      // Broadcast only to the receiver's room (so only the receiver gets the typing notification)
+      io.to(receiverId).emit('typing-response', `${senderName} is typing...`);
+    });
 
     // Sending messages
     socket.on('send-message', async (data) => {
@@ -54,7 +59,7 @@ const socketHandlers = (io) => {
     
       // Emit the message response back to the receiver's room and back to sender also
       io.to(receiverId).emit('message-response', res);
-      socket.emit('message-response', res); 
+      socket.emit('message-response', data); 
       console.log(`Message successfully emitted to receiver. Message: ${data}`.america)
     });
     
