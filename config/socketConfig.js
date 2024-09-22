@@ -34,7 +34,7 @@ const socketHandlers = (io) => {
     });
 
     // Typing event
-    socket.on('typing', (data) => socket.broadcast.emit('typingResponse', data));
+    socket.on('typing', (data) => socket.broadcast.emit('typing-response', data));
 
     // Sending messages
     socket.on('send-message', async (data) => {
