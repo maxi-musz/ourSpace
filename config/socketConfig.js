@@ -40,7 +40,7 @@ const socketHandlers = (io) => {
     socket.on('send-message', async (data) => {
       console.log("New socket message received:".yellow);
       const res = await sendMessage(data);
-      io.to(data.receiverId).emit('messageResponse', res); // Emit the result to the receiver's room
+      io.to(data.receiverId).emit('message-response', res); // Emit the result to the receiver's room
     });
 
     // New user joins
