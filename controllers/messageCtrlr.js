@@ -140,13 +140,6 @@ const spaceOwnerGetAllChats = async (req, res) => {
     // Convert the grouped messages object into an array
     const result = Object.values(groupedMessages);
 
-    return {
-      success: true,
-      message: "All messages retrieved successfully",
-      total: result.length,
-      data: result
-    }
-
     return res.status(200).json({
       success: true,
       message: "All messages retrieved successfully",
@@ -154,17 +147,25 @@ const spaceOwnerGetAllChats = async (req, res) => {
       data: result
     });
 
+    // return {
+    //   success: true,
+    //   message: "All messages retrieved successfully",
+    //   total: result.length,
+    //   data: result
+    // }
+
+
   } catch (error) {
     console.error("Error getting all chats for space owner", error);
-
-    return {
-      success: false,
-      message: "Error getting all chats for space owner"
-    }
     return res.status(500).json({
       success: false,
       message: "Error getting all chats for space owner"
     });
+
+    // return {
+    //   success: false,
+    //   message: "Error getting all chats for space owner"
+    // }
   }
 };
 
@@ -248,16 +249,22 @@ const spaceUserGetAllChats = async (req) => {
     // Convert the map to an array of messages
     const result = Object.values(groupedMessages);
     console.log("Result of get all chat for space users sent to frontend".green)
-    return {
+    
+    return res.status(201).json(
+      {
         success: true,
         message: "Messages retrieved successfully",
         total: result.length,
         data: result
       }
+    )
 
   } catch (error) {
     console.error("Error getting all chats for space users", error);
-    return ("Error getting all chats for space users", error)
+    return res.status(500).json({
+      success: false,
+      message: "Error getting all chats for space users", error
+    })
   }
 };
 
