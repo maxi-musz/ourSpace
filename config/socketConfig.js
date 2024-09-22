@@ -59,7 +59,7 @@ const socketHandlers = (io) => {
       const res = await sendMessage(data); 
 
       // Emit the formatted message to both sender and receiver
-      socket.to(receiverId).emit('message-response', res); 
+      socket.emit('message-response', res); 
       socket.emit('message-response', res);  // Emit to sender
 
       console.log(`Message successfully emitted to sender and receiver.`.green);
