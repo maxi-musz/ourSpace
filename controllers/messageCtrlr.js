@@ -32,7 +32,7 @@ const uploadMessageMediaToCloudinary = async (item) => {
     return { secure_url: item, public_id: null };
   } else {
     // Upload to Cloudinary
-    const result = await cloudinaryConfig.uploader.upload(`data:image/*;base64,${item}`, {
+    const result = await cloudinaryConfig.uploader.upload(item, {
       folder: 'ourSpace/message-media',
     });
     return {
