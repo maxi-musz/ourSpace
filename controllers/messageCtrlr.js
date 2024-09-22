@@ -170,7 +170,7 @@ const spaceOwnerGetAllChats = async (req, res) => {
 };
 
 //                                  get all chats for space users
-const spaceUserGetAllChats = async (req) => {
+const spaceUserGetAllChats = async (req, res) => {
   console.log("Space user get all chats".yellow);
   try {
 
@@ -249,7 +249,7 @@ const spaceUserGetAllChats = async (req) => {
     // Convert the map to an array of messages
     const result = Object.values(groupedMessages);
     console.log("Result of get all chat for space users sent to frontend".green)
-    
+
     return res.status(201).json(
       {
         success: true,
