@@ -38,7 +38,7 @@ const socketHandlers = (io) => {
       const { senderName, receiverId } = data;
     
       // Broadcast only to the receiver's room (so only the receiver gets the typing notification)
-      io.to(receiverId).emit('typing-response', `${senderName} is typing...`);
+      socket.broadcast.emit('typing-response', `${senderName} is typing...`);
     });
 
     
