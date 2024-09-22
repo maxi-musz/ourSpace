@@ -7,14 +7,33 @@ import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 
                                                                         // Cloudinary upload for pictures videos and voicenotes
                                                                         
+// const uploadMessageMediaToCloudinary = async (items) => {
+//   return Promise.all(items.map(async (item) => {
+//     if (typeof item === 'string' && item.startsWith('http')) {
+     
+//       return { secure_url: item, public_id: null };
+//     } else {
+      
+//       const result = await cloudinaryConfig.uploader.upload(item.path, {
+//         folder: 'ourSpace/message-media',
+//       });
+//       return {
+//         secure_url: result.secure_url,
+//         public_id: result.public_id
+//       };
+//     }
+//   }));
+// };
+
+
 const uploadMessageMediaToCloudinary = async (items) => {
   return Promise.all(items.map(async (item) => {
+    // Check if the item is a URL (if the file is already uploaded)
     if (typeof item === 'string' && item.startsWith('http')) {
-     
       return { secure_url: item, public_id: null };
     } else {
-      
-      const result = await cloudinaryConfig.uploader.upload(item.path, {
+      // Upload to Cloudinary
+      const result = await cloudinaryConfig.uploader.upload(`data:image/*;base64,${item}`, {
         folder: 'ourSpace/message-media',
       });
       return {
@@ -24,6 +43,9 @@ const uploadMessageMediaToCloudinary = async (items) => {
     }
   }));
 };
+
+
+
 // Voice notes
 const uploadVoiceNoteToCloudinary = async (voiceNote) => {
   const result = await cloudinaryConfig.uploader.upload(voiceNote.path, {
@@ -269,13 +291,15 @@ const sendMessage = asyncHandler(async (data) => {
   console.log("Sending a new message".yellow);
 
   try {
-    const { sender, listingId, content, receiverId } = data; 
+    const { sender, listingId, content, receiverId, messageMedia = [], voiceNote } = data;
 
+    // Fetching receiver and listing details
     const receiverUser = await User.findById(receiverId);
     const propertyListing = await Listing.findById(listingId);
 
-    console.log(`listingId: ${listingId}\nsender: ${sender}, receiverId: ${receiverId}`.bgYellow)
+    console.log(`listingId: ${listingId}\nsender: ${sender}, receiverId: ${receiverId}`.bgYellow);
 
+    // Validate listing and receiver
     if (!propertyListing) {
       console.log("This listing isn't available again or has been deleted by the owner".bgRed);
       return {
@@ -285,23 +309,30 @@ const sendMessage = asyncHandler(async (data) => {
     }
 
     if (!receiverUser) {
-      console.log("User does not exist or account has been suspended or delete".bgRed);
+      console.log("User does not exist or account has been suspended or deleted".bgRed);
       return {
         success: false,
         message: "User does not exist or account has been suspended or deleted",
       };
     }
 
-    const voiceNoteFile = data.files?.voiceNote;
+    let uploadedMedia = [];
 
-    let messageMedia = [];
+    // Upload message media if exists
+    if (messageMedia.length > 0) {
+      console.log("Processing uploaded media files".cyan);
+      uploadedMedia = await uploadMessageMediaToCloudinary(messageMedia);
+      console.log("Media uploaded to Cloudinary".green);
+    }
 
-    if (data.files) {
-      console.log("Processing uploaded files");
-      messageMedia = await uploadMessageMediaToCloudinary(data.files);
-      console.log("Medias uploaded to Cloudinary".cyan);
-    } else {
-      console.log("No media file uploaded");
+    let voiceNoteUrl = null;
+    if (voiceNote) {
+      console.log("Processing voice note file".cyan);
+      const voiceNoteResult = await cloudinaryConfig.uploader.upload(`data:audio/*;base64,${voiceNote}`, {
+        folder: 'ourSpace/message-voice-notes',
+      });
+      voiceNoteUrl = voiceNoteResult.secure_url;
+      console.log("Voice note uploaded to Cloudinary".green);
     }
 
     // Create and save the message
@@ -310,7 +341,8 @@ const sendMessage = asyncHandler(async (data) => {
       receiver: receiverUser._id,
       listing: propertyListing._id,
       content,
-      messageMedia,
+      messageMedia: uploadedMedia,
+      voiceNote: voiceNoteUrl,
     });
 
     await newMessage.save();
@@ -331,6 +363,7 @@ const sendMessage = asyncHandler(async (data) => {
     };
   }
 });
+
 
 export { 
   sendMessage, 

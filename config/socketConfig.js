@@ -38,10 +38,25 @@ const socketHandlers = (io) => {
 
     // Sending messages
     socket.on('send-message', async (data) => {
-      console.log(`New socket message received: ${data}`.yellow);
-      const res = await sendMessage(data);
-      io.to(data.receiverId).emit('message-response', res); // Emit the result to the receiver's room
+      // Ensure you're logging the complete data structure
+      console.log(`New socket message received: ${JSON.stringify(data)}`.yellow); 
+    
+      const { sender, listingId, content, receiverId } = data;
+    
+      // Additional logging to ensure all fields are present
+      console.log(`sender: ${sender}`.blue);
+      console.log(`receiverId: ${receiverId}`.cyan);
+      console.log(`listingId: ${listingId}`.green);
+      console.log(`content: ${content}`.magenta);
+    
+      // Ensure `sendMessage` receives the correct data and await the response
+      const res = await sendMessage(data); 
+    
+      // Emit the message response back to the receiver's room
+      io.to(receiverId).emit('message-response', res);
+      console.log('Message successfully emitted to receiver'.america)
     });
+    
 
     // New user joins
     socket.on('newUser', (data) => {

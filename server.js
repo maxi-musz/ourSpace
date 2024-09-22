@@ -3,7 +3,6 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from "cookie-parser";
-import morgan from "morgan";
 import session from "express-session";
 import axios from "axios";
 import MongoStore from 'connect-mongo';
@@ -41,7 +40,6 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(morgan("dev"));
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
