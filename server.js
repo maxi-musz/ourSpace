@@ -61,6 +61,7 @@ const corsOptions = {
     origin: [
         "http://localhost:3000", 
         "https://exploreourspace.com",
+        "https://ourspace-git-dev-ourspace-global.vercel.app/",
         "https://ourspace-kxwcfzd7a-ourspace-global.vercel.app/", 
         "https://ourspace-admin-6rlb.vercel.app/dashboard",
     ],
