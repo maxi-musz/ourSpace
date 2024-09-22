@@ -3,44 +3,45 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from "cookie-parser";
-import db from './config/db.js';
 import morgan from "morgan";
 import session from "express-session";
-import passport from "./utils/passport.js";
 import axios from "axios";
 import MongoStore from 'connect-mongo';
 import colors from "colors";
 import http from "http";
 import { Server } from "socket.io";
-import configureSocketIO from "./config/socketConfig.js";
 
+// Import routes
+import passport from "./utils/passport.js";
+import db from './config/db.js';
 import waitlistRoutes from "./routes/extras/waitlistRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import listingsRoute from "./routes/listingsRoute.js";
 import bookingsRoute from "./routes/bookingsRoute.js";
-import { getWaitlistsAsCsv } from "./controllers/extras/waitlistCtrl.js";
 import reviewsRoute from "./routes/reviewsRoute/reviewsRoutes.js";
 import userSettingsR from "./routes/userSettingsR.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
+import socketHandlers from "./config/socketConfig.js"
 
-// Admin Routes
+// Admin routes
 import adminDashboardR from "./routes/adminRoutes/adminDashboardR.js";
 import waitlistAdminRoute from "./routes/adminRoutes/waitlistAdminRoute.js";
 import authAdminR from "./routes/adminRoutes/authAdminR.js";
 import usersAdminR from "./routes/adminRoutes/usersAdminR.js";
 import listingsAdminR from "./routes/adminRoutes/listingsAdminR.js";
-import { getMessagesForAListing, spaceOwnerGetAllChats, spaceUserGetAllChats } from "./controllers/messageCtrlr.js";
 
 dotenv.config();
+
+// Database connection
 await db.connectDb();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Middleware
 app.use(morgan("dev"));
-
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -55,100 +56,66 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// CORS configuration
 const corsOptions = {
-    origin: "*",
+    origin: [
+        "http://localhost:3000", 
+        "https://exploreourspace.com",
+        "https://ourspace-kxwcfzd7a-ourspace-global.vercel.app/", 
+        "https://ourspace-admin-6rlb.vercel.app/dashboard",
+    ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
     optionsSuccessStatus: 200
 };
-
 app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 app.use(cookieParser());
 
-let users = [];
-
-// Socket.IO connection setup
+// HTTP server and Socket.IO setup
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000",
+        origin: [
+            "http://localhost:3000", 
+            "https://exploreourspace.com",
+            "https://ourspace-kxwcfzd7a-ourspace-global.vercel.app/", 
+            "https://ourspace-admin-6rlb.vercel.app/dashboard",
+        ],
         methods: ["GET", "POST"]
     }
 });
 
-// Socket.IO connection event
-io.on('connection', (socket) => {
-    // console.log(`⚡: ${socket.id} user just connected!`);
+// Initialize socket handlers
+socketHandlers(io);
 
-    // Listen for messages
-    // socket.on('loggedIn', (data) => {
-    //   console.log(`testing data for message: ${data}`)
-    // });
+// Routes
+app.use("/api/v1/waitlist", waitlistRoutes);
+app.use("/api/v1/users", authRoutes);
+app.use("/api/v1/listing", listingsRoute);
+app.use("/api/v1/bookings", bookingsRoute);
+app.use("/api/v1/settings", userSettingsR);
+app.use("/api/v1/profile", profileRoutes);
+app.use("/api/v1/messages", messageRoutes);
+app.use("/api/v1/paystack", paystackRoutes);
 
-    socket.on('so-get-all-chats', async (data)=> {
-      const res = await spaceOwnerGetAllChats(data)
+// Admin routes
+app.use("/api/v1/admin/dashboard", adminDashboardR);
+app.use("/api/v1/admin/waitlist", waitlistAdminRoute);
+app.use("/api/v1/admin/auth", authAdminR);
+app.use("/api/v1/admin/users", usersAdminR);
+app.use("/api/v1/admin/listings", listingsAdminR);
 
-      console.log("Emitting data to Isiaq".blue)
-      io.emit("so-get-all-chats", res)
-    })
-
-    socket.on('su-get-all-chats', async (data)=> {
-      const res = await spaceUserGetAllChats(data)
-
-      console.log("Emitting data to Isiaq".blue)
-      io.emit("su-get-all-chats", res)
-    })
-
-    socket.on('conversations', async (data)=> {
-        const res = await getMessagesForAListing(data)
-  
-        console.log("Emitting conversations for a listing to Isiaq".blue)
-        io.emit("conversations", res)
-    })
-
-    socket.on('message', (data) => {
-        console.log("Message received:", data); // Log received message
-        io.emit('messageResponse', data);
-    });
-
-    // Listen when a new user joins the server
-    socket.on('newUser', (data) => {
-        users.push(data);
-        console.log("Updated users:", users); // Log users list
-        io.emit('newUserResponse', users);
-    });
-    
-    // Handle disconnection
-    socket.on('disconnect', () => {
-        console.log('🔥: A user disconnected:', socket.id);
-        // Update users list
-        users = users.filter(user => user.socketID !== socket.id);
-    });
-
-    // Handle joining rooms (for testing)
-    socket.on('join', (userId) => {
-        socket.join(userId); // Join a room based on userId
-        console.log(`User with ID ${userId} joined their room`);
-    });
-});
-
-app.use((req, res, next) => {
-    req.io = io; 
-    next();
-});
-
-
+// Default route
 app.get("/api/v1", (req, res) => {
     console.log("ourSpace API is running".blue);
     res.send("ourSpace API is running");
 });
 
-// Cron jobs
-if(process.env.NODE_ENV === "production") {
+// Cron job for production environment
+if (process.env.NODE_ENV === "production") {
     cron.schedule('*/2 * * * *', async () => {
         console.log('Calling ourSpace API every 2 minutes'.green);
         try {
@@ -160,30 +127,7 @@ if(process.env.NODE_ENV === "production") {
     });
 }
 
-app.use("/api/v1/waitlist", waitlistRoutes);
-app.use("/api/v1/users", authRoutes);
-app.use("/api/v1/listing", listingsRoute);
-app.use("/api/v1/bookings", bookingsRoute);
-app.use("/api/v1/settings", userSettingsR);
-app.use("/api/v1/profile", profileRoutes);
-app.use("/api/v1/messages", messageRoutes);
-
-// Admin routes
-app.use("/api/v1/admin/dashboard", adminDashboardR);
-app.use("/api/v1/admin/waitlist", waitlistAdminRoute);
-app.use("/api/v1/admin/auth", authAdminR);
-app.use("/api/v1/admin/users", usersAdminR);
-app.use("/api/v1/admin/listings", listingsAdminR);
-
-app.use("/api/v1/messaging", messageRoutes);
-app.use('/api/v1/paystack', paystackRoutes);
-
-app.post('/api/v1/join', (req, res) => {
-    const { userId } = req.body;
-    io.emit('join', userId);
-    res.status(200).json({ success: true, message: `User ${userId} joined the room` });
-});
-
+// Fallback route for unmatched requests
 app.use("*", (req, res, next) => {
     console.log("Route not found");
     res.status(404).json({
@@ -192,6 +136,7 @@ app.use("*", (req, res, next) => {
     });
 });
 
+// Start the server
 server.listen(port, () => {
     console.log(`Server running on port ${port}`.blue);
 });

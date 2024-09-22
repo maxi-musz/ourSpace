@@ -41,7 +41,7 @@ const spaceOwnerGetAllChats = async (req) => {
   console.log("Space owner get all chats".yellow)
   try {
     const userId = req.user._id;
-    const currentUserId = data.user._id
+    const currentUserId = req.user._id
 
     console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
 
@@ -266,51 +266,41 @@ const getMessagesForAListing = asyncHandler(async (data) => {
 });
 
 //                                 send message
-const sendMessage = asyncHandler(async (req, res) => {
+const sendMessage = asyncHandler(async (data) => {
   console.log("Sending a new message".yellow);
 
   try {
-    const sender = req.user;
-    const { listingId, content, receiverId } = req.body;
+    const { sender, listingId, content, receiverId } = data; // Use data instead of req
 
     const receiverUser = await User.findById(receiverId);
     const propertyListing = await Listing.findById(listingId);
 
     if (!propertyListing) {
       console.log("Listing not found".red);
-      return res.status(400).json({
+      return {
         success: false,
-        message: "This listing isn't available again or has been deleted by owner",
-      });
+        message: "This listing isn't available again or has been deleted by the owner",
+      };
     }
 
     if (!receiverUser) {
       console.log("Invalid receiver");
-      return res.status(400).json({
+      return {
+        success: false,
         message: "User does not exist or account has been suspended or deleted",
-      });
+      };
     }
+
+    const voiceNoteFile = data.files?.voiceNote;
 
     let messageMedia = [];
-    let voiceNoteUrl = null;
 
-    const voiceNoteFile = req.files.voiceNote;
-
-    if (voiceNoteFile) {
-      voiceNoteUrl = await uploadVoiceNoteToCloudinary(voiceNoteFile);
-      console.log("Voice note successfully uploaded to cloudinary");
-    }
-
-    // Handle media upload
-    if (req.files) {
+    if (data.files) {
       console.log("Processing uploaded files");
-      messageMedia = await uploadMessageMediaToCloudinary(req.files);
+      messageMedia = await uploadMessageMediaToCloudinary(data.files);
       console.log("Medias uploaded to Cloudinary".cyan);
     } else {
       console.log("No media file uploaded");
-      return res.status(400).json({
-        message: "No media file uploaded",
-      });
     }
 
     // Create and save the message
@@ -321,28 +311,25 @@ const sendMessage = asyncHandler(async (req, res) => {
       content,
       messageMedia,
     });
+
     await newMessage.save();
 
-    // Log all connected rooms
-    console.log(req.io.sockets.adapter.rooms);
-
-    // Emit the new message event to the receiver using Socket.IO
-    req.io.to(receiverUser._id.toString()).emit('new_message', newMessage);
-
     console.log("Message sent to user room:", receiverUser._id.toString());
-    res.status(201).json({
+
+    return {
       success: true,
       message: "Message successfully sent",
-      data: {
-        newMessage,
-      },
-    });
+      data: newMessage,
+    };
   } catch (error) {
     console.error("Error sending message:", error);
-    res.status(500).json({ message: error.message });
+    return {
+      success: false,
+      message: "Error sending message",
+      error,
+    };
   }
 });
-
 
 export { 
   sendMessage, 
