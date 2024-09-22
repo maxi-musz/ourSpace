@@ -108,8 +108,8 @@ const spaceOwnerGetAllChats = async (req) => {
         groupedMessages[listingId] = {
           propertyOwner: {
             id: req.user._id, 
-            name: message.receiver.firstName + " " + message.receiver.lastName,
-            profilePic: message.receiver.profilePic
+            name: req.user.firstName + " " + req.user.lastName,
+            profilePic: req.user.profilePic
           },
           propertyUser: {
             id: message.sender._id,
