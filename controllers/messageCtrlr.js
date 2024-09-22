@@ -109,14 +109,13 @@ const spaceOwnerGetAllChats = async (req) => {
     const result = Object.values(groupedMessages);
 
     console.log("Result of get all chat for space users sent to frontend".green)
-    return result
-
-    res.status(200).json({
+    return {
       success: true,
       message: "All messages retrieved successfully",
       total: result.length,
       data: result
-    });
+    }
+
   } catch (error) {
     console.error("Error getting all chats for space owner", error);
     return("Error getting all chats for space owner", error)
@@ -135,10 +134,10 @@ const spaceUserGetAllChats = async (req) => {
   
     if (req.user.userType !== "space-user") {
       console.log("Only space users are allowed".red);
-      return res.status(404).json({
+      return {
         success: false,
         message: "Only space users are allowed"
-      });
+      };
     }
 
     // Find all messages where the user is either the sender or the receiver
@@ -203,14 +202,13 @@ const spaceUserGetAllChats = async (req) => {
     // Convert the map to an array of messages
     const result = Object.values(groupedMessages);
     console.log("Result of get all chat for space users sent to frontend".green)
-    return result
+    return {
+        success: true,
+        message: "Messages retrieved successfully",
+        total: result.length,
+        data: result
+      }
 
-    // res.status(200).json({
-    //   success: true,
-    //   message: "Messages retrieved successfully",
-    //   total: result.length,
-    //   data: result
-    // });
   } catch (error) {
     console.error("Error getting all chats for space users", error);
     return ("Error getting all chats for space users", error)
@@ -228,8 +226,8 @@ const getMessagesForAListing = asyncHandler(async (data) => {
         { listing: listingId }, // Messages related to the listing
         {
           $or: [
-            { sender: currentUserId, receiver: otherUserId }, // Current user is the sender
-            { sender: otherUserId, receiver: currentUserId }, // Current user is the receiver
+            { sender: currentUserId, receiver: otherUserId }, 
+            { sender: otherUserId, receiver: currentUserId },
           ],
         },
       ],
@@ -271,13 +269,13 @@ const sendMessage = asyncHandler(async (data) => {
   console.log("Sending a new message".yellow);
 
   try {
-    const { sender, listingId, content, receiverId } = data; // Use data instead of req
+    const { sender, listingId, content, receiverId } = data; 
 
     const receiverUser = await User.findById(receiverId);
     const propertyListing = await Listing.findById(listingId);
 
     if (!propertyListing) {
-      console.log("Listing not found".red);
+      console.log("This listing isn't available again or has been deleted by the owner".bgRed);
       return {
         success: false,
         message: "This listing isn't available again or has been deleted by the owner",
@@ -285,7 +283,7 @@ const sendMessage = asyncHandler(async (data) => {
     }
 
     if (!receiverUser) {
-      console.log("Invalid receiver");
+      console.log("User does not exist or account has been suspended or delete".bgRed);
       return {
         success: false,
         message: "User does not exist or account has been suspended or deleted",
