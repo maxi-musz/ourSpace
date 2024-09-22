@@ -349,10 +349,20 @@ const sendMessage = asyncHandler(async (data) => {
 
     console.log("Message sent to user room:", receiverUser._id.toString());
 
+    // Create response in the structure needed by the frontend
+    const formattedResponse = {
+      senderId: sender._id,
+      displayImage: sender.profilePic,
+      content: newMessage.content,
+      timestamp: newMessage.createdAt,
+      messageMedia: newMessage.messageMedia || [],
+      voiceNote: newMessage.voiceNote || null
+    };
+
     return {
       success: true,
       message: "Message successfully sent",
-      data: newMessage,
+      data: formattedResponse, // Return the formatted response for the frontend
     };
   } catch (error) {
     console.error("Error sending message:", error);
@@ -363,7 +373,6 @@ const sendMessage = asyncHandler(async (data) => {
     };
   }
 });
-
 
 export { 
   sendMessage, 

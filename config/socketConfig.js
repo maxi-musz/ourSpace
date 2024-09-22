@@ -41,27 +41,30 @@ const socketHandlers = (io) => {
       io.to(receiverId).emit('typing-response', `${senderName} is typing...`);
     });
 
-    // Sending messages
+    
+    // Handling the 'send-message' socket event
     socket.on('send-message', async (data) => {
-      // Ensure you're logging the complete data structure
+      // Log the incoming message data
       console.log(`New socket message received: ${JSON.stringify(data)}`.yellow); 
-    
+
       const { sender, listingId, content, receiverId } = data;
-    
-      // Additional logging to ensure all fields are present
+
+      // Log key parts of the message for debugging
       console.log(`sender: ${sender}`.blue);
       console.log(`receiverId: ${receiverId}`.cyan);
       console.log(`listingId: ${listingId}`.green);
       console.log(`content: ${content}`.magenta);
-    
-      // Ensure `sendMessage` receives the correct data and await the response
+
+      // Send message and get response
       const res = await sendMessage(data); 
-    
-      // Emit the message response back to the receiver's room and back to sender also
-      io.to(receiverId).emit('message-response', res);
-      socket.emit('message-response', data); 
-      console.log(`Message successfully emitted to receiver. Message: ${data}`.america)
+
+      // Emit the formatted message to both sender and receiver
+      io.to(receiverId).emit('message-response', res);  // Emit to receiver
+      socket.emit('message-response', res);  // Emit to sender
+
+      console.log(`Message successfully emitted to sender and receiver.`.green);
     });
+
     
 
     // New user joins
