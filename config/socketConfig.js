@@ -38,7 +38,7 @@ const socketHandlers = (io) => {
 
     // Sending messages
     socket.on('send-message', async (data) => {
-      console.log("New socket message received:".yellow);
+      console.log(`New socket message received: ${data}`.yellow);
       const res = await sendMessage(data);
       io.to(data.receiverId).emit('message-response', res); // Emit the result to the receiver's room
     });
