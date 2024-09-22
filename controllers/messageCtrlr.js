@@ -343,12 +343,11 @@ const sendMessage = asyncHandler(async (data) => {
       };
     }
 
-    let uploadedMedia = [];
+    let uploadedMedia = null;
 
-    // Upload message media if exists
-    if (messageMedia.length > 0) {
-      console.log("Uploaded media file: ", messageMedia)
-      console.log("Processing uploaded media files".cyan);
+    // Upload message media if it exists
+    if (messageMedia) {
+      console.log("Processing uploaded media file".cyan);
       uploadedMedia = await uploadMessageMediaToCloudinary(messageMedia);
       console.log("Media uploaded to Cloudinary".green);
     }
@@ -369,7 +368,7 @@ const sendMessage = asyncHandler(async (data) => {
       receiver: receiverUser._id,
       listing: propertyListing._id,
       content,
-      messageMedia: uploadedMedia,
+      messageMedia: uploadedMedia ? [uploadedMedia] : [], // Ensure it's an array
       voiceNote: voiceNoteUrl,
     });
 
