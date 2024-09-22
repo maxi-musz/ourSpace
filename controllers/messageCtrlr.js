@@ -59,78 +59,87 @@ const uploadVoiceNoteToCloudinary = async (voiceNote) => {
 };
 
 //                                  get all chats for space owners
-const spaceOwnerGetAllChats = async (req) => {
-  console.log("Space owner get all chats".yellow)
+const spaceOwnerGetAllChats = async (req, res) => {
   try {
+    const currentUserId = req.user._id;
 
-    const currentUserId = req.user._id
-    const userType = req.user.userType;
-
-    console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
-
-    if(req.user.userType !== "space-owner") {
-      console.log("Only space owners are aloowed".red)
-      return res.status(404).json({
+    // Ensure the user is a space owner
+    if (req.user.userType !== "space-owner") {
+      return res.status(403).json({
         success: false,
-        message: "Only space owners are aloowed"
-      })
+        message: "Only space owners are allowed"
+      });
     }
 
-    // Find all messages where the listing belongs to the currently signed-in user
+    // Find all listings owned by the current space owner
+    const listings = await Listing.find({ user: currentUserId }).select('_id');
+
+    // Extract listing IDs
+    const listingIds = listings.map(listing => listing._id);
+
+    // Find all messages where the listing belongs to the currently signed-in user (space owner)
     const messages = await Message.find({
-      $or: [{ sender: currentUserId }, { receiver: currentUserId }]
+      listing: { $in: listingIds }
     })
     .populate({
-      path: 'receiver',
-      select: '_id firstName lastName profilePic', // Populate receiver's info
+      path: 'receiver',  // Populate the receiver (the space user)
+      select: '_id firstName lastName profilePic'
     })
     .populate({
-      path: "sender",
-      select: "_id firstName lastName profilePic"
+      path: 'sender',  // Populate the sender (in case the owner sent a message)
+      select: '_id firstName lastName profilePic'
     })
     .populate({
-      path: 'listing',
-      match: { user: currentUserId }, 
-      select: '_id propertyName bedroomPictures', 
+      path: 'listing',  // Populate the listing details
+      select: '_id propertyName bedroomPictures'
+    })
+    .populate({
+      path: 'propertyUserId',  // Populate propertyUserId to get details of the space user
+      select: '_id firstName lastName profilePic'  // Only select the necessary fields
     });
 
-    console.log(`Total of `)
-
-    // Filter out messages without valid listing matches
-    const filteredMessages = messages.filter(message => message.listing);
-
-    // Create a map to group messages by listingId
+    // Initialize an empty object to group messages
     const groupedMessages = {};
-    filteredMessages.forEach((message) => {
+
+    messages.forEach((message) => {
+      // Ensure the necessary fields are populated before accessing them
+      if (!message.listing || !message.propertyUserId) {
+        console.warn("Message has missing listing or property user information", message);
+        return;  // Skip this message if key information is missing
+      }
+
       const listingId = message.listing._id.toString();
-      if (!groupedMessages[listingId]) {
-        // Structure the output
-        groupedMessages[listingId] = {
+      const propertyUserId = message.propertyUserId._id.toString();
+
+      // Create a unique key based on listing and property user to group the messages
+      const chatKey = `${listingId}-${propertyUserId}`;
+
+      if (!groupedMessages[chatKey]) {
+        groupedMessages[chatKey] = {
           propertyOwner: {
-            id: req.user._id, 
+            id: req.user._id,
             name: req.user.firstName + " " + req.user.lastName,
             profilePic: req.user.profilePic
           },
           propertyUser: {
-            id: message.sender._id,
-            name: message.sender.firstName + " " + message.sender.lastName, 
-            profilePic: message.sender.profilePic
+            id: message.propertyUserId._id,
+            name: message.propertyUserId.firstName + " " + message.propertyUserId.lastName,
+            profilePic: message.propertyUserId.profilePic
           },
           property: {
             id: message.listing._id,
             name: message.listing.propertyName,
-            image: message.listing.bedroomPictures[0] // First image in bedroomPictures array
+            image: message.listing.bedroomPictures ? message.listing.bedroomPictures[0] : ''  // Use the first image in the listing if available
           },
-          lastMessageContent: message.content,
-          lastMessageTimestamp: message.createdAt // Adjust to the field for timestamp
+          lastMessageContent: message.content || '',  // Use default value if content is missing
+          lastMessageTimestamp: message.createdAt || Date.now()  // Use default timestamp if missing
         };
       }
     });
 
-    // Convert the map to an array of messages
+    // Convert the grouped messages object into an array
     const result = Object.values(groupedMessages);
 
-    console.log("Result of get all chat for space users sent to frontend".green)
     return {
       success: true,
       message: "All messages retrieved successfully",
@@ -138,9 +147,24 @@ const spaceOwnerGetAllChats = async (req) => {
       data: result
     }
 
+    return res.status(200).json({
+      success: true,
+      message: "All messages retrieved successfully",
+      total: result.length,
+      data: result
+    });
+
   } catch (error) {
     console.error("Error getting all chats for space owner", error);
-    return("Error getting all chats for space owner", error)
+
+    return {
+      success: false,
+      message: "Error getting all chats for space owner"
+    }
+    return res.status(500).json({
+      success: false,
+      message: "Error getting all chats for space owner"
+    });
   }
 };
 

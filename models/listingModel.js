@@ -69,6 +69,10 @@ const listingsSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    propertyUsers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', 
+    }],
     status: {
       type: String,
       enum: ["listed", "unlisted"],
