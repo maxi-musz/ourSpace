@@ -274,6 +274,8 @@ const sendMessage = asyncHandler(async (data) => {
     const receiverUser = await User.findById(receiverId);
     const propertyListing = await Listing.findById(listingId);
 
+    console.log(`listingId: ${listingId}\nsender: ${sender}, receiverId: ${receiverId}`.bgYellow)
+
     if (!propertyListing) {
       console.log("This listing isn't available again or has been deleted by the owner".bgRed);
       return {
