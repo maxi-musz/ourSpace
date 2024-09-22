@@ -52,9 +52,10 @@ const socketHandlers = (io) => {
       // Ensure `sendMessage` receives the correct data and await the response
       const res = await sendMessage(data); 
     
-      // Emit the message response back to the receiver's room
+      // Emit the message response back to the receiver's room and back to sender also
       io.to(receiverId).emit('message-response', res);
-      console.log('Message successfully emitted to receiver'.america)
+      socket.emit('message-response', res); 
+      console.log(`Message successfully emitted to receiver. Message: ${data}`.america)
     });
     
 
