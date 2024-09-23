@@ -156,98 +156,102 @@ const spaceOwnerGetAllChats = async (req, res) => {
 const spaceUserGetAllChats = async (req, res) => {
   console.log("Space user get all chats".yellow);
   try {
-
     const currentUserId = req.user._id;
     const userType = req.user.userType;
 
-    console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`)
-  
-    if (req.user.userType !== "space-user") {
+    console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`);
+
+    if (userType !== "space-user") {
       console.log("Only space users are allowed".red);
-      return {
+      return res.status(403).json({
         success: false,
         message: "Only space users are allowed"
-      };
+      });
     }
 
     // Find all messages where the user is either the sender or the receiver
-    const messages = await Message.find({
-      $or: [{ sender: currentUserId }, { receiver: currentUserId }]
-    })
-    .populate({
-      path: 'receiver',
-      select: '_id firstName lastName profilePic', // Populate receiver's info
-    })
-    .populate({
-      path: "sender",
-      select: "_id firstName lastName profilePic"
-    })
-    .populate({
-      path: 'listing',
-      select: '_id propertyName bedroomPictures user', // Populate listing info, including property owner
-      populate: {
-        path: 'user', // Populate the property owner
-        select: '_id firstName lastName profilePic' // Include these fields from the owner
-      }
-    });
-
-    // Filter out messages without valid listing matches
-    const filteredMessages = messages.filter(message => message.listing);
-
-    // Create a map to group messages by listingId and track unread messages
-    const groupedMessages = {};
-    filteredMessages.forEach((message) => {
-      const listingId = message.listing._id.toString();
-
-      // Count unread messages (for simplicity assuming an `isRead` field)
-      const isUnread = message.isRead === false && message.receiver._id.toString() === currentUserId;
-
-      if (!groupedMessages[listingId]) {
-        // Structure the output, keeping only the latest message
-        groupedMessages[listingId] = {
+    const latestMessages = await Message.aggregate([
+      {
+        $match: {
+          $or: [{ sender: currentUserId }, { receiver: currentUserId }]
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: {
+            listing: "$listing",
+            otherUserId: { $cond: [{ $eq: ["$sender", currentUserId] }, "$receiver", "$sender"] }
+          },
+          lastMessageContent: { $first: "$content" },
+          lastMessageTimestamp: { $first: "$createdAt" }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id.otherUserId",
+          foreignField: "_id",
+          as: "propertyUser"
+        }
+      },
+      { $unwind: "$propertyUser" },
+      {
+        $lookup: {
+          from: "listings",
+          localField: "_id.listing",
+          foreignField: "_id",
+          as: "listingDetails"
+        }
+      },
+      { $unwind: "$listingDetails" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "listingDetails.user",
+          foreignField: "_id",
+          as: "propertyOwner"
+        }
+      },
+      { $unwind: "$propertyOwner" },
+      {
+        $project: {
           propertyOwner: {
-            id: message.listing.user._id,
-            name: message.listing.user.firstName + " " + message.listing.user.lastName,
-            profilePic: message.listing.user.profilePic
+            id: "$propertyOwner._id",
+            name: { $concat: ["$propertyOwner.firstName", " ", "$propertyOwner.lastName"] },
+            profilePic: "$propertyOwner.profilePic"
           },
           propertyUser: {
-            id: req.user._id,
+            id: currentUserId,
             name: req.user.firstName + " " + req.user.lastName,
             profilePic: req.user.profilePic
           },
           property: {
-            id: message.listing._id,
-            name: message.listing.propertyName,
-            image: message.listing.bedroomPictures[0] // First image in bedroomPictures array
+            id: "$listingDetails._id",
+            name: "$listingDetails.propertyName",
+            image: { $arrayElemAt: ["$listingDetails.bedroomPictures", 0] } // First image
           },
-          lastMessageContent: message.content,
-          lastMessageTimestamp: message.createdAt,
-          // unreadCount: isUnread ? 1 : 0
-        };
-      } else if (isUnread) {
-        groupedMessages[listingId].unreadCount += 1;
+          lastMessageContent: "$lastMessageContent",
+          lastMessageTimestamp: "$lastMessageTimestamp"
+        }
       }
+    ]);
+
+    console.log("Result of get all chat for space users sent to frontend".green);
+
+    return res.status(200).json({
+      success: true,
+      message: "Messages retrieved successfully",
+      total: latestMessages.length,
+      data: latestMessages
     });
-
-    // Convert the map to an array of messages
-    const result = Object.values(groupedMessages);
-    console.log("Result of get all chat for space users sent to frontend".green)
-
-    return res.status(201).json(
-      {
-        success: true,
-        message: "Messages retrieved successfully",
-        total: result.length,
-        data: result
-      }
-    )
-
   } catch (error) {
     console.error("Error getting all chats for space users", error);
     return res.status(500).json({
       success: false,
-      message: "Error getting all chats for space users", error
-    })
+      message: "Error getting all chats for space users",
+      error
+    });
   }
 };
 
