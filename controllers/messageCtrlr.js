@@ -6,8 +6,7 @@ import User from "../models/userModel.js";
 import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 
                                                                         // Cloudinary upload for pictures videos and voicenotes
-                                                                        
-
+                                                                      
 
 
 const uploadMessageMediaToCloudinary = async (item, isAudio = false) => {
@@ -44,6 +43,59 @@ const uploadMessageMediaToCloudinary = async (item, isAudio = false) => {
   }
 };
 
+const getLatestMessagesForChats = async (listingIds, currentUserId) => {
+  return await Message.aggregate([
+    { $match: { listing: { $in: listingIds } } },
+    { $sort: { createdAt: -1 } }, 
+    {
+      $group: {
+        _id: {
+          listing: "$listing",
+          otherUserId: { $cond: [{ $eq: ["$sender", currentUserId] }, "$receiver", "$sender"] }
+        },
+        lastMessageContent: { $first: "$content" },
+        lastMessageTimestamp: { $first: "$createdAt" }
+      }
+    },
+    {
+      $lookup: {
+        from: "users", 
+        localField: "_id.otherUserId",
+        foreignField: "_id",
+        as: "propertyUser"
+      }
+    },
+    { $unwind: "$propertyUser" },
+    {
+      $lookup: {
+        from: "listings", // Ensure this matches the name of your listings collection
+        localField: "_id.listing",
+        foreignField: "_id",
+        as: "listingDetails"
+      }
+    },
+    { $unwind: "$listingDetails" }, // Unwind to access listing fields directly
+    {
+      $project: {
+        listing: "$_id.listing",
+        lastMessageContent: 1,
+        lastMessageTimestamp: 1,
+        propertyUser: {
+          id: "$propertyUser._id",
+          name: { $concat: ["$propertyUser.firstName", " ", "$propertyUser.lastName"] },
+          profilePic: "$propertyUser.profilePic"
+        },
+        listing: {
+          id: "$listingDetails._id",
+          propertyName: "$listingDetails.propertyName",
+          bedroomPictures: "$listingDetails.bedroomPictures"
+        }
+      }
+    }
+  ]);
+};
+
+
 //                                  get all chats for space owners
 const spaceOwnerGetAllChats = async (req, res) => {
   try {
@@ -59,72 +111,31 @@ const spaceOwnerGetAllChats = async (req, res) => {
 
     // Find all listings owned by the current space owner
     const listings = await Listing.find({ user: currentUserId }).select('_id');
-
-    // Extract listing IDs
     const listingIds = listings.map(listing => listing._id);
 
-    // Find all messages where the listing belongs to the currently signed-in user (space owner)
-    const messages = await Message.find({
-      listing: { $in: listingIds }
-    })
-    .populate({
-      path: 'receiver',  // Populate the receiver (the space user)
-      select: '_id firstName lastName profilePic'
-    })
-    .populate({
-      path: 'sender',  // Populate the sender (in case the owner sent a message)
-      select: '_id firstName lastName profilePic'
-    })
-    .populate({
-      path: 'listing',  // Populate the listing details
-      select: '_id propertyName bedroomPictures'
-    })
-    .populate({
-      path: 'propertyUserId',  // Populate propertyUserId to get details of the space user
-      select: '_id firstName lastName profilePic'  // Only select the necessary fields
-    });
+    // Get the latest messages for the listings
+    const latestMessages = await getLatestMessagesForChats(listingIds, currentUserId);
 
-    // Initialize an empty object to group messages
-    const groupedMessages = {};
-
-    messages.forEach((message) => {
-      // Ensure the necessary fields are populated before accessing them
-      if (!message.listing || !message.propertyUserId) {
-        console.warn("Message has missing listing or property user information", message);
-        return;  // Skip this message if key information is missing
-      }
-
-      const listingId = message.listing._id.toString();
-      const propertyUserId = message.propertyUserId._id.toString();
-
-      // Create a unique key based on listing and property user to group the messages
-      const chatKey = `${listingId}-${propertyUserId}`;
-
-      if (!groupedMessages[chatKey]) {
-        groupedMessages[chatKey] = {
-          propertyOwner: {
-            id: req.user._id,
-            name: req.user.firstName + " " + req.user.lastName,
-            profilePic: req.user.profilePic
-          },
-          propertyUser: {
-            id: message.propertyUserId._id,
-            name: message.propertyUserId.firstName + " " + message.propertyUserId.lastName,
-            profilePic: message.propertyUserId.profilePic
-          },
-          property: {
-            id: message.listing._id,
-            name: message.listing.propertyName,
-            image: message.listing.bedroomPictures ? message.listing.bedroomPictures[0] : ''  // Use the first image in the listing if available
-          },
-          lastMessageContent: message.content || '',  // Use default value if content is missing
-          lastMessageTimestamp: message.createdAt || Date.now()  // Use default timestamp if missing
-        };
-      }
-    });
-
-    // Convert the grouped messages object into an array
-    const result = Object.values(groupedMessages);
+    // Initialize an array to hold the final response data
+    const result = latestMessages.map(message => ({
+      propertyOwner: {
+        id: currentUserId,
+        name: req.user.firstName + " " + req.user.lastName,
+        profilePic: req.user.profilePic
+      },
+      propertyUser: {
+        id: message.propertyUser.id,
+        name: message.propertyUser.name,
+        profilePic: message.propertyUser.profilePic
+      },
+      property: {
+        id: message.listing.id,
+        name: message.listing.propertyName,  // Access the property name
+        image: message.listing.bedroomPictures ? message.listing.bedroomPictures[0] : ''  // First image
+      },
+      lastMessageContent: message.lastMessageContent || '',
+      lastMessageTimestamp: message.lastMessageTimestamp || Date.now()
+    }));
 
     return res.status(200).json({
       success: true,
@@ -132,26 +143,12 @@ const spaceOwnerGetAllChats = async (req, res) => {
       total: result.length,
       data: result
     });
-
-    // return {
-    //   success: true,
-    //   message: "All messages retrieved successfully",
-    //   total: result.length,
-    //   data: result
-    // }
-
-
   } catch (error) {
     console.error("Error getting all chats for space owner", error);
     return res.status(500).json({
       success: false,
       message: "Error getting all chats for space owner"
     });
-
-    // return {
-    //   success: false,
-    //   message: "Error getting all chats for space owner"
-    // }
   }
 };
 
@@ -225,7 +222,7 @@ const spaceUserGetAllChats = async (req, res) => {
           },
           lastMessageContent: message.content,
           lastMessageTimestamp: message.createdAt,
-          unreadCount: isUnread ? 1 : 0
+          // unreadCount: isUnread ? 1 : 0
         };
       } else if (isUnread) {
         groupedMessages[listingId].unreadCount += 1;
@@ -295,6 +292,7 @@ const getMessagesForAListing = asyncHandler(async (data) => {
         content: message.content,
         timestamp: message.timestamp,
         messageMedia: message.messageMedia,
+        voiceNote: message.voiceNote
       })),
     };
   } catch (error) {
