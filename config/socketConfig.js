@@ -46,7 +46,7 @@ const socketHandlers = (io) => {
     
       const res = await getMessagesForAListing(data);
 
-      console.log("Response:")
+      console.log("Response:", res)
     
       // Emit to the specific room
       io.to(room).emit("conversations-response", res);

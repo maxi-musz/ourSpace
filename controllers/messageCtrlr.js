@@ -450,7 +450,7 @@ const sendMessage = asyncHandler(async (data) => {
 
     await newMessage.save();
 
-    console.log("Message sent to user room:", receiverUser._id.toString());
+    // console.log("Message sent to user room:", receiverUser._id.toString());
 
     // Create response in the structure needed by the frontend
     const formattedResponse = {
@@ -462,13 +462,9 @@ const sendMessage = asyncHandler(async (data) => {
       voiceNote: newMessage.voiceNote || []
     };
 
-    console.log(`Response: ${formattedResponse}`.america)
+    // console.log(`Response: ${formattedResponse}`.america)
 
-    return {
-      success: true,
-      message: "Message successfully sent",
-      data: formattedResponse, // Return the formatted response for the frontend
-    };
+    return formattedResponse
   } catch (error) {
     console.error("Error sending message:", error);
     return {
