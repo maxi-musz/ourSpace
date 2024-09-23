@@ -29,18 +29,21 @@ const socketHandlers = (io) => {
 
       // Send messgae
       socket.on('send-message', async (data) => {
-        console.log(`New socket message received: ${JSON.stringify(data)}`.yellow); 
-        const { sender, listingId, content, receiverId } = data;
-        const res = await sendMessage(data); 
-        // Emit the formatted message to both sender and receiver
-        io.to(room).emit('message-response', res)
+        console.log(`New socket message received`.yellow); 
+        const res = await sendMessage(data);
+        // Emit the message to everyone in the room except the sender
+        socket.broadcast.to(room).emit('message-response', res);
+        // Emit the message to the sender
+        socket.emit('message-response', res);
         console.log(`Message successfully emitted to sender and receiver.`.green);
-      });
+      });x
 
       // Typing event
         socket.on('typing', (data) => {
+          console.log("Typing status is active".green)
           const { senderName, receiverId } = data;
           socket.broadcast.to(room).emit('typing-response', `${senderName} is typing`);
+          console.log("sent typing status to receiver".magenta)
         });
 
         // New user joins
