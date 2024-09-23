@@ -26,15 +26,18 @@ import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 // };
 
 
-const uploadMessageMediaToCloudinary = async (item) => {
+const uploadMessageMediaToCloudinary = async (item, isAudio = false) => {
   // Check if the item is a URL (if the file is already uploaded)
   if (typeof item === 'string' && item.startsWith('http')) {
     return { secure_url: item, public_id: null };
   } else {
     // Upload to Cloudinary
-    const result = await cloudinaryConfig.uploader.upload(item, {
-      folder: 'ourSpace/message-media',
-    });
+    const uploadOptions = {
+      folder: isAudio ? 'ourSpace/message-voice-notes' : 'ourSpace/message-media',
+      resource_type: isAudio ? 'audio' : 'image'
+    };
+
+    const result = await cloudinaryConfig.uploader.upload(item, uploadOptions);
     return {
       secure_url: result.secure_url,
       public_id: result.public_id
@@ -43,16 +46,16 @@ const uploadMessageMediaToCloudinary = async (item) => {
 };
 
 // Voice notes
-const uploadVoiceNoteToCloudinary = async (voiceNote) => {
-  const result = await cloudinaryConfig.uploader.upload(voiceNote.path, {
-    folder: 'ourSpace/voice-notes',
-    resource_type: 'video',
-  });
-  return {
-    secure_url: result.secure_url,
-    public_id: result.public_id
-  };
-};
+// const uploadVoiceNoteToCloudinary = async (voiceNote) => {
+//   const result = await cloudinaryConfig.uploader.upload(voiceNote.path, {
+//     folder: 'ourSpace/voice-notes',
+//     resource_type: 'video',
+//   });
+//   return {
+//     secure_url: result.secure_url,
+//     public_id: result.public_id
+//   };
+// };
 
 //                                  get all chats for space owners
 const spaceOwnerGetAllChats = async (req, res) => {
@@ -355,7 +358,7 @@ const sendMessage = asyncHandler(async (data) => {
     let voiceNoteMedia = null;
     if (voiceNote) {
       console.log("Processing voice note file".cyan);
-      voiceNoteMedia = await uploadMessageMediaToCloudinary(voiceNote)
+      voiceNoteMedia = await uploadMessageMediaToCloudinary(voiceNote, true);
       console.log("Voice note uploaded to Cloudinary".green);
     }
 

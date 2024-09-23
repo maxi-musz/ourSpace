@@ -10,7 +10,7 @@ let users = [];
 
 const socketHandlers = (io) => {
   io.on('connection', (socket) => {
-    console.log("A user connected".yellow);
+    // console.log("A user connected".yellow);
 
     // Space owner chat events
     socket.on('so-get-all-chats', async (data) => {
@@ -74,7 +74,7 @@ const socketHandlers = (io) => {
 
     // Disconnection
     socket.on('disconnect', () => {
-      console.log('🔥: A user disconnected:', socket.id);
+      // console.log('🔥: A user disconnected:', socket.id);
       users = users.filter(user => user.socketID !== socket.id);
     });
 
