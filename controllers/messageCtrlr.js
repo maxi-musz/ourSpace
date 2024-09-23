@@ -27,21 +27,27 @@ import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 
 
 const uploadMessageMediaToCloudinary = async (item, isAudio = false) => {
-  // Check if the item is a URL (if the file is already uploaded)
-  if (typeof item === 'string' && item.startsWith('http')) {
-    return { secure_url: item, public_id: null };
-  } else {
-    // Upload to Cloudinary
-    const uploadOptions = {
-      folder: isAudio ? 'ourSpace/message-voice-notes' : 'ourSpace/message-media',
-      resource_type: isAudio ? 'audio' : 'image'
-    };
+  try {
+    // Check if the item is a URL (if the file is already uploaded)
+    if (typeof item === 'string' && item.startsWith('http')) {
+      return { secure_url: item, public_id: null };
+    } else {
+      // Upload to Cloudinary with the appropriate resource type (audio or image)
+      const uploadOptions = {
+        folder: isAudio ? 'ourSpace/message-voice-notes' : 'ourSpace/message-media',
+        resource_type: isAudio ? 'audio' : 'image', // Explicitly set resource type
+      };
 
-    const result = await cloudinaryConfig.uploader.upload(item, uploadOptions);
-    return {
-      secure_url: result.secure_url,
-      public_id: result.public_id
-    };
+      const result = await cloudinaryConfig.uploader.upload(item, uploadOptions);
+      console.log("Cloudinary upload result:", result); // Log the successful result
+      return {
+        secure_url: result.secure_url,
+        public_id: result.public_id
+      };
+    }
+  } catch (error) {
+    console.error("Error during Cloudinary upload:", error); // Log the full error details
+    throw new Error("Cloudinary upload failed: " + error.message);
   }
 };
 
@@ -358,9 +364,15 @@ const sendMessage = asyncHandler(async (data) => {
     let voiceNoteMedia = null;
     if (voiceNote) {
       console.log("Processing voice note file".cyan);
-      voiceNoteMedia = await uploadMessageMediaToCloudinary(voiceNote, true);
-      console.log("Voice note uploaded to Cloudinary".green);
+      try {
+        voiceNoteMedia = await uploadMessageMediaToCloudinary(voiceNote, true); // Pass true for audio
+        console.log("Voice note uploaded to Cloudinary".green);
+      } catch (error) {
+        console.error("Error uploading voice note:", error); // Log the error for voice note
+        return { success: false, message: "Error uploading voice note" };
+      }
     }
+
 
     // Create and save the message
     const newMessage = new Message({
