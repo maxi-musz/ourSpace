@@ -49,7 +49,7 @@ const socketHandlers = (io) => {
       console.log("Response:", res)
     
       // Emit to the specific room
-      io.to(room).emit("conversations-response", res);
+      socket.to(room).emit("conversations-response", res);
     
       console.log(`Message sent to room ${room}`);
     });
