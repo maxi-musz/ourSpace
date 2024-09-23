@@ -10,12 +10,13 @@ let users = [];
 
 const socketHandlers = (io) => {
   io.on('connection', (socket) => {
-    console.log("A user connected".yellow);
+    // console.log("A user connected".yellow);
 
     // On joining a chat room
     socket.on('join-room', async(data) => {
       console.log(`Data from join-room: ${data}`)
       const {currentUserId, otherUserId, listingId} = data
+      console.log(`Id's: ${currentUserId}_${otherUserId}_${listingId}`)
       const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
       socket.join(room);
       console.log(`User with ID ${currentUserId} joined room ${room}`.america);
