@@ -13,13 +13,33 @@ const socketHandlers = (io) => {
     // console.log("A user connected".yellow);
 
     // On joining a chat room
-    socket.on('join-room', async(data) => {
-      console.log(`Data from join-room: ${data}`)
-      const {currentUserId, otherUserId, listingId} = data
-      console.log(`Id's: ${currentUserId}_${otherUserId}_${listingId}`)
+    // socket.on('join-room', async(data) => {
+    //   console.log(`Data from join-room: ${data}`)
+    //   const {currentUserId, otherUserId, listingId} = data
+    //   // console.log(`Id's: ${currentUserId}_${otherUserId}_${listingId}`)
+    //   const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+    //   socket.join(room);
+    //   console.log(`User with ID ${currentUserId} joined room ${room}`.america);
+    // });
+
+    socket.on('join-room', async (data) => {
+      const { currentUserId, otherUserId, listingId } = data;
       const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+      
       socket.join(room);
-      console.log(`User with ID ${currentUserId} joined room ${room}`.america);
+      console.log(`User with ID ${currentUserId} joined room ${room}`);
+
+      // Move conversations event listener inside join-room
+      socket.on('conversations', async (data) => {
+        const res = await getMessagesForAListing(data);
+
+        console.log("Response:", res);
+
+        // Emit to the specific room
+        io.to(room).emit("conversations-response", res);
+
+        console.log(`Message sent to room ${room}`);
+      });
     });
 
     // Space owner chat events
@@ -40,21 +60,21 @@ const socketHandlers = (io) => {
     });
 
     // Conversations between users
-    socket.on('conversations', async (data) => {
-      const { currentUserId, listingId, otherUserId } = data;
+    // socket.on('conversations', async (data) => {
+    //   const { currentUserId, listingId, otherUserId } = data;
     
-      // Create the same unique room identifier used for joining
-      const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+    //   // Create the same unique room identifier used for joining
+    //   const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
     
-      const res = await getMessagesForAListing(data);
+    //   const res = await getMessagesForAListing(data);
 
-      console.log("Response:", res)
+    //   console.log("Response:", res)
     
-      // Emit to the specific room
-      socket.to(room).emit("conversations-response", res);
+    //   // Emit to the specific room
+    //   socket.emit("conversations-response", res);
     
-      console.log(`Message sent to room ${room}`);
-    });
+    //   console.log(`Message sent to room ${room}`);
+    // });
 
     // Typing event
     socket.on('typing', (data) => {
