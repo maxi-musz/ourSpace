@@ -7,39 +7,32 @@ import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 
                                                                         // Cloudinary upload for pictures videos and voicenotes
                                                                         
-// const uploadMessageMediaToCloudinary = async (items) => {
-//   return Promise.all(items.map(async (item) => {
-//     if (typeof item === 'string' && item.startsWith('http')) {
-     
-//       return { secure_url: item, public_id: null };
-//     } else {
-      
-//       const result = await cloudinaryConfig.uploader.upload(item.path, {
-//         folder: 'ourSpace/message-media',
-//       });
-//       return {
-//         secure_url: result.secure_url,
-//         public_id: result.public_id
-//       };
-//     }
-//   }));
-// };
+
 
 
 const uploadMessageMediaToCloudinary = async (item, isAudio = false) => {
   try {
-    // Check if the item is a URL (if the file is already uploaded)
+    // Check if the item is a URL (already uploaded media)
     if (typeof item === 'string' && item.startsWith('http')) {
       return { secure_url: item, public_id: null };
     } else {
-      // Upload to Cloudinary with the appropriate resource type (audio or image)
+      let uploadItem = item;
+
+      // If it's an audio file in base64 format, strip the data URL prefix
+      if (isAudio && typeof item === 'string' && item.startsWith('data:audio')) {
+        uploadItem = item.split(',')[1]; // Remove the 'data:audio/mp3;base64,' prefix
+        uploadItem = `data:audio/mp3;base64,${uploadItem}`; // Rebuild the valid base64 string
+      }
+
+      // Set Cloudinary options with correct resource type
       const uploadOptions = {
         folder: isAudio ? 'ourSpace/message-voice-notes' : 'ourSpace/message-media',
-        resource_type: isAudio ? 'audio' : 'image', // Explicitly set resource type
+        resource_type: isAudio ? 'video' : 'image' // Explicitly set resource type for audio
       };
 
-      const result = await cloudinaryConfig.uploader.upload(item, uploadOptions);
-      console.log("Cloudinary upload result:", result); // Log the successful result
+      const result = await cloudinaryConfig.uploader.upload(uploadItem, uploadOptions);
+      console.log("Cloudinary upload result:", result); // Log successful result
+
       return {
         secure_url: result.secure_url,
         public_id: result.public_id
@@ -50,18 +43,6 @@ const uploadMessageMediaToCloudinary = async (item, isAudio = false) => {
     throw new Error("Cloudinary upload failed: " + error.message);
   }
 };
-
-// Voice notes
-// const uploadVoiceNoteToCloudinary = async (voiceNote) => {
-//   const result = await cloudinaryConfig.uploader.upload(voiceNote.path, {
-//     folder: 'ourSpace/voice-notes',
-//     resource_type: 'video',
-//   });
-//   return {
-//     secure_url: result.secure_url,
-//     public_id: result.public_id
-//   };
-// };
 
 //                                  get all chats for space owners
 const spaceOwnerGetAllChats = async (req, res) => {
