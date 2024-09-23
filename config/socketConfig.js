@@ -10,7 +10,7 @@ let users = [];
 
 const socketHandlers = (io) => {
   io.on('connection', (socket) => {
-    console.log("A user connected".yellow);
+    // console.log("A user connected".yellow);
 
     // On joining a chat room
     socket.on('join-room', ({ currentUserId, otherUserId, listingId }) => {
@@ -45,9 +45,11 @@ const socketHandlers = (io) => {
       const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
     
       const res = await getMessagesForAListing(data);
+
+      console.log("Response:")
     
       // Emit to the specific room
-      io.to(room).emit("conversations", res);
+      io.to(room).emit("conversations-response", res);
     
       console.log(`Message sent to room ${room}`);
     });
@@ -92,3 +94,5 @@ const socketHandlers = (io) => {
 };
 
 export default socketHandlers;
+
+
