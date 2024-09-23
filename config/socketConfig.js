@@ -34,7 +34,7 @@ const socketHandlers = (io) => {
         // Emit the message to everyone in the room except the sender
         // socket.broadcast.to(room).emit('message-response', res);
         // Emit the message to the sender
-        io.to(room).emit('message-response')
+        io.to(room).emit('message-response', res)
         // socket.emit('message-response', res);
         console.log(`Message successfully emitted to sender and receiver.`.green);
       });
