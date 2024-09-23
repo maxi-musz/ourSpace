@@ -54,7 +54,9 @@ const getLatestMessagesForChats = async (listingIds, currentUserId) => {
           otherUserId: { $cond: [{ $eq: ["$sender", currentUserId] }, "$receiver", "$sender"] }
         },
         lastMessageContent: { $first: "$content" },
-        lastMessageTimestamp: { $first: "$createdAt" }
+        lastMessageTimestamp: { $first: "$createdAt" },
+        messageMedia: { $first: "$messageMedia" }, // Include messageMedia
+        voiceNote: { $first: "$voiceNote" } // Include voiceNote
       }
     },
     {
@@ -68,18 +70,20 @@ const getLatestMessagesForChats = async (listingIds, currentUserId) => {
     { $unwind: "$propertyUser" },
     {
       $lookup: {
-        from: "listings", // Ensure this matches the name of your listings collection
+        from: "listings",
         localField: "_id.listing",
         foreignField: "_id",
         as: "listingDetails"
       }
     },
-    { $unwind: "$listingDetails" }, // Unwind to access listing fields directly
+    { $unwind: "$listingDetails" },
     {
       $project: {
         listing: "$_id.listing",
         lastMessageContent: 1,
         lastMessageTimestamp: 1,
+        messageMedia: 1, // Include messageMedia
+        voiceNote: 1,    // Include voiceNote
         propertyUser: {
           id: "$propertyUser._id",
           name: { $concat: ["$propertyUser.firstName", " ", "$propertyUser.lastName"] },
@@ -94,7 +98,6 @@ const getLatestMessagesForChats = async (listingIds, currentUserId) => {
     }
   ]);
 };
-
 
 //                                  get all chats for space owners
 const spaceOwnerGetAllChats = async (req, res) => {
@@ -117,25 +120,32 @@ const spaceOwnerGetAllChats = async (req, res) => {
     const latestMessages = await getLatestMessagesForChats(listingIds, currentUserId);
 
     // Initialize an array to hold the final response data
-    const result = latestMessages.map(message => ({
-      propertyOwner: {
-        id: currentUserId,
-        name: req.user.firstName + " " + req.user.lastName,
-        profilePic: req.user.profilePic
-      },
-      propertyUser: {
-        id: message.propertyUser.id,
-        name: message.propertyUser.name,
-        profilePic: message.propertyUser.profilePic
-      },
-      property: {
-        id: message.listing.id,
-        name: message.listing.propertyName,  // Access the property name
-        image: message.listing.bedroomPictures ? message.listing.bedroomPictures[0] : ''  // First image
-      },
-      lastMessageContent: message.lastMessageContent || '',
-      lastMessageTimestamp: message.lastMessageTimestamp || Date.now()
-    }));
+    const result = latestMessages.map(message => {
+      // Check if lastMessageContent is empty and if there's media or voice notes
+      const hasMedia = (message.messageMedia && message.messageMedia.length > 0) || 
+                       (message.voiceNote && message.voiceNote.length > 0);
+      const lastMessageContent = message.lastMessageContent || (hasMedia ? "new media file received" : '');
+
+      return {
+        propertyOwner: {
+          id: currentUserId,
+          name: req.user.firstName + " " + req.user.lastName,
+          profilePic: req.user.profilePic
+        },
+        propertyUser: {
+          id: message.propertyUser.id,
+          name: message.propertyUser.name,
+          profilePic: message.propertyUser.profilePic
+        },
+        property: {
+          id: message.listing.id,
+          name: message.listing.propertyName,
+          image: message.listing.bedroomPictures ? message.listing.bedroomPictures[0] : '' // First image
+        },
+        lastMessageContent: lastMessageContent,
+        lastMessageTimestamp: message.lastMessageTimestamp || Date.now()
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -184,7 +194,9 @@ const spaceUserGetAllChats = async (req, res) => {
             otherUserId: { $cond: [{ $eq: ["$sender", currentUserId] }, "$receiver", "$sender"] }
           },
           lastMessageContent: { $first: "$content" },
-          lastMessageTimestamp: { $first: "$createdAt" }
+          lastMessageTimestamp: { $first: "$createdAt" },
+          messageMedia: { $first: "$messageMedia" }, // Include messageMedia
+          voiceNote: { $first: "$voiceNote" } // Include voiceNote
         }
       },
       {
@@ -231,7 +243,13 @@ const spaceUserGetAllChats = async (req, res) => {
             name: "$listingDetails.propertyName",
             image: { $arrayElemAt: ["$listingDetails.bedroomPictures", 0] } // First image
           },
-          lastMessageContent: "$lastMessageContent",
+          lastMessageContent: {
+            $cond: [
+              { $and: [{ $eq: ["$lastMessageContent", ""] }, { $or: [{ $ne: ["$messageMedia", []] }, { $ne: ["$voiceNote", []] }] }] },
+              "New media file received",
+              "$lastMessageContent"
+            ]
+          },
           lastMessageTimestamp: "$lastMessageTimestamp"
         }
       }
@@ -254,6 +272,7 @@ const spaceUserGetAllChats = async (req, res) => {
     });
   }
 };
+
 
 const getMessagesForAListing = asyncHandler(async (data) => {
   try {
