@@ -10,14 +10,14 @@ let users = [];
 
 const socketHandlers = (io) => {
   io.on('connection', (socket) => {
-    // console.log("A user connected".yellow);
+    console.log("A user connected".yellow);
 
     // On joining a chat room
-    socket.on('join-room', ({ currentUserId, otherUserId, listingId }) => {
-      // Create a unique room identifier based on both users and the listing
+    socket.on('join-room', async(data) => {
+      const {currentUserId, otherUserId, listingId} = data
       const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
       socket.join(room);
-      console.log(`User with ID ${currentUserId} joined room ${room}`);
+      console.log(`User with ID ${currentUserId} joined room ${room}`.america);
     });
 
     // Space owner chat events
