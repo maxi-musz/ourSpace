@@ -32,9 +32,10 @@ const socketHandlers = (io) => {
         console.log(`New socket message received`.yellow); 
         const res = await sendMessage(data);
         // Emit the message to everyone in the room except the sender
-        socket.broadcast.to(room).emit('message-response', res);
+        // socket.broadcast.to(room).emit('message-response', res);
         // Emit the message to the sender
-        socket.emit('message-response', res);
+        io.to(room).emit('message-response')
+        // socket.emit('message-response', res);
         console.log(`Message successfully emitted to sender and receiver.`.green);
       });
 
