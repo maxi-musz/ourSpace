@@ -376,8 +376,10 @@ const sendMessage = asyncHandler(async (data) => {
       content: newMessage.content,
       timestamp: newMessage.createdAt,
       messageMedia: newMessage.messageMedia || [],
-      voiceNote: newMessage.voiceNoteMedia || []
+      voiceNote: newMessage.voiceNote || []
     };
+
+    console.log(`Response: ${formattedResponse}`.america)
 
     return {
       success: true,
