@@ -28,7 +28,7 @@ const socketHandlers = (io) => {
       socket.emit("so-get-all-chats", res);
     });
     //frontedn
-    socket.emit('so-get-all-chats', { userId: currentUserId });
+    socket.emit('so-get-all-chats');
 
     // Space user chat events
     socket.on('su-get-all-chats', async (data) => {
