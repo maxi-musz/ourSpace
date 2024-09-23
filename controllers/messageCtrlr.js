@@ -273,6 +273,68 @@ const spaceUserGetAllChats = async (req, res) => {
   }
 };
 
+//              SOCKET
+const socketSpaceOwnerGetAllChats = async (data) => {
+  try {
+    const currentUserId = data.user._id; // Extract from the data sent by the frontend
+
+    // Ensure the user is a space owner
+    if (data.user.userType !== "space-owner") {
+      return {
+        success: false,
+        message: "Only space owners are allowed"
+      };
+    }
+
+    // Find all listings owned by the current space owner
+    const listings = await Listing.find({ user: currentUserId }).select('_id');
+    const listingIds = listings.map(listing => listing._id);
+
+    // Get the latest messages for the listings
+    const latestMessages = await getLatestMessagesForChats(listingIds, currentUserId);
+
+    // Initialize an array to hold the final response data
+    const result = latestMessages.map(message => {
+      // Check if lastMessageContent is empty and if there's media or voice notes
+      const hasMedia = (message.messageMedia && message.messageMedia.length > 0) || 
+                       (message.voiceNote && message.voiceNote.length > 0);
+      const lastMessageContent = message.lastMessageContent || (hasMedia ? "new media file received" : '');
+
+      return {
+        propertyOwner: {
+          id: currentUserId,
+          name: data.user.firstName + " " + data.user.lastName,
+          profilePic: data.user.profilePic
+        },
+        propertyUser: {
+          id: message.propertyUser.id,
+          name: message.propertyUser.name,
+          profilePic: message.propertyUser.profilePic
+        },
+        property: {
+          id: message.listing.id,
+          name: message.listing.propertyName,
+          image: message.listing.bedroomPictures ? message.listing.bedroomPictures[0] : '' // First image
+        },
+        lastMessageContent: lastMessageContent,
+        lastMessageTimestamp: message.lastMessageTimestamp || Date.now()
+      };
+    });
+
+    return {
+      success: true,
+      message: "All messages retrieved successfully",
+      total: result.length,
+      data: result
+    };
+  } catch (error) {
+    console.error("Error getting all chats for space owner", error);
+    return {
+      success: false,
+      message: "Error getting all chats for space owner"
+    };
+  }
+};
 
 const getMessagesForAListing = asyncHandler(async (data) => {
   try {

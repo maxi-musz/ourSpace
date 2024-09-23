@@ -10,27 +10,46 @@ let users = [];
 
 const socketHandlers = (io) => {
   io.on('connection', (socket) => {
-    // console.log("A user connected".yellow);
+    console.log("A user connected".yellow);
+
+    // On joining a chat room
+    socket.on('join-room', ({ currentUserId, otherUserId, listingId }) => {
+      // Create a unique room identifier based on both users and the listing
+      const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+      socket.join(room);
+      console.log(`User with ID ${currentUserId} joined room ${room}`);
+    });
 
     // Space owner chat events
     socket.on('so-get-all-chats', async (data) => {
-      const res = await spaceOwnerGetAllChats(data);
-      console.log("Emitting data to Isiaq".blue);
-      io.emit("so-get-all-chats", res);
+      console.log("SPace owner".yellow)
+      const res = await spaceOwnerGetAllChats(data); 
+      console.log(`Emitting chats to user with ID: ${data.userId}`.blue);
+      socket.emit("so-get-all-chats", res);
     });
+    //frontedn
+    socket.emit('so-get-all-chats', { userId: currentUserId });
 
     // Space user chat events
     socket.on('su-get-all-chats', async (data) => {
       const res = await spaceUserGetAllChats(data);
-      console.log("Emitting data to Isiaq".blue);
+      console.log(`Emitting chats to user with ID: ${data.userId}`.blue);
       io.emit("su-get-all-chats", res);
     });
 
     // Conversations between users
     socket.on('conversations', async (data) => {
+      const { currentUserId, listingId, otherUserId } = data;
+    
+      // Create the same unique room identifier used for joining
+      const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+    
       const res = await getMessagesForAListing(data);
-      console.log("Emitting conversations for a listing to Isiaq".blue);
-      io.emit("conversations", res);
+    
+      // Emit to the specific room
+      io.to(room).emit("conversations", res);
+    
+      console.log(`Message sent to room ${room}`);
     });
 
     // Typing event
@@ -44,18 +63,10 @@ const socketHandlers = (io) => {
     
     // Handling the 'send-message' socket event
     socket.on('send-message', async (data) => {
-      // Log the incoming message data
       console.log(`New socket message received: ${JSON.stringify(data)}`.yellow); 
 
       const { sender, listingId, content, receiverId } = data;
 
-      // Log key parts of the message for debugging
-      // console.log(`sender: ${sender}`.blue);
-      // console.log(`receiverId: ${receiverId}`.cyan);
-      // console.log(`listingId: ${listingId}`.green);
-      // console.log(`content: ${content}`.magenta);
-
-      // Send message and get response
       const res = await sendMessage(data); 
 
       // Emit the formatted message to both sender and receiver
@@ -76,12 +87,6 @@ const socketHandlers = (io) => {
     socket.on('disconnect', () => {
       // console.log('🔥: A user disconnected:', socket.id);
       users = users.filter(user => user.socketID !== socket.id);
-    });
-
-    // Join room by userId
-    socket.on('join', (userId) => {
-      socket.join(userId); // Join a room based on userId
-      console.log(`User with ID ${userId} joined their room`);
     });
   });
 };
