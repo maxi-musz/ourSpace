@@ -31,7 +31,7 @@ const socketHandlers = (io) => {
       socket.on('send-message', async (data) => {
         console.log(`New socket message received`.yellow); 
         const res = await sendMessage(data);
-        socket.broadcast.to(room).emit('message-response', res)
+        socket.broadcast.emit('message-response', res)
         // socket.emit('message-response', res);
         console.log(`Message successfully emitted to sender and receiver.`.green);
       });
