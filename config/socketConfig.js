@@ -14,6 +14,7 @@ const socketHandlers = (io) => {
 
     // On joining a chat room
     socket.on('join-room', async(data) => {
+      console.log(`Data from join-room: ${data}`)
       const {currentUserId, otherUserId, listingId} = data
       const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
       socket.join(room);
