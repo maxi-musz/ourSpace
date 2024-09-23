@@ -36,7 +36,7 @@ const socketHandlers = (io) => {
         // Emit the message to the sender
         socket.emit('message-response', res);
         console.log(`Message successfully emitted to sender and receiver.`.green);
-      });x
+      });
 
       // Typing event
         socket.on('typing', (data) => {
