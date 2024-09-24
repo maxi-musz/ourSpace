@@ -28,18 +28,18 @@ const socketHandlers = (io) => {
       });
 
       // Send messgae
-      socket.on('send-message', async (data) => {
-        try {
-          console.log(`New socket message received`.yellow);
+      // socket.on('send-message', async (data) => {
+      //   try {
+      //     console.log(`New socket message received`.yellow);
       
-          const res = await sendMessage(data);
-          io.to(room).emit('message-response', res);
+      //     const res = await sendMessage(data);
+      //     io.to(room).emit('message-response', res);
           
-          // console.log(`Message successfully emitted to both sender and receiver in room ${room}`.green);
-        } catch (error) {
-          console.error('Error sending message:', error);
-        }
-      });
+      //     // console.log(`Message successfully emitted to both sender and receiver in room ${room}`.green);
+      //   } catch (error) {
+      //     console.error('Error sending message:', error);
+      //   }
+      // });
 
       // Typing event
         socket.on('typing', (data) => {
@@ -61,8 +61,29 @@ const socketHandlers = (io) => {
           // console.log('🔥: A user disconnected:', socket.id);
           users = users.filter(user => user.socketID !== socket.id);
         });
-      });
     });
+
+    socket.on('join-room', (data) => {
+      const { currentUserId, otherUserId, listingId } = data;
+      const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+  
+      socket.join(room);
+      console.log(`User with ID ${currentUserId} joined room ${room}`);
+  
+      // Confirm both sender and receiver are in the room
+      const clients = io.sockets.adapter.rooms.get(room);
+  
+      // Check if the room has exactly 2 clients (sender and receiver)
+      if (clients && clients.size === 2) {
+          io.to(room).emit('both-users-in-room', { message: 'Both users are in the room' });
+      } else {
+          io.to(room).emit('waiting-for-user', { message: 'Waiting for the other user to join' });
+      }
+  }); 
+});
+
+    
+  
 
     // Space owner chat events
     // socket.on('so-get-all-chats', async (data) => {
