@@ -22,8 +22,7 @@ const socketHandlers = (io) => {
       socket.on('conversations', async (data) => {
         const res = await getMessagesForAListing(data);
         // Emit to the specific room
-        io.emit("conversations-response", res);
-        socket.broadcast.to(room).emit('message-response', res);
+        io.to(room).emit("conversations-response", res);
         console.log(`Message sent to room ${room}`.cyan);
       });
 
@@ -38,6 +37,8 @@ const socketHandlers = (io) => {
     
             // Check if both sender and receiver are in the chatRoom
             const clients = io.sockets.adapter.rooms.get(chatRoom);
+
+            console.log("Clients: ",clients)
     
             if (clients && clients.size === 2) {
                 console.log('Both users are in the chatRoom.');
