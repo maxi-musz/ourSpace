@@ -15,15 +15,15 @@ const socketHandlers = (io) => {
     socket.on('join-room', async (data) => {
       const { currentUserId, otherUserId, listingId } = data;
       const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
-      console.log("New room created: ", room)
+      // console.log("New room created: ", room)
       socket.join(room);
-      console.log(`User with ID ${currentUserId} joined room ${room}`);
+      console.log(`User with ID ${currentUserId} joined room ${room}`.blue);
 
       socket.on('conversations', async (data) => {
         const res = await getMessagesForAListing(data);
         // Emit to the specific room
         io.to(room).emit("conversations-response", res);
-        console.log(`Message sent to room ${room}`);
+        console.log(`Message sent to room ${room}`.cyan);
       });
 
       // Send messgae
@@ -32,12 +32,10 @@ const socketHandlers = (io) => {
           console.log(`New socket message received`.yellow);
       
           const res = await sendMessage(data);
+          // io.to(room).emit('message-response', res);
+          socket.to(room).emit('message-response', res)
       
-          const { senderId, receiverId, listingId } = data;
-          io.to(room).emit('message-response', res);
-          // socket.to(room).emit('message-response', res)
-      
-          console.log(`Message successfully emitted to both sender and receiver in room ${room}`.green);
+          // console.log(`Message successfully emitted to both sender and receiver in room ${room}`.green);
         } catch (error) {
           console.error('Error sending message:', error);
         }
@@ -45,10 +43,10 @@ const socketHandlers = (io) => {
 
       // Typing event
         socket.on('typing', (data) => {
-          console.log("Typing status is active".green)
+          // console.log("Typing status is active".green)
           const { senderName, receiverId } = data;
           socket.broadcast.to(room).emit('typing-response', `${senderName} is typing`);
-          console.log("sent typing status to receiver".magenta)
+          // console.log("sent typing status to receiver".magenta)
         });
 
         // New user joins
