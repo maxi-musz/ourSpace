@@ -22,7 +22,6 @@ const socketHandlers = (io) => {
       // Move conversations event listener inside join-room
       socket.on('conversations', async (data) => {
         const res = await getMessagesForAListing(data);
-        console.log("Response:", res);
         // Emit to the specific room
         io.to(room).emit("conversations-response", res);
         console.log(`Message sent to room ${room}`);

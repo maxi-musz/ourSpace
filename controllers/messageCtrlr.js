@@ -82,8 +82,8 @@ const getLatestMessagesForChats = async (listingIds, currentUserId) => {
         listing: "$_id.listing",
         lastMessageContent: 1,
         lastMessageTimestamp: 1,
-        messageMedia: 1, // Include messageMedia
-        voiceNote: 1,    // Include voiceNote
+        messageMedia: 1, 
+        voiceNote: 1,   
         propertyUser: {
           id: "$propertyUser._id",
           name: { $concat: ["$propertyUser.firstName", " ", "$propertyUser.lastName"] },
@@ -255,7 +255,7 @@ const spaceUserGetAllChats = async (req, res) => {
       }
     ]);
 
-    console.log("Result of get all chat for space users sent to frontend".green);
+    console.log("All messages for space user retrieved".green);
 
     return res.status(200).json({
       success: true,
@@ -339,7 +339,6 @@ const socketSpaceOwnerGetAllChats = async (data) => {
 const getMessagesForAListing = asyncHandler(async (data) => {
   try {
     const {currentUserId, listingId, otherUserId } = data;
-    console.log(` Getting all messages for::: current user id: ${currentUserId}\nListingId: ${listingId}\n Other user Id: ${otherUserId}`)
 
     // Find all messages between the current user and the other user for a specific listing
     const messages = await Message.find({
