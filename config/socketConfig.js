@@ -28,18 +28,34 @@ const socketHandlers = (io) => {
       });
 
       // Send messgae
-      // socket.on('send-message', async (data) => {
-      //   try {
-      //     console.log(`New socket message received`.yellow);
-      
-      //     const res = await sendMessage(data);
-      //     io.to(room).emit('message-response', res);
-          
-      //     // console.log(`Message successfully emitted to both sender and receiver in room ${room}`.green);
-      //   } catch (error) {
-      //     console.error('Error sending message:', error);
-      //   }
-      // });
+      socket.on('send-message', async (data) => {
+        try {
+            const { senderId, receiverId, listingId } = data;
+            const chatRoom = `chat_${senderId}_${receiverId}_${listingId}`;
+            
+            // Join the chatRoom if not already in it
+            socket.join(chatRoom);
+    
+            // Check if both sender and receiver are in the chatRoom
+            const clients = io.sockets.adapter.rooms.get(chatRoom);
+    
+            if (clients && clients.size === 2) {
+                console.log('Both users are in the chatRoom.');
+    
+                // Emit the message to the chatRoom
+                const res = await sendMessage(data);
+                io.to(chatRoom).emit('message-response', res);
+            } else {
+                console.log('Receiver is not in the chatRoom yet.');
+                // Handle the case when the receiver is not in the chatRoom
+                socket.emit('error', { message: 'Receiver is not in the chatRoom.' });
+            }
+    
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
+      });
+    
 
       // Typing event
         socket.on('typing', (data) => {
@@ -63,23 +79,23 @@ const socketHandlers = (io) => {
         });
     });
 
-    socket.on('join-room', (data) => {
-      const { currentUserId, otherUserId, listingId } = data;
-      const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+    // socket.on('join-room', (data) => {
+    //   const { currentUserId, otherUserId, listingId } = data;
+    //   const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
   
-      socket.join(room);
-      console.log(`User with ID ${currentUserId} joined room ${room}`);
+    //   socket.join(room);
+    //   console.log(`User with ID ${currentUserId} joined room ${room}`);
   
-      // Confirm both sender and receiver are in the room
-      const clients = io.sockets.adapter.rooms.get(room);
+    //   // Confirm both sender and receiver are in the room
+    //   const clients = io.sockets.adapter.rooms.get(room);
   
-      // Check if the room has exactly 2 clients (sender and receiver)
-      if (clients && clients.size === 2) {
-          io.to(room).emit('both-users-in-room', { message: 'Both users are in the room' });
-      } else {
-          io.to(room).emit('waiting-for-user', { message: 'Waiting for the other user to join' });
-      }
-  }); 
+    //   // Check if the room has exactly 2 clients (sender and receiver)
+    //   if (clients && clients.size === 2) {
+    //       io.to(room).emit('both-users-in-room', { message: 'Both users are in the room' });
+    //   } else {
+    //       io.to(room).emit('waiting-for-user', { message: 'Waiting for the other user to join' });
+    //   }
+    // }); 
 });
 
     
