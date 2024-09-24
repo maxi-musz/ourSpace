@@ -34,12 +34,8 @@ const socketHandlers = (io) => {
           const res = await sendMessage(data);
       
           const { senderId, receiverId, listingId } = data;
-      
-          // Define the room name based on the current user, other user, and listing
-          const room = `chat_${senderId}_${receiverId}_${listingId}`;
-      
-          // Emit the message to the room so both A and B get it
           io.to(room).emit('message-response', res);
+          // socket.to(room).emit('message-response', res)
       
           console.log(`Message successfully emitted to both sender and receiver in room ${room}`.green);
         } catch (error) {
