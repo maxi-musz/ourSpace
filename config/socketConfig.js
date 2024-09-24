@@ -36,7 +36,7 @@ const socketHandlers = (io) => {
             socket.join(chatRoom);
     
             // Check if both sender and receiver are in the chatRoom
-            const clients = io.sockets.adapter.rooms.get(chatRoom);
+            const clients = io.sockets.adapter.rooms.get(room);
 
             console.log("Clients: ",clients)
     
