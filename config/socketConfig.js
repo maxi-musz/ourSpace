@@ -42,9 +42,9 @@ const socketHandlers = (io) => {
           const messageRoom = `chat_${currentUserId}_${otherUserId}_${listingId}`;
       
           // Emit the message to the room so both A and B get it
-          io.to(room).emit('message-response', res);
+          io.to(messageRoom).emit('message-response', res);
       
-          console.log(`Message successfully emitted to both sender and receiver in room ${room}`.green);
+          console.log(`Message successfully emitted to both sender and receiver in room ${messageRoom}`.green);
         } catch (error) {
           console.error('Error sending message:', error);
         }
