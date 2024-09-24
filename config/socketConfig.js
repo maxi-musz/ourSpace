@@ -15,6 +15,7 @@ const socketHandlers = (io) => {
     socket.on('join-room', async (data) => {
       const { currentUserId, otherUserId, listingId } = data;
       const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+      console.log("New room created: ", room)
       socket.join(room);
       console.log(`User with ID ${currentUserId} joined room ${room}`);
 
@@ -28,17 +29,17 @@ const socketHandlers = (io) => {
       });
 
       // Send messgae
-      socket.on('send-message', async (data) => {
+      socket.on('send-message', async (ids) => {
         try {
           console.log(`New socket message received`.yellow);
       
-          const res = await sendMessage(data);
+          const res = await sendMessage(ids);
       
-          const { currentUserId, otherUserId, listingId } = data;
+          const { currentUserId, otherUserId, listingId } = ids;
           console.log(`SenderId: ${currentUserId}\n other user Id: ${otherUserId}\nListing Id: ${listingId}`)
       
           // Define the room name based on the current user, other user, and listing
-          const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+          const messageRoom = `chat_${currentUserId}_${otherUserId}_${listingId}`;
       
           // Emit the message to the room so both A and B get it
           io.to(room).emit('message-response', res);
