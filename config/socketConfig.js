@@ -35,6 +35,7 @@ const socketHandlers = (io) => {
           const res = await sendMessage(data);
       
           const { currentUserId, otherUserId, listingId } = data;
+          console.log(`SenderId: ${currentUserId}\n other user Id: ${otherUserId}\nListing Id: ${listingId}`)
       
           // Define the room name based on the current user, other user, and listing
           const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
