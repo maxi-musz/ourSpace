@@ -32,9 +32,8 @@ const socketHandlers = (io) => {
           console.log(`New socket message received`.yellow);
       
           const res = await sendMessage(data);
-          // io.to(room).emit('message-response', res);
-          socket.to(room).emit('message-response', res)
-      
+          io.to(room).emit('message-response', res);
+          
           // console.log(`Message successfully emitted to both sender and receiver in room ${room}`.green);
         } catch (error) {
           console.error('Error sending message:', error);
