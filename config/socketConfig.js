@@ -29,22 +29,21 @@ const socketHandlers = (io) => {
       });
 
       // Send messgae
-      socket.on('send-message', async (ids) => {
+      socket.on('send-message', async (data) => {
         try {
           console.log(`New socket message received`.yellow);
       
-          const res = await sendMessage(ids);
+          const res = await sendMessage(data);
       
-          const { currentUserId, otherUserId, listingId } = ids;
-          console.log(`SenderId: ${currentUserId}\n other user Id: ${otherUserId}\nListing Id: ${listingId}`)
+          const { senderId, receiverId, listingId } = data;
       
           // Define the room name based on the current user, other user, and listing
-          const messageRoom = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+          const room = `chat_${senderId}_${receiverId}_${listingId}`;
       
           // Emit the message to the room so both A and B get it
-          io.to(messageRoom).emit('message-response', res);
+          io.to(room).emit('message-response', res);
       
-          console.log(`Message successfully emitted to both sender and receiver in room ${messageRoom}`.green);
+          console.log(`Message successfully emitted to both sender and receiver in room ${room}`.green);
         } catch (error) {
           console.error('Error sending message:', error);
         }

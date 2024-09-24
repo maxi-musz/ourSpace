@@ -339,7 +339,7 @@ const socketSpaceOwnerGetAllChats = async (data) => {
 const getMessagesForAListing = asyncHandler(async (data) => {
   try {
     const {currentUserId, listingId, otherUserId } = data;
-    console.log(`current user id: ${currentUserId}\nListingId: ${listingId}\n Other user Id: ${otherUserId}`)
+    console.log(` Getting all messages for::: current user id: ${currentUserId}\nListingId: ${listingId}\n Other user Id: ${otherUserId}`)
 
     // Find all messages between the current user and the other user for a specific listing
     const messages = await Message.find({
@@ -391,13 +391,14 @@ const sendMessage = asyncHandler(async (data) => {
   console.log("Sending a new message".yellow);
 
   try {
-    const { sender, listingId, content, receiverId, messageMedia, voiceNote } = data;
+    const { senderId, listingId, content, receiverId, messageMedia, voiceNote } = data;
+    console.log(`sending a new message with\nSenderId: ${senderId},\nReceiverId: ${receiverId}\nListingId: ${listingId}`.bgYellow);
 
     // Fetching receiver and listing details
     const receiverUser = await User.findById(receiverId);
     const propertyListing = await Listing.findById(listingId);
+    const sender = await User.findById(senderId)
 
-    console.log(`listingId: ${listingId}\nsender: ${sender}, receiverId: ${receiverId}`.bgYellow);
 
     // Validate listing and receiver
     if (!propertyListing) {
@@ -409,6 +410,14 @@ const sendMessage = asyncHandler(async (data) => {
     }
 
     if (!receiverUser) {
+      console.log("User does not exist or account has been suspended or deleted".bgRed);
+      return {
+        success: false,
+        message: "User does not exist or account has been suspended or deleted",
+      };
+    }
+
+    if (!sender) {
       console.log("User does not exist or account has been suspended or deleted".bgRed);
       return {
         success: false,
@@ -440,7 +449,7 @@ const sendMessage = asyncHandler(async (data) => {
 
     // Create and save the message
     const newMessage = new Message({
-      sender: sender._id,
+      sender: senderId,
       receiver: receiverUser._id,
       listing: propertyListing._id,
       content,
@@ -454,7 +463,7 @@ const sendMessage = asyncHandler(async (data) => {
 
     // Create response in the structure needed by the frontend
     const formattedResponse = {
-      senderId: sender._id,
+      senderId: senderId,
       displayImage: sender.profilePic,
       content: newMessage.content,
       timestamp: newMessage.createdAt,
