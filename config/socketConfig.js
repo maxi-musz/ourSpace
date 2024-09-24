@@ -19,7 +19,6 @@ const socketHandlers = (io) => {
       socket.join(room);
       console.log(`User with ID ${currentUserId} joined room ${room}`);
 
-      // Move conversations event listener inside join-room
       socket.on('conversations', async (data) => {
         const res = await getMessagesForAListing(data);
         // Emit to the specific room
