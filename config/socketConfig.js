@@ -22,7 +22,7 @@ const socketHandlers = (io) => {
       socket.on('conversations', async (data) => {
         const res = await getMessagesForAListing(data);
         // Emit to the specific room
-        io.to(room).emit("conversations-response", res);
+        io.emit("conversations-response", res);
         socket.broadcast.to(room).emit('message-response', res);
         console.log(`Message sent to room ${room}`.cyan);
       });
