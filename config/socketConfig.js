@@ -15,70 +15,65 @@ const socketHandlers = (io) => {
     socket.on('join-room', async (data) => {
       const { currentUserId, otherUserId, listingId } = data;
       const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
-      // console.log("New room created: ", room)
       socket.join(room);
       console.log(`User with ID ${currentUserId} joined room ${room}`.blue);
-
+    
+      // Conversations event handler
       socket.on('conversations', async (data) => {
         const res = await getMessagesForAListing(data);
-        // Emit to the specific room
         io.to(room).emit("conversations-response", res);
         console.log(`Message sent to room ${room}`.cyan);
       });
-
-      // Send messgae
+    
+      // Send message event handler
       socket.on('send-message', async (data) => {
         try {
-            const { senderId, receiverId, listingId } = data;
-            const chatRoom = `chat_${senderId}_${receiverId}_${listingId}`;
-            
-            // Join the chatRoom if not already in it
-            socket.join(chatRoom);
+          const { senderId, receiverId, listingId } = data;
+          const chatRoom = `chat_${senderId}_${receiverId}_${listingId}`;
+          
+          // Ensure sender joins the room
+          socket.join(chatRoom);
+      
+          // Check if both sender and receiver are in the chatRoom
+          const clients = io.sockets.adapter.rooms.get(chatRoom);
     
-            // Check if both sender and receiver are in the chatRoom
-            const clients = io.sockets.adapter.rooms.get(room);
-
-            console.log("Clients: ",clients)
-    
-            if (clients && clients.size === 2) {
-                console.log('Both users are in the chatRoom.');
-    
-                // Emit the message to the chatRoom
-                const res = await sendMessage(data);
-                io.to(chatRoom).emit('message-response', res);
-            } else {
-                console.log('Receiver is not in the chatRoom yet.');
-                // Handle the case when the receiver is not in the chatRoom
-                socket.emit('error', { message: 'Receiver is not in the chatRoom.' });
-            }
-    
+          console.log("Clients in room: ", clients);
+      
+          if (clients && clients.size === 2) {
+            console.log('Both users are in the chatRoom.');
+      
+            // Emit the message to the chatRoom
+            const res = await sendMessage(data);
+            io.to(chatRoom).emit('message-response', res);
+          } else {
+            console.log('Receiver is not in the chatRoom yet.');
+            // Emit the message only to the sender, until receiver joins
+            socket.emit('error', { message: 'Receiver is not in the chatRoom.' });
+          }
         } catch (error) {
-            console.error('Error sending message:', error);
+          console.error('Error sending message:', error);
         }
       });
     
-
       // Typing event
-        socket.on('typing', (data) => {
-          // console.log("Typing status is active".green)
-          const { senderName, receiverId } = data;
-          socket.broadcast.to(room).emit('typing-response', `${senderName} is typing`);
-          // console.log("sent typing status to receiver".magenta)
-        });
-
-        // New user joins
-        socket.on('newUser', (data) => {
-          users.push(data);
-          console.log("Updated users:", users);
-          io.emit('newUserResponse', users);
-        });
-
-        // Disconnection
-        socket.on('disconnect', () => {
-          // console.log('🔥: A user disconnected:', socket.id);
-          users = users.filter(user => user.socketID !== socket.id);
-        });
+      socket.on('typing', (data) => {
+        const { senderName, receiverId } = data;
+        socket.broadcast.to(room).emit('typing-response', `${senderName} is typing`);
+      });
+    
+      // New user joins
+      socket.on('newUser', (data) => {
+        users.push(data);
+        console.log("Updated users:", users);
+        io.emit('newUserResponse', users);
+      });
+    
+      // Disconnection
+      socket.on('disconnect', () => {
+        users = users.filter(user => user.socketID !== socket.id);
+      });
     });
+    
 
     // socket.on('join-room', (data) => {
     //   const { currentUserId, otherUserId, listingId } = data;
