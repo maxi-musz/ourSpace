@@ -16,8 +16,6 @@ const socketHandlers = (io) => {
       const { propertyOwnerId, listingId, propertyUserId } = data;
       const room = `chat_${propertyOwnerId}_${listingId}_${propertyUserId}`;
       socket.join(room);
-      // const id = if(propertyOwnerId ? propertyOwnerId : propertyUserId)
-      // console.log(`User with ID ${id} joined room ${room}`.blue);
 
       const clients = io.sockets.adapter.rooms.get(room);
       console.log(`Clients in room after join: `, clients);
@@ -29,6 +27,7 @@ const socketHandlers = (io) => {
         console.log(`Message sent to room ${room}`.cyan);
       });
     
+      //
       socket.on('send-message', async (data) => {
         try {
           // Ensure sender joins the room
@@ -66,14 +65,7 @@ const socketHandlers = (io) => {
         console.log("Updated users:", users);
         io.emit('newUserResponse', users);
       });
-    
-      // Disconnection
-      socket.on('disconnect', () => {
-        users = users.filter(user => user.socketID !== socket.id);
-      });
     });
-
-    // Send message event handler
     
 });
 
