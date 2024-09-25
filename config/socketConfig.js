@@ -17,8 +17,6 @@ const socketHandlers = (io) => {
       const room = `chat_${propertyOwnerId}_${listingId}_${propertyUserId}`;
       socket.join(room);
 
-      console.log("Room name from fronend: ",data.roomName)
-
       const clients = io.sockets.adapter.rooms.get(room);
       console.log(`Clients in room after join: `, clients);
     
@@ -27,7 +25,7 @@ const socketHandlers = (io) => {
         const res = await getMessagesForAListing(data);
 
         if(data.roomName === room) {
-          io.to(room).emit("conversations-response", res);
+          io.to(room).emit("conversations-response", {room, res});
         }
       });
     
@@ -44,7 +42,7 @@ const socketHandlers = (io) => {
           const res = await sendMessage(data);
 
           if(data.roomName === room) {
-            io.to(room).emit('message-response', res);
+            io.to(room).emit('message-response', {room, res});
           }
       
           if (clients && clients.size === 2) {
