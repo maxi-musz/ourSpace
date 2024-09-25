@@ -6,25 +6,6 @@ import User from "../models/userModel.js";
 import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 
                                                                         // Cloudinary upload for pictures videos and voicenotes
-const uploadMessageMedia = async (item) => {
-  if (typeof item === 'string' && item.startsWith('http')) {
-    // If the item is a URL, just return it directly
-    return { secure_url: item, public_id: null };
-  } else {
-    // Upload the single file to Cloudinary
-    const result = await cloudinaryConfig.uploader.upload(item.path, {
-      folder: 'ourSpace/listing-images',
-    });
-    
-    // Return the uploaded media details
-    return {
-      secure_url: result.secure_url,
-      public_id: result.public_id,
-    };
-  }
-};
-                                                              
-
 const uploadMessageMediaToCloudinary = async (item, isAudio = false) => {
   try {
     // Check if the item is a URL (already uploaded media)
