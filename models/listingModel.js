@@ -76,7 +76,7 @@ const listingsSchema = new mongoose.Schema({
     status: {
       type: String,
       enum: ["listed", "unlisted"],
-      default: "listed"
+      default: "unlisted"
     },
     listingStatus: { 
       type: String,
