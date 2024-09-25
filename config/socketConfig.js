@@ -17,14 +17,18 @@ const socketHandlers = (io) => {
       const room = `chat_${propertyOwnerId}_${listingId}_${propertyUserId}`;
       socket.join(room);
 
+      console.log("Room name from fronend: ",data.roomName)
+
       const clients = io.sockets.adapter.rooms.get(room);
       console.log(`Clients in room after join: `, clients);
     
       // Conversations event handler
       socket.on('conversations', async (data) => {
         const res = await getMessagesForAListing(data);
-        io.to(room).emit("conversations-response", res);
-        console.log(`Message sent to room ${room}`.cyan);
+
+        if(data.roomName === room) {
+          io.to(room).emit("conversations-response", res);
+        }
       });
     
       //
@@ -38,13 +42,16 @@ const socketHandlers = (io) => {
     
           console.log("Clients in room: ", clients);
           const res = await sendMessage(data);
-          io.to(room).emit('message-response', res);
+
+          if(data.roomName === room) {
+            io.to(room).emit('message-response', res);
+          }
       
           if (clients && clients.size === 2) {
-            console.log('Both users are in the room.');
+            console.log('Both users are in the room.'.green);
 
           } else {
-            console.log('Receiver is not in the chatRoom yet.');
+            console.log('Receiver is not in the chatRoom yet.'.red);
           }
 
         } catch (error) {
@@ -56,7 +63,10 @@ const socketHandlers = (io) => {
       // Typing event
       socket.on('typing', (data) => {
         const { senderName, receiverId } = data;
-        socket.broadcast.to(room).emit('typing-response', `${senderName} is typing`);
+
+        if(data.roomName === room) {
+          socket.broadcast.to(room).emit('typing-response', `${senderName} is typing`);
+        }
       });
     
       // New user joins
