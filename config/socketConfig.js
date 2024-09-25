@@ -31,7 +31,7 @@ const socketHandlers = (io) => {
       socket.on('send-message', async (data) => {
         try {
           // Ensure sender joins the room
-          // socket.join(room);
+          socket.join(room);
       
           // Check if both sender and receiver are in the chatRoom
           const clients = io.sockets.adapter.rooms.get(room);
