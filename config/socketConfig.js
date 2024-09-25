@@ -37,18 +37,16 @@ const socketHandlers = (io) => {
           const clients = io.sockets.adapter.rooms.get(room);
     
           console.log("Clients in room: ", clients);
+          const res = await sendMessage(data);
+          io.to(room).emit('message-response', res);
       
           if (clients && clients.size === 2) {
             console.log('Both users are in the room.');
-      
-            // Emit the message to the room
-            const res = await sendMessage(data);
-            io.to(room).emit('message-response', res);
+
           } else {
             console.log('Receiver is not in the chatRoom yet.');
-            // Emit the message only to the sender, until receiver joins
-            socket.emit('error', { message: 'Receiver is not in the chatRoom.' });
           }
+
         } catch (error) {
           console.error('Error sending message:', error);
         }
