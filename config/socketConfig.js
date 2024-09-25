@@ -16,7 +16,8 @@ const socketHandlers = (io) => {
       const { propertyOwnerId, listingId, propertyUserId } = data;
       const room = `chat_${propertyOwnerId}_${listingId}_${propertyUserId}`;
       socket.join(room);
-      console.log(`User with ID ${currentUserId} joined room ${room}`.blue);
+      // const id = if(propertyOwnerId ? propertyOwnerId : propertyUserId)
+      // console.log(`User with ID ${id} joined room ${room}`.blue);
 
       const clients = io.sockets.adapter.rooms.get(room);
       console.log(`Clients in room after join: `, clients);
@@ -31,7 +32,7 @@ const socketHandlers = (io) => {
       socket.on('send-message', async (data) => {
         try {
           // Ensure sender joins the room
-          socket.join(room);
+          // socket.join(room);
       
           // Check if both sender and receiver are in the chatRoom
           const clients = io.sockets.adapter.rooms.get(room);
