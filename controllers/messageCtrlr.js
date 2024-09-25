@@ -405,12 +405,12 @@ const getMessagesForAListing = asyncHandler(async (data) => {
 const sendMessage = asyncHandler(async (data) => {
   console.log("Sending a new message".yellow);
 
-  console.log(`Data from frontend for send-message: ${JSON.stringify(data, null, 2)}`.magenta);
-
   try {
     const { senderId, listingId, content, receiverId, messageMedia, voiceNote } = data;
 
     console.log(`message media: ${messageMedia}`.green)
+
+    console.log(`voice note media: ${voiceNote}`.green)
 
     // Fetching receiver and listing details
     const receiverUser = await User.findById(receiverId);
