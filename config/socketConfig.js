@@ -10,11 +10,11 @@ let users = [];
 
 const socketHandlers = (io) => {
   io.on('connection', (socket) => {
-    // console.log("A user connected".yellow);
+    console.log(`User ${socket.id} connected`.yellow);
 
-    socket.on('join-room', async (data) => {
-      const { currentUserId, otherUserId, listingId } = data;
-      const room = `chat_${currentUserId}_${otherUserId}_${listingId}`;
+    socket.on('join-room', (data) => {
+      const { propertyOwnerId, listingId, propertyUserId } = data;
+      const room = `chat_${propertyOwnerId}_${listingId}_${propertyUserId}`;
       socket.join(room);
       console.log(`User with ID ${currentUserId} joined room ${room}`.blue);
 
@@ -28,6 +28,31 @@ const socketHandlers = (io) => {
         console.log(`Message sent to room ${room}`.cyan);
       });
     
+      socket.on('send-message', async (data) => {
+        try {
+          // Ensure sender joins the room
+          socket.join(room);
+      
+          // Check if both sender and receiver are in the chatRoom
+          const clients = io.sockets.adapter.rooms.get(room);
+    
+          console.log("Clients in room: ", clients);
+      
+          if (clients && clients.size === 2) {
+            console.log('Both users are in the room.');
+      
+            // Emit the message to the room
+            const res = await sendMessage(data);
+            io.to(room).emit('message-response', res);
+          } else {
+            console.log('Receiver is not in the chatRoom yet.');
+            // Emit the message only to the sender, until receiver joins
+            socket.emit('error', { message: 'Receiver is not in the chatRoom.' });
+          }
+        } catch (error) {
+          console.error('Error sending message:', error);
+        }
+      });
       
     
       // Typing event
@@ -50,34 +75,7 @@ const socketHandlers = (io) => {
     });
 
     // Send message event handler
-    socket.on('send-message', async (data) => {
-      try {
-        const { senderId, receiverId, listingId } = data;
-        const chatRoom = `chat_${senderId}_${receiverId}_${listingId}`;
-        
-        // Ensure sender joins the room
-        socket.join(chatRoom);
     
-        // Check if both sender and receiver are in the chatRoom
-        const clients = io.sockets.adapter.rooms.get(chatRoom);
-  
-        console.log("Clients in room: ", clients);
-    
-        if (clients && clients.size === 2) {
-          console.log('Both users are in the chatRoom.');
-    
-          // Emit the message to the chatRoom
-          const res = await sendMessage(data);
-          io.to(chatRoom).emit('message-response', res);
-        } else {
-          console.log('Receiver is not in the chatRoom yet.');
-          // Emit the message only to the sender, until receiver joins
-          socket.emit('error', { message: 'Receiver is not in the chatRoom.' });
-        }
-      } catch (error) {
-        console.error('Error sending message:', error);
-      }
-    });
 });
 
     

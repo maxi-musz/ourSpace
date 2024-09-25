@@ -389,6 +389,8 @@ const getMessagesForAListing = asyncHandler(async (data) => {
 const sendMessage = asyncHandler(async (data) => {
   console.log("Sending a new message".yellow);
 
+  console.log(`Data from frontend for send-message: ${data}`.blue)
+
   try {
     const { senderId, listingId, content, receiverId, messageMedia, voiceNote } = data;
     console.log(`sending a new message with\nSenderId: ${senderId},\nReceiverId: ${receiverId}\nListingId: ${listingId}`.bgYellow);
