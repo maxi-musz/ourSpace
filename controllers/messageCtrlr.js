@@ -6,8 +6,24 @@ import User from "../models/userModel.js";
 import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 
                                                                         // Cloudinary upload for pictures videos and voicenotes
-                                                                      
-
+const uploadMessageMedia = async (item) => {
+  if (typeof item === 'string' && item.startsWith('http')) {
+    // If the item is a URL, just return it directly
+    return { secure_url: item, public_id: null };
+  } else {
+    // Upload the single file to Cloudinary
+    const result = await cloudinaryConfig.uploader.upload(item.path, {
+      folder: 'ourSpace/listing-images',
+    });
+    
+    // Return the uploaded media details
+    return {
+      secure_url: result.secure_url,
+      public_id: result.public_id,
+    };
+  }
+};
+                                                              
 
 const uploadMessageMediaToCloudinary = async (item, isAudio = false) => {
   try {
@@ -393,7 +409,8 @@ const sendMessage = asyncHandler(async (data) => {
 
   try {
     const { senderId, listingId, content, receiverId, messageMedia, voiceNote } = data;
-    console.log(`sending a new message with\nSenderId: ${senderId},\nReceiverId: ${receiverId}\nListingId: ${listingId}`.cyan);
+
+    console.log(`message media: ${messageMedia}`.green)
 
     // Fetching receiver and listing details
     const receiverUser = await User.findById(receiverId);
@@ -485,10 +502,104 @@ const sendMessage = asyncHandler(async (data) => {
   }
 });
 
+const postmanSendMessage = asyncHandler(async (req, res) => {
+  console.log("Sending a new message".green);
+
+  const data = req.body;
+
+  try {
+    const {listingId, content, receiverId} = data;
+
+    // Fetching receiver and listing details
+    const receiverUser = await User.findById(receiverId);
+    const propertyListing = await Listing.findById(listingId);
+
+    // Validate listing and receiver
+    if (!propertyListing) {
+      console.log("This listing isn't available again or has been deleted by the owner".bgRed);
+      return res.status(404).json({
+        success: false,
+        message: "This listing isn't available again or has been deleted by the owner",
+      });
+    }
+
+    if (!receiverUser) {
+      console.log("User does not exist or account has been suspended or deleted".bgRed);
+      return res.status(404).json({
+        success: false,
+        message: "User does not exist or account has been suspended or deleted",
+      });
+    }
+
+    let uploadedMedia = null;
+
+    // Upload message media if it exists
+    if (req.file) {
+      console.log("Processing uploaded media file".cyan);
+      uploadedMedia = await uploadMessageMedia(req.file);
+      console.log("Media uploaded to Cloudinary".green);
+    }
+
+    let voiceNoteMedia = null;
+    if (req.voiceNote) {
+      console.log("Processing voice note file".cyan);
+      try {
+        voiceNoteMedia = await uploadMessageMedia(voiceNote, true); // Pass true for audio
+        console.log("Voice note uploaded to Cloudinary".green);
+      } catch (error) {
+        console.error("Error uploading voice note:", error); // Log the error for voice note
+        return res.status(500).json({
+          success: false,
+          message: "Error uploading voice note",
+          error: error.message,
+        });
+      }
+    }
+
+    // Create and save the message
+    const newMessage = new Message({
+      sender: req.user._id,
+      receiver: receiverUser._id,
+      listing: propertyListing._id,
+      content,
+      messageMedia: uploadedMedia ? [uploadedMedia] : [],
+      voiceNote: voiceNoteMedia ? [voiceNoteMedia] : [],
+    });
+
+    await newMessage.save();
+
+    // Create response in the structure needed by the frontend
+    const formattedResponse = {
+      senderId: req.user._id,
+      displayImage: req.user.profilePic,
+      content: newMessage.content,
+      timestamp: newMessage.createdAt,
+      messageMedia: newMessage.messageMedia || [],
+      voiceNote: newMessage.voiceNote || [],
+    };
+
+    // Send a success response with the formatted data
+    return res.status(201).json({
+      success: true,
+      message: "Message sent successfully",
+      data: formattedResponse,
+    });
+  } catch (error) {
+    console.error("Error sending message:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error sending message",
+      error: error.message,
+    });
+  }
+});
+
+
 export { 
   sendMessage, 
   spaceOwnerGetAllChats,
   spaceUserGetAllChats,
-  getMessagesForAListing
+  getMessagesForAListing,
+  postmanSendMessage
 };
 

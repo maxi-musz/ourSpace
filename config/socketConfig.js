@@ -38,7 +38,7 @@ const socketHandlers = (io) => {
           // Check if both sender and receiver are in the chatRoom
           const clients = io.sockets.adapter.rooms.get(room);
     
-          console.log("Clients in room: ", clients);
+          console.log(`Clients in room: ${clients}`.yellow);
           const res = await sendMessage(data);
 
           if(data.roomName === room) {
