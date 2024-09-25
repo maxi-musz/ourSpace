@@ -20,8 +20,8 @@ const formatListingData = (req) => {
       address: req.body['propertyLocation.address'],
       city: req.body['propertyLocation.city'],
       state: req.body['propertyLocation.state'],
-      apartmentNumber: parseInt(req.body['propertyLocation.apartmentNumber']),
-      apartmentSize: parseInt(req.body['propertyLocation.apartmentSize'])
+      apartmentNumber: req.body['propertyLocation.apartmentNumber'] ? parseInt(req.body['propertyLocation.apartmentNumber']) : null,
+      apartmentSize: req.body['propertyLocation.apartmentSize'] ? Number(req.body['propertyLocation.apartmentSize']) : null
     },
 
     description: req.body.description,

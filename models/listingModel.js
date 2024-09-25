@@ -15,8 +15,8 @@ const propertyLocationSchema = new mongoose.Schema({
     },
     latitude: Number,
     longitude: Number,
-    apartmentNumber: Number,
-    apartmentSize: Number
+    apartmentNumber: {type: Number, default: null},
+    apartmentSize: {type: Number, default: null}
 });
 
 const dateSchema = new mongoose.Schema({
@@ -159,7 +159,6 @@ const listingsSchema = new mongoose.Schema({
     minimumDays: {
       type: Number,
       default: 1,
-      required: [true, "Minimum allowed days is required"]
     },
     
     infoForGuests: infoForGuestsSchema,
