@@ -161,9 +161,6 @@ const createListing = asyncHandler(async (req, res) => {
           });
       }
 
-      const validStatuses = ['approved', 'rejected', 'active', 'inactive', 'pending', 'draft', 'saved', 'archived', 'blocked'];
-      const listingStatus = validStatuses.includes(req.body.listingStatus) ? req.body.listingStatus : 'approved';
-
       // Generate a unique listing ID
       function generateListingId() {
           const randomDigits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');

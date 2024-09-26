@@ -98,23 +98,23 @@ const listingsSchema = new mongoose.Schema({
     },
     bedroomTotal: {
       type: Number,
-      required: true
+      required: [true, 'bedroom total is required']
     },
     livingRoomTotal: {
       type: Number,
-      required: true
+      required: [true, 'living room total is required']
     },
     bedTotal: {
       type: Number,
-      required: true
+      required: [true, 'bed total is required']
     },
     bathroomTotal: {
       type: Number,
-      required: true 
+      required: [true, 'bathroom total is required'] 
     },
     toiletTotal: {
       type: Number,
-      required: true
+      required: [true, 'toilet total is required']
     },
 
     propertyLocation: propertyLocationSchema,
