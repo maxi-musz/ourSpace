@@ -659,8 +659,6 @@ const resetPassword = asyncHandler(async (req, res) => {
     const { resetToken } = req.query;
     const { newPassword } = req.body;
 
-    console.log("reset token: ", resetToken);
-
     const user = await User.findOne({
         resetPasswordToken: { $exists: true },
         resetPasswordExpires: { $gt: Date.now() }
@@ -693,7 +691,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     console.log("Fetching current user information".blue);
 
     try {
-        console.log(req.user)
+        
         const userId = req.user.id;
 
         // Fetch the user from the database

@@ -1,4 +1,6 @@
 import validator from "validator";
+import csv from "csvtojson";
+import fs from "fs";
 import asyncHandler from "../../middleware/asyncHandler.js";
 import Waitlist from "../../models/waitlistModel.js";
 import sendEmail from "../../utils/sendMail.js";
@@ -272,10 +274,13 @@ const joinNewsletter = asyncHandler(async (req, res) => {
     }
 });
 
+const csvFilePath = "./waitlist(1).csv"
+
+
 export {
     joinwWaitList,
     getWaitlistsAsCsv,
     getWaitlistsRouteHandler,
-    joinNewsletter
+    joinNewsletter,
 }
 

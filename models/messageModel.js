@@ -19,14 +19,17 @@ const messageSchema = new mongoose.Schema({
   listing: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Listing',
-    required: false,
+    required: true,
+  },
+  propertyUserId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // Reference to the user interacting with the property
   },
   content: {
     type: String,
   },
-
-  messageMedia:[mediaSchema],
-
+  messageMedia: [mediaSchema],
+  voiceNote: [mediaSchema],
   timestamp: {
     type: Date,
     default: Date.now,
@@ -42,5 +45,4 @@ const messageSchema = new mongoose.Schema({
 messageSchema.index({ sender: 1, receiver: 1, listing: 1 });
 
 const Message = mongoose.model('Message', messageSchema);
-
 export default Message;

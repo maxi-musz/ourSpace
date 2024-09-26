@@ -4,6 +4,7 @@ import Listing from "../models/listingModel.js"
 import sendEmail from "../utils/sendMail.js"
 import Booking from '../models/bookingModel.js';
 import Notification from '../models/notificationModel.js';
+import Message from '../models/messageModel.js';
 
 export const checkAvailability = asyncHandler(async (req, res) => {
     console.log("Checking availability before booking endpoint...".blue);
@@ -86,8 +87,6 @@ export const checkAvailability = asyncHandler(async (req, res) => {
     }
 });
 
-
-
 export const initializeTransaction = asyncHandler(async (req, res) => {
     console.log("Initializing Paystack payment...".green);
 
@@ -135,7 +134,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 
-    const conflictingDates = listing.bookedDays.filter(date => newBookedDays.includes(date));
+    const conflictingDates = listing.calendar.unavailableDays.filter(date => newBookedDays.includes(date));
 
     if (conflictingDates.length > 0) {
         console.log("Some of the selected dates are already booked".red)
@@ -341,6 +340,14 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             
             const newBookedDays = booking.bookedDays;
             listing.bookedDays = [...listing.calendar.bookedDays, ...newBookedDays];
+            // Check if the user is already in propertyUsers
+            if (!listing.propertyUsers.includes(userId)) {
+                listing.propertyUsers.push(userId); // Add the current user's ID to the propertyUsers array
+                console.log(`User ${userId} added to propertyUsers array of listing ${listingId}`.green);
+            } else {
+                console.log(`User ${userId} already exists in propertyUsers array of listing ${listingId}`.yellow);
+            }
+            
             await listing.save();
 
             console.log("Transaction verified, listing and booking details updated successfully.".cyan);
@@ -357,6 +364,16 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
 
             console.log("Notification created successfully.".green);
+
+            // Create a new message for the user
+            await Message.create({
+                sender: listingOwner._id,
+                receiver: req.user._id,
+                listing: listingId,
+                propertyUserId: req.user._id, 
+                content: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
+            });
+
 
             res.status(200).json({
                 success: true,

@@ -15,8 +15,8 @@ const propertyLocationSchema = new mongoose.Schema({
     },
     latitude: Number,
     longitude: Number,
-    apartmentNumber: Number,
-    apartmentSize: Number
+    apartmentNumber: {type: Number, default: null},
+    apartmentSize: {type: Number, default: null}
 });
 
 const dateSchema = new mongoose.Schema({
@@ -69,15 +69,19 @@ const listingsSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    propertyUsers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', 
+    }],
     status: {
       type: String,
       enum: ["listed", "unlisted"],
-      default: "listed"
+      default: "unlisted"
     },
     listingStatus: { 
       type: String,
       enum: ["approved", "rejected","active", "inactive", "pending", "draft", "saved", "archived", "blocked"],
-      default: "approved",
+      default: "pending",
     },
     listedOnOtherPlatform: {
       type: Boolean,
@@ -155,7 +159,6 @@ const listingsSchema = new mongoose.Schema({
     minimumDays: {
       type: Number,
       default: 1,
-      required: [true, "Minimum allowed days is required"]
     },
     
     infoForGuests: infoForGuestsSchema,

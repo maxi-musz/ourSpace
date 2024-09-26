@@ -130,7 +130,7 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
         propertyImage: booking.listing.livingRoomPictures[0],
         timestamp: booking.createdAt,
     }));
-    console.log(formattedBookings.price)
+    // console.log(formattedBookings.price)
     
 
     console.log(`Total of ${bookings.length} bookings found`.magenta);
