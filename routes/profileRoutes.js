@@ -4,7 +4,7 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.route("/su-dashboard").get(protect, getSpaceUserDashboard)
+router.route("/su-get-dashboard").get(protect, getSpaceUserDashboard)
 router.route("/get-all-bookings").get(protect, getAllSUBookings)
 router.route("/get-all-notifications").get(protect, getAllNotifications)
 router.route("/su-get-all-booking-history").get(protect, getSUBookingHistory)
