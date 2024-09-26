@@ -42,8 +42,7 @@ const socketHandlers = (io) => {
           const res = await sendMessage(data);
 
           if(data.roomName === room) {
-            socket.to(room).emit('message-response', {room, res});// all except seender
-            socket.emit('message-response', {room, res});
+            io.to(room).emit('message-response', {room, res});
           }
       
           if (clients && clients.size === 2) {
