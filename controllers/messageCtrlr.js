@@ -27,7 +27,6 @@ const uploadMessageMediaToCloudinary = async (item, isAudio = false) => {
       };
 
       const result = await cloudinaryConfig.uploader.upload(uploadItem, uploadOptions);
-      console.log("Cloudinary upload result:", result); // Log successful result
 
       return {
         secure_url: result.secure_url,
