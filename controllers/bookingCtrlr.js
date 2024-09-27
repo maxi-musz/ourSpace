@@ -339,11 +339,12 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
         if(listing) {
             
             const newBookedDays = booking.bookedDays;
-            listing.bookedDays = [...listing.calendar.bookedDays, ...newBookedDays];
+            console.log("Booked days: ",newBookedDays)
+            listing.calendar.bookedDays = [...listing.calendar.bookedDays, ...newBookedDays];
             // Check if the user is already in propertyUsers
             if (!listing.propertyUsers.includes(userId)) {
                 listing.propertyUsers.push(userId); // Add the current user's ID to the propertyUsers array
-                console.log(`User ${userId} added to propertyUsers array of listing ${listingId}`.green);
+                // console.log(`User ${userId} added to propertyUsers array of listing ${listingId}`.green);
             } else {
                 console.log(`User ${userId} already exists in propertyUsers array of listing ${listingId}`.yellow);
             }

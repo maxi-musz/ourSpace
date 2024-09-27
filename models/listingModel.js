@@ -208,7 +208,6 @@ const listingsSchema = new mongoose.Schema({
       type: String,
       enum: ['flexible', 'moderate', 'firm', 'strict'],
       default: "flexible",
-      required: [true, "Cancellation option is required"]
     },
 
     calendar: {
