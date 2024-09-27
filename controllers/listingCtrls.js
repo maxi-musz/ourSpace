@@ -172,7 +172,6 @@ const createListing = asyncHandler(async (req, res) => {
           ...formattedData,
           user: userId,
           propertyId: generateListingId(),
-          listingStatus: listingStatus,
           propertyLocation: {
               ...formattedData.propertyLocation,
               latitude,
