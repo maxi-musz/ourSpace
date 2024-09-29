@@ -266,7 +266,8 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
             phoneNumber,
             password,
             agreeToTerms,
-            userType: "space-owner"
+            userType: "space-owner",
+            profilePic: { secure_url: defaultImageUrl, publicId: null }
         });
         await user.save();
 
