@@ -161,6 +161,9 @@ const spaceOwnerGetAllChats = async (req, res) => {
 //                                  get all chats for space users
 const spaceUserGetAllChats = async (req, res) => {
   console.log("Space user get all chats".yellow);
+
+  console.log("Request User Object:", req.user);
+
   try {
     const currentUserId = req.user._id;
     const userType = req.user.userType;
@@ -232,7 +235,7 @@ const spaceUserGetAllChats = async (req, res) => {
           propertyUser: {
             id: currentUserId,
             name: req.user.firstName + " " + req.user.lastName,
-            profilePic: req.user.profilePic || ""
+            profilePic: req.user.profilePic
           },
           property: {
             id: "$listingDetails._id",

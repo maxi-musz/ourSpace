@@ -14,6 +14,8 @@ import sendEmail from '../utils/sendMail.js';
 import { passwordResetEmailTemplate } from '../email_templates/passwordResetEmailTemplate.js';
 import axios from 'axios';
 
+const defaultImageUrl = "https://res.cloudinary.com/dyshmmjis/image/upload/w_1000,c_fill,ar_1:1,g_auto,r_max,bo_5px_solid_red,b_rgb:262c35/v1727616368/default_image_oh8fhs.png"
+
 const authenticateToken = asyncHandler(async(req, res)=> {
 
     console.log("Toekn authentication endpoint".grey)
@@ -140,7 +142,8 @@ const spaceUserSignUp = asyncHandler(async (req, res) => {
             phoneNumber,
             password,
             agreeToTerms,
-            userType: "space-user"
+            userType: "space-user",
+            profilePic: { secure_url: defaultImageUrl, publicId: null }
         });
         await user.save();
 
@@ -549,7 +552,10 @@ const continueWithGoogle = asyncHandler(async (req, res, next) => {
                 isAdmin: true,                                  //for development
                 firstName: payload.given_name,
                 lastName: payload.family_name,
-                profilePic: payload.picture,
+                profilePic: { 
+                    secure_url: payload.picture && payload.picture.trim() !== '' ? payload.picture : defaultImageUrl,
+                    publicId: null 
+                },
                 userType
             });
             await user.save();
