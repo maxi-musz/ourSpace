@@ -1,7 +1,7 @@
 import express from 'express';
-import { addNewReview } from '../../controllers/reviewsCtrlr/reviewsCtrlr.js';
-import upload from '../../uploadUtils/multer.js';
-import { protect } from '../../middleware/authMiddleware.js';
+import { addNewReview } from '../controllers/reviewsCtrlr.js';
+import upload from '../uploadUtils/multer.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 

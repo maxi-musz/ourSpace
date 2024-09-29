@@ -6,11 +6,23 @@ import {
     getSingleListing,
     getUserApprovedListings,
     searchListings,
-    editListing
+    editListing,
+    saveListingForLater
  } from '../controllers/listingCtrls.js';
 import upload from '../uploadUtils/multer.js';
 
 const router = express.Router();
+
+router
+  .route('/save-for-later')
+  .put(protect, upload.fields([
+    { name: 'bedroomPictures', maxCount: 10 },
+    { name: 'livingRoomPictures', maxCount: 10 },
+    { name: 'bathroomToiletPictures', maxCount: 10 },
+    { name: 'kitchenPictures', maxCount: 10 },
+    { name: 'facilityPictures', maxCount: 10 },
+    { name: 'otherPictures', maxCount: 10 }
+  ]), saveListingForLater);
 
 // Create listing
 router

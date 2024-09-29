@@ -4,6 +4,7 @@ import Notification from "../models/notificationModel.js";
 import Booking from "../models/bookingModel.js"
 import Message from "../models/messageModel.js"
 import Listing from "../models/listingModel.js";
+import DraftListing from "../models/draftListingModel.js";
 
 
 const getSpaceUserDashboard = asyncHandler(async (req, res) => {
@@ -252,6 +253,7 @@ const getSpaceOwnerDashboard = asyncHandler(async (req, res) => {
         }
 
         const listings = await Listing.find({ user: userId });
+        const draftListings = await DraftListing.find({ user: userId });
 
         const currentDate = new Date().toISOString().split('T')[0];
 
@@ -283,11 +285,13 @@ const getSpaceOwnerDashboard = asyncHandler(async (req, res) => {
             sentAt: message.timestamp,
         }));
 
+        const allTotalListings = listings.length + draftListings.length
+
         res.status(200).json({
             success: true,
             message: "Dashboard successfully retrieved",
             data: {
-                totalListings: listings.length,
+                totalListings: allTotalListings,
                 currentSpaceUsers,
                 messages: formattedMessages,
             },

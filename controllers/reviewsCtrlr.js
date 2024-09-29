@@ -1,8 +1,8 @@
-import asyncHandler from "../../middleware/asyncHandler.js";
-import Listing from "../../models/listingModel.js";
-import Review from "../../models/reviewsModel.js";
-import ReviewStats from "../../models/reviewTotalModel.js";
-import cloudinaryConfig from "../../uploadUtils/cloudinaryConfig.js";
+import asyncHandler from "../middleware/asyncHandler.js";
+import Listing from "../models/listingModel.js";
+import Review from "../models/reviewsModel.js";
+import ReviewStats from "../models/reviewTotalModel.js";
+import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 
 const uploadReviewImagesToCloudinary = async (files) => {
     const uploadPromises = files.map(file => {

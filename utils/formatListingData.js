@@ -3,25 +3,39 @@ const formatListingData = (req) => {
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
+  const safeParseInt = (value) => {
+    if (value === undefined || value === null || isNaN(parseInt(value, 10))) {
+      return undefined; // Or any default value that makes sense for your context.
+    }
+    return parseInt(value, 10);
+  };
+
+  const safeParseFloat = (value) => {
+    if (value === undefined || value === null || isNaN(parseFloat(value))) {
+      return undefined; // Or any default value that makes sense for your context.
+    }
+    return parseFloat(value);
+  };
+
   return {
     user: req.body.user,
     listedOnOtherPlatform: req.body.listedOnOtherPlatform,
     propertyName: req.body.propertyName,
     propertyType: req.body.propertyType,
-    bedroomTotal: parseInt(req.body.bedroomTotal, 10),
-    livingRoomTotal: parseInt(req.body.livingRoomTotal, 10),
-    bedTotal: parseInt(req.body.bedTotal, 10),
-    toiletTotal: parseInt(req.body.toiletTotal, 10),
-    bathroomTotal: parseInt(req.body.bathroomTotal, 10),
-    freeCancellation: req.body.freeCancellation === 'true' || req.body.freeCancellation === true, 
-    totalGuestsAllowed: parseInt(req.body.totalGuestsAllowed),
+    bedroomTotal: safeParseInt(req.body.bedroomTotal),
+    livingRoomTotal: safeParseInt(req.body.livingRoomTotal),
+    bedTotal: safeParseInt(req.body.bedTotal),
+    toiletTotal: safeParseInt(req.body.toiletTotal),
+    bathroomTotal: safeParseInt(req.body.bathroomTotal),
+    freeCancellation: req.body.freeCancellation === 'true' || req.body.freeCancellation === true,
+    totalGuestsAllowed: safeParseInt(req.body.totalGuestsAllowed),
 
     propertyLocation: {
       address: req.body['propertyLocation.address'],
       city: req.body['propertyLocation.city'],
       state: req.body['propertyLocation.state'],
-      apartmentNumber: req.body['propertyLocation.apartmentNumber'] ? parseInt(req.body['propertyLocation.apartmentNumber']) : null,
-      apartmentSize: req.body['propertyLocation.apartmentSize'] ? Number(req.body['propertyLocation.apartmentSize']) : null
+      apartmentNumber: req.body['propertyLocation.apartmentNumber'] ? safeParseInt(req.body['propertyLocation.apartmentNumber']) : null,
+      apartmentSize: req.body['propertyLocation.apartmentSize'] ? safeParseFloat(req.body['propertyLocation.apartmentSize']) : null
     },
 
     description: req.body.description,
@@ -55,7 +69,7 @@ const formatListingData = (req) => {
       }
     },
 
-    minimumDays: parseInt(req.body.minimumDays, 10),
+    minimumDays: safeParseInt(req.body.minimumDays),
 
     infoForGuests: {
       petsAllowed: req.body['infoForGuests.petsAllowed'],
@@ -71,9 +85,7 @@ const formatListingData = (req) => {
     },
 
     chargeType: req.body.chargeType,
-    
     chargeCurrency: req.body.chargeCurrency,
-
     acceptOtherCurrency: req.body.acceptOtherCurrency === 'true' || req.body.acceptOtherCurrency === true,
     
     otherAcceptedCurrencies: Array.isArray(req.body.otherAcceptedCurrencies)
@@ -82,7 +94,7 @@ const formatListingData = (req) => {
           ? req.body.otherAcceptedCurrencies.split(',')
           : [],
 
-    chargePerNight: parseFloat(req.body.chargePerNight),
+    chargePerNight: safeParseFloat(req.body.chargePerNight),
 
     discount: req.body.discount === 'true' || req.body.discount === true,
 
@@ -109,5 +121,6 @@ const formatListingData = (req) => {
     },
   };
 };
+
 
 export default formatListingData;

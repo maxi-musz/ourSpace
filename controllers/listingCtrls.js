@@ -4,6 +4,7 @@ import Listing from "../models/listingModel.js";
 import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
 import formatListingData from "../utils/formatListingData.js"
 import Booking from '../models/bookingModel.js';
+import DraftListing from '../models/draftListingModel.js';
 
 const getCoordinates = async (address) => {
   try {
@@ -19,6 +20,12 @@ const getCoordinates = async (address) => {
     throw error;
   }
 };
+
+// Generate a unique listing ID
+function generateListingId() {
+  const randomDigits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
+  return `OS${randomDigits}`;
+}
 
 // UPLOAD IMAGES
 const uploadListingImagesToCloudinary = async (items) => {
@@ -161,11 +168,9 @@ const createListing = asyncHandler(async (req, res) => {
           });
       }
 
-      // Generate a unique listing ID
-      function generateListingId() {
-          const randomDigits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
-          return `OS${randomDigits}`;
-      }
+      
+
+  
 
       // Create a new listing in the database
       const newListing = await Listing.create({
@@ -202,6 +207,165 @@ const createListing = asyncHandler(async (req, res) => {
           message: `Server error: ${error.message}`,
           error
       });
+  }
+});
+
+const saveListingForLater = asyncHandler(async (req, res) => {
+  console.log("Saving new listing to draft".yellow);
+  const userId = req.user._id.toString();
+  console.log("UserId: ",userId)
+
+  const listingId = req.body.listingId;
+  let existingListing = null;
+
+  // Check if the listing exists
+  if (listingId) {
+    existingListing = await DraftListing.findById(listingId);
+    if (!existingListing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing not found",
+      });
+    }
+  }
+
+  let removedImages = req.body.removedImages;
+
+  // Handle removed images
+  if (removedImages) {
+    console.log("Removing images", removedImages);
+    if (typeof removedImages === 'string') {
+      try {
+        removedImages = JSON.parse(removedImages);
+      } catch (error) {
+        console.error('Error parsing removedImages:', error);
+        removedImages = removedImages.split(',').map((image) => image.trim());
+      }
+    }
+
+    if (!Array.isArray(removedImages)) {
+      console.log("Removed images should be an array".red);
+      return res.status(400).json({
+        success: false,
+        message: "Removed images should be an array",
+      });
+    }
+
+    try {
+      console.log("Deleting images from Cloudinary".red);
+      await deleteImagesFromCloudinary(removedImages);
+    } catch (error) {
+      console.error("Error during image deletion:", error);
+      return res.status(500).json({
+        success: false,
+        message: `Error deleting images: ${error.message}`,
+      });
+    }
+  }
+
+  // Format the listing data using the same logic as createListing
+  const formattedData = formatListingData(req);
+
+  let latitude, longitude;
+
+  // Fetch coordinates based on the address
+  if (formattedData.propertyLocation.state && formattedData.propertyLocation.city && formattedData.propertyLocation.address) {
+    try {
+      const { address, city, state } = formattedData.propertyLocation;
+      const fullAddress = `${address}, ${city}, ${state}`;
+      const coordinates = await getCoordinates(fullAddress);
+
+      latitude = coordinates.latitude;
+      longitude = coordinates.longitude;
+
+      console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
+    } catch (error) {
+      console.log(`Error getting coordinates: ${error}`.red);
+      return res.status(500).json({
+        success: false,
+        message: `Error getting coordinates: ${error.message}`,
+      });
+    }
+  }
+
+  // Define the image categories required
+  const imageCategories = [
+    'bedroomPictures',
+    'livingRoomPictures',
+    'bathroomToiletPictures',
+    'kitchenPictures',
+    'facilityPictures',
+    'otherPictures',
+  ];
+
+  let updatedImages = {};
+  try {
+    console.log("Uploading new images and merging with existing images".blue);
+
+    for (let category of imageCategories) {
+      const newImages = req.files?.[category]
+        ? await uploadListingImagesToCloudinary(req.files[category])
+        : [];
+
+      const existingImages = existingListing
+        ? existingListing[category]?.filter((image) => Array.isArray(removedImages) && !removedImages.includes(image.public_id)) || []
+        : [];
+
+      updatedImages[category] = [...existingImages, ...newImages];
+    }
+  } catch (error) {
+    console.error("Error during image upload:", error);
+    return res.status(500).json({
+      success: false,
+      message: `Error uploading new images: ${error.message}`,
+    });
+  }
+
+  // Create a new listing or update the existing one
+  try {
+    if (existingListing) {
+      console.log("Updating existing draft listing".green);
+      existingListing = await DraftListing.findByIdAndUpdate(
+        listingId,
+        {
+          ...formattedData,
+          propertyLocation: {
+            ...formattedData.propertyLocation,
+            latitude,
+            longitude,
+          },
+          ...updatedImages, // Add the merged image arrays
+        },
+        { new: true }
+      );
+    } else {
+      console.log("Creating new draft listing".green);
+      existingListing = await DraftListing.create({
+        ...formattedData,
+        user: userId,
+        propertyId: generateListingId(),
+        propertyLocation: {
+          ...formattedData.propertyLocation,
+          latitude,
+          longitude,
+        },
+        ...updatedImages, // Add the merged image arrays
+      });
+    }
+
+    console.log("Listing saved successfully".magenta);
+    res.status(200).json({
+      success: true,
+      message: "Listing saved successfully",
+      data: existingListing,
+    });
+  } catch (error) {
+    console.error("Error saving listing:", error);
+    return res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`,
+      error,
+    });
   }
 });
 
@@ -598,4 +762,5 @@ getUserApprovedListings,
 getSingleListing,
 getSingleUserListing,
 editListing,
+saveListingForLater
 };
