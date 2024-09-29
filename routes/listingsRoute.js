@@ -14,7 +14,7 @@ import upload from '../uploadUtils/multer.js';
 const router = express.Router();
 
 router
-  .route('/save-for-later')
+  .route('/save-as-draft')
   .put(protect, upload.fields([
     { name: 'bedroomPictures', maxCount: 10 },
     { name: 'livingRoomPictures', maxCount: 10 },

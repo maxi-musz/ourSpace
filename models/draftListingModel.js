@@ -64,7 +64,7 @@ const draftListingsSchema = new mongoose.Schema({
     
     propertyId: {
       type: String,
-      required: true
+      required: true 
     },
     propertyUsers: [{
       type: mongoose.Schema.Types.ObjectId,
