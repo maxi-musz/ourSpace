@@ -213,7 +213,6 @@ const createListing = asyncHandler(async (req, res) => {
 const saveListingForLater = asyncHandler(async (req, res) => {
   console.log("Saving new listing to draft".yellow);
   const userId = req.user._id.toString();
-  console.log("UserId: ",userId)
 
   const listingId = req.body.listingId;
   let existingListing = null;
@@ -353,10 +352,10 @@ const saveListingForLater = asyncHandler(async (req, res) => {
       });
     }
 
-    console.log("Listing saved successfully".magenta);
+    console.log("Listing saved successfully as draft".magenta);
     res.status(200).json({
       success: true,
-      message: "Listing saved successfully",
+      message: "Listing saved successfully as draft",
       data: existingListing,
     });
   } catch (error) {

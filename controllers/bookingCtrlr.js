@@ -5,6 +5,7 @@ import sendEmail from "../utils/sendMail.js"
 import Booking from '../models/bookingModel.js';
 import Notification from '../models/notificationModel.js';
 import Message from '../models/messageModel.js';
+import { sendSuccessfulPaymentMail } from '../utils/authUtils.js';
 
 export const checkAvailability = asyncHandler(async (req, res) => {
     console.log("Checking availability before booking endpoint...".blue);
@@ -253,6 +254,8 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
     const { reference, listingId } = req.body;
     const userId = req.user;
 
+    const listing = await Listing.findById(listingId).populate('user');
+
     // Input validation
     if (!reference || !userId || !listingId) {
         console.log("Reference, userId, and listingId fields must be provided");
@@ -282,7 +285,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        const booking = await Booking.findOne({ paystackReference: reference });
+        const booking = await Booking.findOne({ paystackReference: reference }).populate('user');
 
         if (!booking) {
             console.log("Payment was successful, but the booking was not found in the database".red);
@@ -310,15 +313,17 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        const ourspaceEmail = process.env.OUR_SPACE_EMAIL;
-        const maximusEmail = process.env.MAXIMUS_EMAIL;
-        const paymentNotificationEmail = `${ourspaceEmail}, ${maximusEmail}`;
-        
-        await sendEmail(
-            maximusEmail,
-            "Ourspace bookings payment",
-            `A new payment of #${normalAmount} was made by ${customer.email}.`
-        );
+        console.log("Listing apartment Name: ",listing.propertyName)
+        const totalNights = booking.bookedDays
+        const totalBookedNights = totalNights.length
+        await sendSuccessfulPaymentMail(
+            userId.email, 
+            userId.firstName, 
+            listing.propertyName, 
+            totalBookedNights, 
+            normalAmount
+          );
+          
         console.log("Payment confirmed, and email sent".cyan);
 
         // Update transaction status to 'success'
@@ -334,7 +339,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        const listing = await Listing.findById(listingId).populate('user');
+        
 
         if(listing) {
             

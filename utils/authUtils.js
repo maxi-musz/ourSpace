@@ -7,6 +7,8 @@ import { isAfter } from 'date-fns';
 import { OTPExpiredError } from './otpErrors.js';
 import { passwordResetEmailTemplate } from '../email_templates/passwordResetEmailTemplate.js';
 import { otpVerificationCodeTemplate } from '../email_templates/otpVerificationCodeTemplate.js';
+import { welcomeEmail } from '../email_templates/welcomeMail.js';
+import { successfulPaymentMail } from '../email_templates/successfulPaymentMail.js';
 
 const hashFunction = async (data) => {
   const saltRounds = 10; // Salt rounds for bcrypt
@@ -67,10 +69,74 @@ export const sendOTPByEmail = async (email,otp) => {
 
     await transporter.sendMail(mailOptions);
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending otp email:', error);
     throw new Error('Failed to send OTP email');
   }
 };
+
+export const sendWelcomeEmail = async (email, firstName) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    const htmlContent = welcomeEmail(firstName);
+
+    const mailOptions = {
+      from: {
+        name: "Ourspace",
+        address: process.env.EMAIL_USER,
+      },
+      to: email,
+      subject: 'Welcome to ourspace',
+      html: htmlContent
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    throw new Error('Failed to send welcome email');
+  }
+}
+
+export const sendSuccessfulPaymentMail = async (email, fullName, apartmentName, totalNight, amountPaid) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    const htmlContent = await successfulPaymentMail(fullName, apartmentName, totalNight, amountPaid);
+
+    const mailOptions = {
+      from: {
+        name: "Ourspace",
+        address: process.env.EMAIL_USER,
+      },
+      to: email,
+      subject: `Payment successful for new bookings: ${amountPaid}`,
+      html: htmlContent
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    throw new Error('Failed to send welcome email');
+  }
+}
 
 export const verifyOTP = async (userId, inputOTP) => {
     console.log("Searching for otp".grey)

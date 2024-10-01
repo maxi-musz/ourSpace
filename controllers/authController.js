@@ -9,7 +9,7 @@ import asyncHandler from "../middleware/asyncHandler.js";
 import validator from "validator";
 import generateTokens from "../utils/generateTokens.js";
 import OTP from "../models/otpModel.js";
-import { generateOTP, saveOTPToDatabase, sendOTPByEmail, verifyOTP } from "../utils/authUtils.js"
+import { generateOTP, saveOTPToDatabase, sendOTPByEmail, sendWelcomeEmail, verifyOTP } from "../utils/authUtils.js"
 import sendEmail from '../utils/sendMail.js';
 import { passwordResetEmailTemplate } from '../email_templates/passwordResetEmailTemplate.js';
 import axios from 'axios';
@@ -162,6 +162,7 @@ const spaceUserSignUp = asyncHandler(async (req, res) => {
             const { otp, hashedOTP } = await generateOTP();
             console.log(`OTP ${otp} generated...`.magenta);
             
+            await sendWelcomeEmail(newUser.email, newUser.firstName)
             await saveOTPToDatabase(userId, otp, hashedOTP);
             await sendOTPByEmail(email, otp);
             console.log(`OTP successfully sent to ${email}`);
@@ -271,6 +272,8 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
         });
         await user.save();
 
+        
+
         // Find the newly created user by email
         const newUser = await User.findOne({ email });
         if (newUser) {
@@ -286,10 +289,10 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
             // Generate and save a new OTP
             const { otp, hashedOTP } = await generateOTP();
             console.log(`OTP ${otp} generated...`.magenta);
-            
+            await sendWelcomeEmail(newUser.email, newUser.firstName)
             await saveOTPToDatabase(userId, otp, hashedOTP);
             await sendOTPByEmail(email, otp);
-            console.log(`OTP successfully sent to ${email}`);
+            console.log(`Registration successful. OTP successfully sent to ${email}`);
             
             return res.json({
                 success: true,
@@ -297,19 +300,19 @@ const spaceOwnerSignUp = asyncHandler(async (req, res) => {
             });
         }
 
-        console.log("New space-owner successfully created".magenta);
-        res.status(201).json({
-            success: true,
-            message: "You've successfully registered as a new space owner!",
-            data: {
-                firstName: newUser.firstName,
-                lastName: newUser.lastName,
-                email: newUser.email,
-                phoneNumber: newUser.phoneNumber,
-                userType: newUser.userType,
-                isEmailVerified: newUser.isEmailVerified
-            }
-        });
+        // console.log("New space-owner successfully created".magenta);
+        // res.status(201).json({
+        //     success: true,
+        //     message: "You've successfully registered as a new space owner!",
+        //     data: {
+        //         firstName: newUser.firstName,
+        //         lastName: newUser.lastName,
+        //         email: newUser.email,
+        //         phoneNumber: newUser.phoneNumber,
+        //         userType: newUser.userType,
+        //         isEmailVerified: newUser.isEmailVerified
+        //     }
+        // });
     } catch (error) {
         console.error(error);
         res.status(500).json({
