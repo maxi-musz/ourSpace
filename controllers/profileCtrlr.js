@@ -104,7 +104,7 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
         filter.bookingStatus = bookingStatus;
     }
 
-    const bookings = await Booking.find(filter)
+    let bookings = await Booking.find(filter)
         .populate({
             path: 'listing',
             select: 'propertyId propertyName propertyLocation livingRoomPictures chargePerNight bedroomTotal totalGuestsAllowed',
@@ -114,9 +114,23 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
         console.log("Total of 0 bookings found".red);
         return res.status(200).json({
             success: true,
-            message: "You currently have no bvookings at the moment, checkout some nice apartment closeby, make payment for the one of your choice and enjoy seamless stay",
+            message: "You currently have no bookings at the moment, checkout some nice apartments nearby, make payment for the one of your choice, and enjoy a seamless stay",
             data: []
         });
+    }
+
+    // Get current date in 'yyyy-mm-dd' format
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    // Iterate over bookings and update status
+    for (let booking of bookings) {
+        const allDaysPassed = booking.bookedDays.every(date => date < currentDate);
+
+        if (allDaysPassed && booking.bookingStatus !== 'completed') {
+            booking.bookingStatus = 'completed';
+            await booking.save(); 
+            console.log(`Booking with ID ${booking._id} marked as completed`.cyan);
+        }
     }
 
     const formattedBookings = bookings.map(booking => ({
@@ -127,12 +141,10 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
         bookingStatus: booking.bookingStatus,
         chargePerNight: booking.listing.chargePerNight,
         bedroomTotal: booking.listing.bedroomTotal,
-        totalGuestsAllowed: booking.listing.totalGuestsAllowed, 
+        totalGuestsAllowed: booking.listing.totalGuestsAllowed,
         propertyImage: booking.listing.livingRoomPictures[0],
         timestamp: booking.createdAt,
     }));
-    // console.log(formattedBookings.price)
-    
 
     console.log(`Total of ${bookings.length} bookings found`.magenta);
     return res.status(200).json({
@@ -141,6 +153,7 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
         data: formattedBookings,
     });
 });
+
 
 const getSUBookingHistory = asyncHandler(async (req, res) => {
     console.log("Getting all space user booking history".yellow);
