@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+<<<<<<< HEAD
+=======
+const imageSchema = new mongoose.Schema({
+    secure_url: { type: String, required: true },
+    public_id: { type: String }
+  });
+>>>>>>> ourspace/test
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -18,7 +25,10 @@ const userSchema = new mongoose.Schema({
     },
     gender: {
         type: String,
+<<<<<<< HEAD
         enum: ["male", "female", "others"]
+=======
+>>>>>>> ourspace/test
     },
     dateOfBirth: {
         type: String
@@ -27,7 +37,11 @@ const userSchema = new mongoose.Schema({
         type: Number
     },
     country: {
+<<<<<<< HEAD
         type: String,
+=======
+        type: String, 
+>>>>>>> ourspace/test
     },
     state: {
         type: String,
@@ -45,7 +59,12 @@ const userSchema = new mongoose.Schema({
         type: String
     },
     profilePic : {
+<<<<<<< HEAD
         type: String
+=======
+        secure_url: {type: String},
+        publicId: { type: String}
+>>>>>>> ourspace/test
     },
     userType: {
         type: String,

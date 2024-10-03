@@ -17,7 +17,11 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+<<<<<<< HEAD
 const sendEmail = async (to, subject, htmlContent, attachments) => {
+=======
+export const sendEmail = async (to, subject, htmlContent, attachments) => {
+>>>>>>> ourspace/test
     try {
         const info = await transporter.sendMail({
             from: {

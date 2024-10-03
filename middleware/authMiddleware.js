@@ -34,7 +34,7 @@ const protect = asyncHandler(async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.log("Invalid or expired toekn, please log in again")
+    console.log("Invalid or expired token, please log in again")
     return res.status(401).json({
       success: false,
       message: "Invalid or expired token, please login again"

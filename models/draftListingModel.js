@@ -3,15 +3,13 @@ import mongoose from "mongoose";
 const propertyLocationSchema = new mongoose.Schema({
   address: {
     type: String,
-    required: [true, "city is required"]
   },
     city: {
       type: String,
-      required: [true, "city is required"]
+
     },
     state: {
       type: String,
-      required: [true, "state is required"]
     },
     latitude: Number,
     longitude: Number,
@@ -38,7 +36,6 @@ const numberOfGuestsSchema = new mongoose.Schema({
   pets: { type: Number, default: 0 },
   total: {
       type: Number,
-      required: true,
       default: function() {
           return this.adult + this.children;
       }
@@ -58,7 +55,7 @@ const imageSchema = new mongoose.Schema({
   public_id: { type: String }
 });
   
-const listingsSchema = new mongoose.Schema({
+const draftListingsSchema = new mongoose.Schema({
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -67,7 +64,7 @@ const listingsSchema = new mongoose.Schema({
     
     propertyId: {
       type: String,
-      required: true
+      required: true 
     },
     propertyUsers: [{
       type: mongoose.Schema.Types.ObjectId,
@@ -81,40 +78,33 @@ const listingsSchema = new mongoose.Schema({
     listingStatus: { 
       type: String,
       enum: ["approved", "rejected","active", "inactive", "pending", "draft", "saved", "archived", "blocked"],
-      default: "pending",
+      default: "draft",
     },
     listedOnOtherPlatform: {
       type: Boolean,
-      default: false,
-      required: true
+      required: [true, "Listed on other platform which is a boolean is required"]
     },
     propertyName: {
       type: String,
-      required: [true, 'Property name is required.']
+      required: [true, "Property name is required"]
     },
     propertyType: { 
       type: String,
-      required: [true, 'Property type is required.']
     },
     bedroomTotal: {
       type: Number,
-      required: [true, 'bedroom total is required']
     },
     livingRoomTotal: {
       type: Number,
-      required: [true, 'living room total is required']
     },
     bedTotal: {
       type: Number,
-      required: [true, 'bed total is required']
     },
     bathroomTotal: {
       type: Number,
-      required: [true, 'bathroom total is required'] 
     },
     toiletTotal: {
       type: Number,
-      required: [true, 'toilet total is required']
     },
 
     propertyLocation: propertyLocationSchema,
@@ -158,7 +148,6 @@ const listingsSchema = new mongoose.Schema({
 
     minimumDays: {
       type: Number,
-      default: 1,
     },
     
     infoForGuests: infoForGuestsSchema,
@@ -166,48 +155,38 @@ const listingsSchema = new mongoose.Schema({
     guestMeansOfId: {
       confirmationMail: {
         type: Boolean,
-        default: false
       },
       idCard: {
         type: Boolean,
-        default: false
       }
     },
 
     chargeType: {
       type: String,
-      enum: ['daily', 'weekly', 'yearly'],
-      default: "daily"
+      enum: ['daily', 'weekly', 'yearly']
     },
 
     chargeCurrency: {
-      type: String,
-      default: "ngn",
-      required: [true, "Charge currency is required"]
+      type: String
     },
 
     acceptOtherCurrency: {
-      type: Boolean,
-      required: [true, "Accept other currecny attestation is required"]
+      type: Boolean
     },
 
     otherAcceptedCurrencies: [String],
 
     chargePerNight: {
-      type: Number,
-      required: [true, "How much to be charged per night is required"]
+      type: Number
     },
 
     discount: {
-      type: Boolean,
-      default: false,
-      required: [true, "discount is required"]    
+      type: Boolean
     },
 
     cancellationOption: {
       type: String,
-      enum: ['flexible', 'moderate', 'firm', 'strict'],
-      default: "flexible",
+      enum: ['flexible', 'moderate', 'firm', 'strict']
     },
 
     calendar: {
@@ -232,14 +211,12 @@ const listingsSchema = new mongoose.Schema({
     },
 
     totalGuestsAllowed: {
-      type: Number,
-      required: [true, "Total allowed guests is required"]
+      type: Number
     },
     
     freeCancellation: {
       type: Boolean,
-      default: false,
-      required: true
+      default: false
     },
     maximumGuestNumber: numberOfGuestsSchema,
 
@@ -247,7 +224,7 @@ const listingsSchema = new mongoose.Schema({
   timestamps: true
 });
 
-listingsSchema.pre('save', function (next) {
+draftListingsSchema.pre('save', function (next) {
   if (!this.availableAmenities) {
       this.availableAmenities = {};
   }
@@ -262,7 +239,7 @@ listingsSchema.pre('save', function (next) {
   next();
 });
 
-listingsSchema.pre('save', function (next) {
+draftListingsSchema.pre('save', function (next) {
   if (!this.calendar) {
     this.calendar = {};
   }
@@ -277,6 +254,6 @@ listingsSchema.pre('save', function (next) {
   next();
 });
   
-const Listing = mongoose.model('Listing', listingsSchema);
+const DraftListing = mongoose.model('DraftListing', draftListingsSchema);
 
-export default Listing;
+export default DraftListing;

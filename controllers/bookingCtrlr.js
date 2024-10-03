@@ -1,9 +1,92 @@
 import axios from 'axios';
-import sendEmail from '../../utils/sendMail.js';
-import Booking from '../../models/bookingModel.js';
-import Listing from '../../models/listingModel.js';
-import asyncHandler from '../../middleware/asyncHandler.js';
-import Notification from '../../models/notificationModel.js';
+import asyncHandler from "../middleware/asyncHandler.js";
+import Listing from "../models/listingModel.js"
+import sendEmail from "../utils/sendMail.js"
+import Booking from '../models/bookingModel.js';
+import Notification from '../models/notificationModel.js';
+import Message from '../models/messageModel.js';
+import { sendSuccessfulPaymentMail } from '../utils/authUtils.js';
+
+export const checkAvailability = asyncHandler(async (req, res) => {
+    console.log("Checking availability before booking endpoint...".blue);
+
+    const { listingId } = req.params;
+    const { checkIn, checkOut, spaceUsers } = req.body;
+
+    const requiredFields = { listingId, checkIn, checkOut, spaceUsers };
+
+    const missingFields = Object.entries(requiredFields)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+        return res.status(400).json({
+            success: false,
+            message: `Missing the following field(s): ${missingFields.join(', ')}`,
+        });
+    }
+
+    try {
+        const listing = await Listing.findById(listingId);
+
+        if (!listing) {
+            return res.status(404).json({ success: false, message: "Listing not found" });
+        }
+
+        const { availability = [], calendar, maximumGuestNumber } = listing; // Default empty array if availability is undefined
+        const { unavailableDays } = calendar;
+
+        const checkInDate = new Date(checkIn);
+        const checkOutDate = new Date(checkOut);
+
+        // Generate the array of dates from checkIn to checkOut
+        const checkInToCheckOutDates = [];
+        for (let d = new Date(checkInDate); d <= checkOutDate; d.setDate(d.getDate() + 1)) {
+            checkInToCheckOutDates.push(d.toISOString().split('T')[0]);
+        }
+
+        // Check if the listing is available (if availability is enforced)
+        if (Array.isArray(availability) && availability.length > 0) {
+            const unavailableDates = checkInToCheckOutDates.filter(date => !availability.includes(date));
+            if (unavailableDates.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Listing is not available for the following dates: ${unavailableDates.join(", ")}`,
+                });
+            }
+        }
+
+        // Check for conflicts with unavailable days (union of booked and blocked days)
+        const conflictDates = checkInToCheckOutDates.filter(date => unavailableDays.includes(date));
+        if (conflictDates.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Listing is unavailable for the following dates: ${conflictDates.join(", ")}`,
+                bookedDates: conflictDates,
+            });
+        }
+
+        if (spaceUsers > maximumGuestNumber) {
+            return res.status(400).json({
+                success: false,
+                message: `The number of guests exceeds the maximum allowed. Maximum allowed is ${maximumGuestNumber}.`,
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Listing is available for booking",
+            availableDates: checkInToCheckOutDates,
+        });
+
+    } catch (error) {
+        console.log(`Error checking availability: ${error.message}`.red);
+        res.status(500).json({
+            success: false,
+            message: "An error occurred while checking availability",
+        });
+    }
+});
 
 export const initializeTransaction = asyncHandler(async (req, res) => {
     console.log("Initializing Paystack payment...".green);
@@ -15,14 +98,28 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         firstName, lastName, phoneNumber, bookingForSomeone, totalGuest, discount
     } = req.body;
 
-    // Input validation
+    const requiredFields = {
+        email, 
+        amountInNaira, 
+        callBackUrl, 
+        listingId, 
+        newBookedDays, 
+        firstName, 
+        lastName, 
+        phoneNumber, 
+        totalGuest
+    };
 
-    if(!email || !amountInNaira || !callBackUrl || !listingId || !newBookedDays || !firstName || !lastName || !phoneNumber ||!totalGuest) {
-        console.log("All fields are required".red)
-        res.status(400).json({
+    const missingFields = Object.entries(requiredFields)
+    .filter(([key, value]) => !value)
+    .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+        console.log("Missing fields:", missingFields.join(', ').red);
+        return res.status(400).json({
             success: false,
-            message: "All fields are required"
-        })
+            message: `Missing the following field(s): ${missingFields.join(', ')}`
+        });
     }
 
     const amountInKobo = amountInNaira * 100;
@@ -38,7 +135,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 
-    const conflictingDates = listing.bookedDays.filter(date => newBookedDays.includes(date));
+    const conflictingDates = listing.calendar.unavailableDays.filter(date => newBookedDays.includes(date));
 
     if (conflictingDates.length > 0) {
         console.log("Some of the selected dates are already booked".red)
@@ -62,11 +159,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             },
             {
                 headers: {
-<<<<<<< HEAD
-                    Authorization: `Bearer ${process.env.OURSPACE_TEST_SECRET_KEY}`,
-=======
                     Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
->>>>>>> ourspace/test
                     'Content-Type': 'application/json',
                 },
             }
@@ -161,6 +254,8 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
     const { reference, listingId } = req.body;
     const userId = req.user;
 
+    const listing = await Listing.findById(listingId).populate('user');
+
     // Input validation
     if (!reference || !userId || !listingId) {
         console.log("Reference, userId, and listingId fields must be provided");
@@ -171,19 +266,11 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
     }
 
     try {
-<<<<<<< HEAD
-        // Verify transaction with Paystack
-=======
->>>>>>> ourspace/test
         const response = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
             {
                 headers: {
-<<<<<<< HEAD
-                    Authorization: `Bearer ${process.env.OURSPACE_TEST_SECRET_KEY}`,
-=======
                     Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
->>>>>>> ourspace/test
                 },
             }
         );
@@ -198,7 +285,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        const booking = await Booking.findOne({ paystackReference: reference });
+        const booking = await Booking.findOne({ paystackReference: reference }).populate('user');
 
         if (!booking) {
             console.log("Payment was successful, but the booking was not found in the database".red);
@@ -226,15 +313,17 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        const ourspaceEmail = process.env.OUR_SPACE_EMAIL;
-        const maximusEmail = process.env.MAXIMUS_EMAIL;
-        const paymentNotificationEmail = `${ourspaceEmail}, ${maximusEmail}`;
-        
-        await sendEmail(
-            maximusEmail,
-            "Ourspace bookings payment",
-            `A new payment of #${normalAmount} was made by ${customer.email}.`
-        );
+        console.log("Listing apartment Name: ",listing.propertyName)
+        const totalNights = booking.bookedDays
+        const totalBookedNights = totalNights.length
+        await sendSuccessfulPaymentMail(
+            userId.email, 
+            userId.firstName, 
+            listing.propertyName, 
+            totalBookedNights, 
+            normalAmount
+          );
+          
         console.log("Payment confirmed, and email sent".cyan);
 
         // Update transaction status to 'success'
@@ -250,38 +339,47 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        const listing = await Listing.findById(listingId).populate('user');
+        
 
         if(listing) {
             
             const newBookedDays = booking.bookedDays;
-            listing.bookedDays = [...listing.bookedDays, ...newBookedDays];
+            console.log("Booked days: ",newBookedDays)
+            listing.calendar.bookedDays = [...listing.calendar.bookedDays, ...newBookedDays];
+            // Check if the user is already in propertyUsers
+            if (!listing.propertyUsers.includes(userId)) {
+                listing.propertyUsers.push(userId); // Add the current user's ID to the propertyUsers array
+                // console.log(`User ${userId} added to propertyUsers array of listing ${listingId}`.green);
+            } else {
+                console.log(`User ${userId} already exists in propertyUsers array of listing ${listingId}`.yellow);
+            }
+            
             await listing.save();
 
             console.log("Transaction verified, listing and booking details updated successfully.".cyan);
 
             const listingOwner = listing.user;
-<<<<<<< HEAD
-            const displayImage = listingOwner.profilePic || '';
-=======
             const displayImage = listingOwner.profilePic.url || '';
->>>>>>> ourspace/test
 
             // create a new notification
             await Notification.create({
                 user: userId,
-<<<<<<< HEAD
-                title: listing.propertyName,
-                subTitle: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
-                displayImage: displayImage
-=======
                 listing: listingId,
                 title: listing.propertyName,
                 subTitle: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
->>>>>>> ourspace/test
             });
 
             console.log("Notification created successfully.".green);
+
+            // Create a new message for the user
+            await Message.create({
+                sender: listingOwner._id,
+                receiver: req.user._id,
+                listing: listingId,
+                propertyUserId: req.user._id, 
+                content: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
+            });
+
 
             res.status(200).json({
                 success: true,
@@ -350,5 +448,40 @@ export const handleCallback = async (req, res) => {
             message: error.response ? error.response.data.message : error.message,
         });
     }
-};
+}; 
 
+export const getBookingsForListingId = asyncHandler(async (req, res) => {
+    const { listingId } = req.params;
+  
+    try {
+        console.log(`Fetching booking history for specific listing`.blue);
+  
+        const bookings = await Booking.find({ listing: listingId })
+            .populate('user', 'name')
+            .sort({ date: -1 });
+  
+        console.log(`Booking history retrieved for listing ID: ${listingId}`.green);
+  
+        const formattedBookings = bookings.map(booking => ({
+            date: booking.date,
+            description: booking.description,
+            guestName: booking.user.name,
+            nightsSpent: booking.nightsSpent,
+            amountPaid: booking.amountPaid,
+        }));
+  
+        res.status(200).json({
+            success: true,
+            message: "Booking history retrieved successfully",
+            total: formattedBookings.length,
+            data: formattedBookings,
+        });
+    } catch (error) {
+        console.error('Error fetching booking history:', error);
+        res.status(500).json({
+            success: false,
+            message: `Server error: ${error.message}`,
+            error,
+        });
+    }
+});

@@ -3,7 +3,11 @@ import express from "express";
 import { 
     joinwWaitList,
     getWaitlistsRouteHandler,
+<<<<<<< HEAD
     joinNewsletter
+=======
+    joinNewsletter,
+>>>>>>> ourspace/test
 } from "../../controllers/extras/waitlistCtrl.js";
 import { admin, protect } from "../../middleware/authMiddleware.js";
 

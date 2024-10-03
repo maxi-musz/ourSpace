@@ -5,6 +5,7 @@ import Listing from "../../models/listingModel.js"
 import formatListingData from "../../utils/formatListingData.js";
 import cloudinaryConfig from '../../uploadUtils/cloudinaryConfig.js';
 
+<<<<<<< HEAD
 const getCoordinates = async (address) => {
     try {
       const response = await opencage.geocode({ q: address, key: process.env.OPENCAGE_API_KEY });
@@ -19,6 +20,9 @@ const getCoordinates = async (address) => {
       throw error;
     }
 };
+=======
+
+>>>>>>> ourspace/test
 
 const getAllListings = asyncHandler(async (req, res) => {
     console.log("Getting all listings...".yellow);
@@ -101,6 +105,7 @@ const getListingById = asyncHandler(async (req, res) => {
     }
 });
 
+<<<<<<< HEAD
 const uploadListingImagesToCloudinary = async (items) => {
     return Promise.all(items.map(async (item) => {
       if (typeof item === 'string' && item.startsWith('http')) {
@@ -203,6 +208,8 @@ const editListing = asyncHandler(async (req, res) => {
     }
 });
 
+=======
+>>>>>>> ourspace/test
 const updateListingStatus = asyncHandler(async (req, res) => {
     console.log("Updating listing status".yellow);
 
@@ -336,7 +343,10 @@ const updateStatus = asyncHandler(async (req, res) => {
 export { 
     getListingById,
     getAllListings,
+<<<<<<< HEAD
     editListing,
+=======
+>>>>>>> ourspace/test
     updateListingStatus,
     updateStatus,
     tempUpdateListingStatus
