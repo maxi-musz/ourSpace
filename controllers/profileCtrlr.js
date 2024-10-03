@@ -107,7 +107,7 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
     let bookings = await Booking.find(filter)
         .populate({
             path: 'listing',
-            select: 'propertyId propertyName propertyLocation livingRoomPictures chargePerNight bedroomTotal totalGuestsAllowed',
+            select: 'propertyId propertyName propertyLocation livingRoomPictures chargePerNight bedroomTotal totalGuestsAllowed bedTotal bathroomTotal description',
         });
 
     if (bookings.length < 1) {
@@ -134,13 +134,16 @@ const getAllSUBookings = asyncHandler(async (req, res) => {
     }
 
     const formattedBookings = bookings.map(booking => ({
-        id: booking.listing._id,
+        id: booking.listing._id, 
         propertyId: booking.listing.propertyId,
         propertyName: booking.listing.propertyName,
         propertyLocation: booking.listing.propertyLocation,
         bookingStatus: booking.bookingStatus,
         chargePerNight: booking.listing.chargePerNight,
         bedroomTotal: booking.listing.bedroomTotal,
+        totalBeds: booking.listing.bedTotal,
+        totalBathroom: booking.listing.bathroomTotal,
+        description: booking.listing.description,
         totalGuestsAllowed: booking.listing.totalGuestsAllowed,
         propertyImage: booking.listing.livingRoomPictures[0],
         timestamp: booking.createdAt,

@@ -753,6 +753,62 @@ const editListing = asyncHandler(async (req, res) => {
   }
 });
 
+const deleteListing = asyncHandler(async(req, res) => {
+  console.log("Deleting listing...".yellow)
+
+  const { listingId } = req.body
+
+  if(!listingId) {
+    console.log("Valid listing Id is required".red)
+    return res.status(400).json({
+      success: false,
+      message: "Valid listing Id is required"
+    })
+  }
+
+  try {
+    const existingListing = await Listing.findByIdAndDelete(listingId)
+
+    if(!existingListing) {
+      console.log("Listing selected to be deleted does not exist".red)
+      return res.status(404).json({
+        success: false,
+        message: "Listing selected to be deleted does not exist"
+      })
+    }
+
+    const bookings = await Booking.find({ listing: listingId });
+
+    // Checking if any booking has future dates in bookedDays
+    const currentDate = new Date();
+    for (const booking of bookings) {
+      const hasUpcomingBooking = booking.bookedDays.some(
+        (day) => new Date(day) > currentDate
+      );
+
+      if (hasUpcomingBooking) {
+        console.log("Cannot delete listing, there are upcoming bookings".red);
+        return res.status(400).json({
+          success: false,
+          message: "Cannot delete listing as there are upcoming bookings.",
+        });
+      }
+    }
+
+    console.log("Listing successfully deleted".america)
+    return res.status(200).json({
+      success: true,
+      message: "Listing successfully deleted"
+    })
+  } catch (error) {
+    console.error("Error deleting listing", error)
+    return res.status(500).json({
+      success: false,
+      message: "Error deleting listing"
+    })
+  }
+})
+
 export { 
 createListing,
 searchListings,
