@@ -556,9 +556,7 @@ const soGetAllListings = asyncHandler(async (req, res) => {
 
       // Find listings based on the query object
       const listings = await Listing.find({user: req.user._id});
-      console.log(`Total of: ${listings.length} other listings found`.cyan)
       const draftListings = await DraftListing.find({user: req.user._id})
-      console.log(`Total of: ${draftListings.length} draft listings found`.yellow)
 
       const allListings = [...listings, ...draftListings];
 
