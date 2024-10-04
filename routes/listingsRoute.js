@@ -4,7 +4,7 @@ import {
     createListing, 
     filterListings,
     getSingleListing,
-    getUserApprovedListings,
+    soGetAllListings,
     searchListings,
     editListing,
     saveListingForLater
@@ -46,7 +46,7 @@ router
 
 router
 .route("/get-user-listings")
-.get(protect, getUserApprovedListings)
+.get(protect, soGetAllListings)
 
 // Get user listings
 router

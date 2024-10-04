@@ -549,21 +549,24 @@ const filterListings = asyncHandler(async (req, res) => {
 // @desc    Get user listings
 // @route   GET /api/v1/listings
 // @access  Public
-const getUserApprovedListings = asyncHandler(async (req, res) => {
+const soGetAllListings = asyncHandler(async (req, res) => {
   
   try {
       console.log("Fetching user listings".blue);
 
       // Find listings based on the query object
       const listings = await Listing.find({user: req.user._id});
+      const draftListings = await DraftListing.find({user: req.user._id})
 
-      console.log(`Total of ${listings.length} listings fetched`.magenta);
+      const allListings = [...listings, ...draftListings];
+
+      console.log(`Total of ${allListings.length} listings fetched`.magenta);
 
       res.status(200).json({
           success: true,
-          total: listings.length,
+          total: allListings.length,
           message: 'Listings retrieved successfully',
-          data: listings,
+          data: allListings,
       });
   } catch (error) {
       console.error('Error fetching user listings:', error);
@@ -813,7 +816,7 @@ export {
 createListing,
 searchListings,
 filterListings,
-getUserApprovedListings,
+soGetAllListings,
 getSingleListing,
 getSingleUserListing,
 editListing,
