@@ -110,6 +110,11 @@ app.use("/api/v1/admin/users", usersAdminR);
 app.use("/api/v1/admin/listings", listingsAdminR);
 
 // Default route
+app.get("/", (req, res) => {
+    console.log("ourSpace API is running".blue);
+    res.send("ourSpace API is running");
+});
+
 app.get("/api/v1", (req, res) => {
     console.log("ourSpace API is running".blue);
     res.send("ourSpace API is running");
