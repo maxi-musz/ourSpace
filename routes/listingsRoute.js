@@ -7,7 +7,8 @@ import {
     soGetAllListings,
     searchListings,
     editListing,
-    saveListingForLater
+    saveListingForLater,
+    deleteListing
  } from '../controllers/listingCtrls.js';
 import upload from '../uploadUtils/multer.js';
 
@@ -64,6 +65,10 @@ router
     { name: 'facilityPictures', maxCount: 10 },
     { name: 'otherPictures', maxCount: 10 }
   ]), editListing);
+
+router
+.route("/delete-listing-or-draft")
+.delete(protect, deleteListing)
 
 export default router;
  

@@ -120,8 +120,14 @@ const createListing = asyncHandler(async (req, res) => {
 
       let latitude, longitude;
 
-      // Fetch coordinates based on the address
-      try {
+      // Check if latitude and longitude are already provided
+      if (formattedData.propertyLocation.latitude && formattedData.propertyLocation.longitude) {
+        latitude = formattedData.propertyLocation.latitude;
+        longitude = formattedData.propertyLocation.longitude;
+        console.log(`Latitude and Longitude already provided: ${latitude}, ${longitude}`.cyan);
+      } else {
+        // Fetch coordinates based on the address
+        try {
           const { address, city, state } = formattedData.propertyLocation;
           const fullAddress = `${address}, ${city}, ${state}`;
           const coordinates = await getCoordinates(fullAddress);
@@ -130,10 +136,13 @@ const createListing = asyncHandler(async (req, res) => {
           longitude = coordinates.longitude;
 
           console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
-      } catch (error) {
+        } catch (error) {
           console.log(`Error getting coordinates: ${error}`.red);
           return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
+        }
       }
+
+      console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
 
       console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
 
@@ -170,25 +179,42 @@ const createListing = asyncHandler(async (req, res) => {
 
       
 
-  
-
       // Create a new listing in the database
-      const newListing = await Listing.create({
-          ...formattedData,
-          user: userId,
-          propertyId: generateListingId(),
-          propertyLocation: {
-              ...formattedData.propertyLocation,
-              latitude,
-              longitude
-          },
-          bedroomPictures,
-          livingRoomPictures,
-          bathroomToiletPictures,
-          kitchenPictures,
-          facilityPictures,
-          otherPictures
-      });
+      const newListingData = {
+        ...formattedData,
+        user: userId,
+        propertyLocation: {
+          ...formattedData.propertyLocation,
+          latitude,
+          longitude,
+        },
+        bedroomPictures,
+        livingRoomPictures,
+        bathroomToiletPictures,
+        kitchenPictures,
+        facilityPictures,
+        otherPictures,
+      };
+
+      if (req.body.listingId) {
+        newListingData._id = req.body.listingId;
+      }
+
+      const newListing = await Listing.create(newListingData);
+
+      if (req.body.listingId) {
+        try {
+          const deletedDraft = await DraftListing.findOneAndDelete({
+            _id: req.body.listingId,
+          });
+  
+          if (deletedDraft) {
+            console.log("Draft listing deleted successfully".green);
+          }
+        } catch (deleteDraftError) {
+          console.error("Error deleting draft listing:", deleteDraftError);
+        }
+      }
 
       console.log("New Listing successfully created".magenta);
       return res.status(201).json({
@@ -756,61 +782,88 @@ const editListing = asyncHandler(async (req, res) => {
   }
 });
 
-const deleteListing = asyncHandler(async(req, res) => {
-  console.log("Deleting listing...".yellow)
+const deleteListing = asyncHandler(async (req, res) => {
+  console.log("Deleting listing...".yellow);
 
-  const { listingId } = req.body
+  const { listingId } = req.body;
+  const userId = req.user._id.toString();
 
-  if(!listingId) {
-    console.log("Valid listing Id is required".red)
+  if (!listingId) {
+    console.log("Valid listing Id is required".red);
     return res.status(400).json({
       success: false,
       message: "Valid listing Id is required"
-    })
+    });
   }
 
   try {
-    const existingListing = await Listing.findByIdAndDelete(listingId)
+    // I first try finding the listing in the Listing model
+    let existingListing = await Listing.findById(listingId);
 
-    if(!existingListing) {
-      console.log("Listing selected to be deleted does not exist".red)
+    // If not found, I try finding it in the DraftListing model
+    let isDraft = false;
+    if (!existingListing) {
+      existingListing = await DraftListing.findById(listingId);
+      isDraft = !!existingListing; // I then set isDraft to true if found in DraftListing
+    }
+
+    if (!existingListing) {
+      console.log("Listing selected to be deleted does not exist".red);
       return res.status(404).json({
         success: false,
         message: "Listing selected to be deleted does not exist"
-      })
+      });
     }
 
-    const bookings = await Booking.find({ listing: listingId });
+    if (existingListing.user.toString() !== userId) {
+      console.log("Unauthorized attempt to delete listing".red);
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this listing"
+      });
+    }
 
-    // Checking if any booking has future dates in bookedDays
-    const currentDate = new Date();
-    for (const booking of bookings) {
-      const hasUpcomingBooking = booking.bookedDays.some(
-        (day) => new Date(day) > currentDate
-      );
+    // If it is a listing (not a draft), check if there are upcoming bookings
+    if (!isDraft) {
+      const bookings = await Booking.find({ listing: listingId });
+      const currentDate = new Date();
+      for (const booking of bookings) {
+        const hasUpcomingBooking = booking.bookedDays.some(
+          (day) => new Date(day) > currentDate
+        );
 
-      if (hasUpcomingBooking) {
-        console.log("Cannot delete listing, there are upcoming bookings".red);
-        return res.status(400).json({
-          success: false,
-          message: "Cannot delete listing as there are upcoming bookings.",
-        });
+        if (hasUpcomingBooking) {
+          console.log("Cannot delete listing, there are upcoming bookings".red);
+          return res.status(400).json({
+            success: false,
+            message: "Cannot delete listing as there are upcoming bookings."
+          });
+        }
       }
     }
 
-    console.log("Listing successfully deleted".america)
+    // Delete the listing or draft listing
+    if (isDraft) {
+      await DraftListing.findByIdAndDelete(listingId);
+      console.log("Draft listing successfully deleted".america);
+    } else {
+      await Listing.findByIdAndDelete(listingId);
+      console.log("Listing successfully deleted".america);
+    }
+
     return res.status(200).json({
       success: true,
       message: "Listing successfully deleted"
-    })
+    });
   } catch (error) {
-    console.error("Error deleting listing", error)
+    console.error("Error deleting listing", error);
     return res.status(500).json({
       success: false,
       message: "Error deleting listing"
-    })
+    });
   }
-})
+});
+
 
 export { 
 createListing,
@@ -820,5 +873,6 @@ soGetAllListings,
 getSingleListing,
 getSingleUserListing,
 editListing,
-saveListingForLater
+saveListingForLater,
+deleteListing
 };
