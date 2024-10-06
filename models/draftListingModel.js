@@ -81,12 +81,10 @@ const draftListingsSchema = new mongoose.Schema({
       default: "draft",
     },
     listedOnOtherPlatform: {
-      type: Boolean,
-      required: [true, "Listed on other platform which is a boolean is required"]
+      type: Boolean
     },
     propertyName: {
-      type: String,
-      required: [true, "Property name is required"]
+      type: String
     },
     propertyType: { 
       type: String,

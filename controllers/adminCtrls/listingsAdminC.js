@@ -2,7 +2,6 @@ import opencage from 'opencage-api-client';
 
 import asyncHandler from "../../middleware/asyncHandler.js"
 import Listing from "../../models/listingModel.js"
-import formatListingData from "../../utils/formatListingData.js";
 import cloudinaryConfig from '../../uploadUtils/cloudinaryConfig.js';
 
 

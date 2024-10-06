@@ -2,7 +2,7 @@ import opencage from 'opencage-api-client';
 import asyncHandler from "../middleware/asyncHandler.js";
 import Listing from "../models/listingModel.js";
 import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
-import formatListingData from "../utils/formatListingData.js"
+import { formatSaveForLaterListingData, formatListingData } from "../utils/formatListingData.js"
 import Booking from '../models/bookingModel.js';
 import DraftListing from '../models/draftListingModel.js';
 
@@ -289,12 +289,81 @@ const saveListingForLater = asyncHandler(async (req, res) => {
   }
 
   // Format the listing data using the same logic as createListing
-  const formattedData = formatListingData(req);
+  const formattedData = formatSaveForLaterListingData(req);
+
+  let existingAvailableAmenities = existingListing ? existingListing.availableAmenities : {};
+  const newAvailableAmenities = {
+    ...existingAvailableAmenities,
+    ...formattedData.availableAmenities // This will only update provided fields in availableAmenities
+  };
+  formattedData.availableAmenities = newAvailableAmenities;
+
+  let existingArrivalDepartureDetails = existingListing ? existingListing.existingArrivalDepartureDetails : {};
+  const newArrivalDepartureDetails = {
+    ...existingArrivalDepartureDetails,
+    ...formattedData.arrivalDepartureDetails
+  };
+  formattedData.arrivalDepartureDetails = newArrivalDepartureDetails;
+
+  // Define the image categories required
+  const imageCategories = [
+    'bedroomPictures',
+    'livingRoomPictures',
+    'bathroomToiletPictures',
+    'kitchenPictures',
+    'facilityPictures',
+    'otherPictures',
+  ];
+
+  let updatedImages = {};
+  try {
+    console.log("Uploading new images and merging with existing images".blue);
+
+    for (let category of imageCategories) {
+      // Upload new images if they exist in the request
+      const newImages = req.files?.[category]
+        ? await uploadListingImagesToCloudinary(req.files[category])
+        : null;
+
+      // Retain existing images from the listing that are not in the removedImages list
+      const existingImages = existingListing && existingListing[category]
+        ? existingListing[category].filter(
+            (image) => !removedImages || !removedImages.includes(image.public_id)
+          )
+        : [];
+
+      // If new images are provided, merge them with the existing ones; otherwise, keep only existing images
+      updatedImages[category] = newImages ? [...existingImages, ...newImages] : existingImages;
+    }
+  } catch (error) {
+    console.error("Error during image upload:", error);
+    return res.status(500).json({
+      success: false,
+      message: `Error uploading new images: ${error.message}`,
+    });
+  }
+
+  // Merge formatted data with the updated images and existing listing data if it exists
+  let updateData = existingListing
+    ? {
+        ...existingListing.toObject(), // Spread the existing listing data to keep all current fields
+        ...formattedData,              // Overwrite with new data from the request body (e.g., fields being updated)
+        ...updatedImages,              // Include the updated images data
+      }
+    : {
+        ...formattedData,
+        ...updatedImages,
+      };
 
   let latitude, longitude;
 
-  // Fetch coordinates based on the address
-  if (formattedData.propertyLocation.state && formattedData.propertyLocation.city && formattedData.propertyLocation.address) {
+  // Fetch coordinates based on the address if provided
+  if (
+    formattedData.propertyLocation &&
+    formattedData.propertyLocation.state &&
+    formattedData.propertyLocation.city &&
+    formattedData.propertyLocation.address
+  ) {
     try {
       const { address, city, state } = formattedData.propertyLocation;
       const fullAddress = `${address}, ${city}, ${state}`;
@@ -313,76 +382,38 @@ const saveListingForLater = asyncHandler(async (req, res) => {
     }
   }
 
-  // Define the image categories required
-  const imageCategories = [
-    'bedroomPictures',
-    'livingRoomPictures',
-    'bathroomToiletPictures',
-    'kitchenPictures',
-    'facilityPictures',
-    'otherPictures',
-  ];
-
-  let updatedImages = {};
-  try {
-    console.log("Uploading new images and merging with existing images".blue);
-
-    for (let category of imageCategories) {
-      const newImages = req.files?.[category]
-        ? await uploadListingImagesToCloudinary(req.files[category])
-        : [];
-
-      const existingImages = existingListing
-        ? existingListing[category]?.filter((image) => Array.isArray(removedImages) && !removedImages.includes(image.public_id)) || []
-        : [];
-
-      updatedImages[category] = [...existingImages, ...newImages];
-    }
-  } catch (error) {
-    console.error("Error during image upload:", error);
-    return res.status(500).json({
-      success: false,
-      message: `Error uploading new images: ${error.message}`,
-    });
+  // Add location coordinates if available
+  if (latitude && longitude) {
+    updateData.propertyLocation = {
+      ...updateData.propertyLocation,
+      latitude,
+      longitude,
+    };
   }
 
   // Create a new listing or update the existing one
   try {
     if (existingListing) {
       console.log("Updating existing draft listing".green);
-      existingListing = await DraftListing.findByIdAndUpdate(
-        listingId,
-        {
-          ...formattedData,
-          propertyLocation: {
-            ...formattedData.propertyLocation,
-            latitude,
-            longitude,
-          },
-          ...updatedImages, // Add the merged image arrays
-        },
-        { new: true }
-      );
+      existingListing = await DraftListing.findByIdAndUpdate(listingId, updateData, {
+        new: true,
+      });
     } else {
       console.log("Creating new draft listing".green);
       existingListing = await DraftListing.create({
-        ...formattedData,
+        ...updateData,
         user: userId,
         propertyId: generateListingId(),
-        propertyLocation: {
-          ...formattedData.propertyLocation,
-          latitude,
-          longitude,
-        },
-        ...updatedImages, // Add the merged image arrays
       });
     }
+
+    const finalUpdatedListing = await DraftListing.findById(listingId)
 
     console.log("Listing saved successfully as draft".magenta);
     res.status(200).json({
       success: true,
       message: "Listing saved successfully as draft",
-      data: existingListing,
+      data: finalUpdatedListing,
     });
   } catch (error) {
     console.error("Error saving listing:", error);
@@ -658,7 +689,7 @@ const editListing = asyncHandler(async (req, res) => {
   const imageCategories = ['bedroomPictures', 'livingRoomPictures', 'bathroomToiletPictures', 'kitchenPictures', 'facilityPictures', 'otherPictures'];
   const missingCategories = imageCategories.filter(category => !existingListing[category] && !req.files[category]);
   if (missingCategories.length > 0) {
-      console.log("At least one image is required from all the image sections".red);
+      console.log(`At least one image is required from all the image sections: ${missingCategories.join(', ')}`.red);
 
       return res.status(400).json({
           success: false,
@@ -840,6 +871,31 @@ const deleteListing = asyncHandler(async (req, res) => {
           });
         }
       }
+    }
+
+    const imageCategories = [
+      "bedroomPictures",
+      "livingRoomPictures",
+      "bathroomToiletPictures",
+      "kitchenPictures",
+      "facilityPictures",
+      "otherPictures",
+    ];
+
+    const publicIds = [];
+    imageCategories.forEach((category) => {
+      if (existingListing[category] && Array.isArray(existingListing[category])) {
+        existingListing[category].forEach((image) => {
+          if (image.public_id) {
+            publicIds.push(image.public_id);
+          }
+        });
+      }
+    });
+
+    // Delete images from Cloudinary
+    if (publicIds.length > 0) {
+      await deleteImagesFromCloudinary(publicIds);
     }
 
     // Delete the listing or draft listing
