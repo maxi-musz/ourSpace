@@ -298,7 +298,7 @@ const saveListingForLater = asyncHandler(async (req, res) => {
   };
   formattedData.availableAmenities = newAvailableAmenities;
 
-  let existingArrivalDepartureDetails = existingListing ? existingListing.existingArrivalDepartureDetails : {};
+  let existingArrivalDepartureDetails = existingListing ? existingListing.arrivalDepartureDetails : {};
   const newArrivalDepartureDetails = {
     ...existingArrivalDepartureDetails,
     ...formattedData.arrivalDepartureDetails
