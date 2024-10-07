@@ -21,7 +21,11 @@ export const formatListingData = (req) => {
     user: req.body.user,
     listedOnOtherPlatform: req.body.listedOnOtherPlatform,
     propertyName: req.body.propertyName,
-    propertyType: req.body.propertyType,
+    propertyType: Array.isArray(req.body.propertyType)
+      ? req.body.propertyType.map(type => type.trim().toLowerCase())
+      : req.body.propertyType
+      ? req.body.propertyType.split(',').map(type => type.trim().toLowerCase())
+      : [],
     bedroomTotal: safeParseInt(req.body.bedroomTotal),
     livingRoomTotal: safeParseInt(req.body.livingRoomTotal),
     bedTotal: safeParseInt(req.body.bedTotal),
@@ -143,7 +147,11 @@ export const formatSaveForLaterListingData = (req) => {
   if (req.body.user) formattedData.user = req.body.user;
   if (req.body.listedOnOtherPlatform) formattedData.listedOnOtherPlatform = req.body.listedOnOtherPlatform;
   if (req.body.propertyName) formattedData.propertyName = req.body.propertyName;
-  if (req.body.propertyType) formattedData.propertyType = req.body.propertyType;
+  if (req.body.propertyType) {
+    formattedData.propertyType = Array.isArray(req.body.propertyType)
+      ? req.body.propertyType
+      : req.body.propertyType.split(',').map(type => type.trim());
+  }
   if (req.body.bedroomTotal) formattedData.bedroomTotal = safeParseInt(req.body.bedroomTotal);
   if (req.body.livingRoomTotal) formattedData.livingRoomTotal = safeParseInt(req.body.livingRoomTotal);
   if (req.body.bedTotal) formattedData.bedTotal = safeParseInt(req.body.bedTotal);

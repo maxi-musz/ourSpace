@@ -61,17 +61,45 @@ const deleteImagesFromCloudinary = async (publicIds) => {
   }));
 };
 
-//
+const allowedPropertyTypes = ["house", "apartment", "resort", "guest-house", "office-space", 'bungalow', 'villa', 'loft'];
+
 const createListing = asyncHandler(async (req, res) => {
   console.log("Creating a new listing".blue);
   const userId = req.user._id.toString();
 
-  if(req.user.userType !== "space-owner") {
-    console.log("Only space owners can create a listing".red)
+  if (req.user.userType !== "space-owner") {
+    console.log("Only space owners can create a listing".red);
     return res.status(404).json({
       success: false,
       message: "Only space owners can create new listing"
-    })
+    });
+  }
+
+  // Validate property type against the allowed values
+  const propertyTypes = req.body.propertyType; // This can be a string or an array
+  let propertyTypeArray;
+
+  // Check if propertyTypes is a string and split it into an array
+  if (typeof propertyTypes === 'string') {
+    propertyTypeArray = propertyTypes.split(',').map(type => type.trim());
+  } else if (Array.isArray(propertyTypes)) {
+    propertyTypeArray = propertyTypes; // It's already an array
+  } else {
+    console.log("Invalid property type format".red);
+    return res.status(400).json({
+      success: false,
+      message: "Property type must be a string or an array of strings."
+    });
+  }
+
+  // Validate each property type against the allowed values
+  const invalidPropertyTypes = propertyTypeArray.filter(type => !allowedPropertyTypes.includes(type));
+  if (invalidPropertyTypes.length > 0) {
+    console.log(`Invalid property types: ${invalidPropertyTypes.join(', ')}`.red);
+    return res.status(400).json({
+      success: false,
+      message: `Invalid property type(s): ${invalidPropertyTypes.join(', ')}. Allowed types are: ${allowedPropertyTypes.join(', ')}`
+    });
   }
 
   let bedroomPictures = [];
@@ -83,156 +111,151 @@ const createListing = asyncHandler(async (req, res) => {
 
   // Define the image categories required
   const imageCategories = [
-      'bedroomPictures', 
-      'livingRoomPictures', 
-      'bathroomToiletPictures', 
-      'kitchenPictures', 
-      'facilityPictures', 
-      'otherPictures'
+    'bedroomPictures', 
+    'livingRoomPictures', 
+    'bathroomToiletPictures', 
+    'kitchenPictures', 
+    'facilityPictures', 
+    'otherPictures'
   ];
 
   // Centralized image deletion function
   const deleteUploadedImages = async (imageArrays) => {
-      const allPublicIds = imageArrays.flat().map(image => image.public_id);
-      if (allPublicIds.length > 0) {
-          try {
-              await deleteImagesFromCloudinary(allPublicIds);
-          } catch (deleteError) {
-              console.error("Error during image deletion:", deleteError);
-          }
+    const allPublicIds = imageArrays.flat().map(image => image.public_id);
+    if (allPublicIds.length > 0) {
+      try {
+        await deleteImagesFromCloudinary(allPublicIds);
+      } catch (deleteError) {
+        console.error("Error during image deletion:", deleteError);
       }
+    }
   };
 
   try {
-      // Validate that all required image categories have at least one image
-      const missingCategories = imageCategories.filter(category => !req.files[category]);
-      if (missingCategories.length > 0) {
-          console.log("At least one image is required from the image sections".red);
-
-          return res.status(400).json({
-              success: false,
-              message: `At least one image is required from the image sections: ${missingCategories.join(', ')}`
-          });
-      }
-
-      console.log('Formatting listings');
-      const formattedData = formatListingData(req);
-
-      let latitude, longitude;
-
-      // Check if latitude and longitude are already provided
-      if (formattedData.propertyLocation.latitude && formattedData.propertyLocation.longitude) {
-        latitude = formattedData.propertyLocation.latitude;
-        longitude = formattedData.propertyLocation.longitude;
-        console.log(`Latitude and Longitude already provided: ${latitude}, ${longitude}`.cyan);
-      } else {
-        // Fetch coordinates based on the address
-        try {
-          const { address, city, state } = formattedData.propertyLocation;
-          const fullAddress = `${address}, ${city}, ${state}`;
-          const coordinates = await getCoordinates(fullAddress);
-
-          latitude = coordinates.latitude;
-          longitude = coordinates.longitude;
-
-          console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
-        } catch (error) {
-          console.log(`Error getting coordinates: ${error}`.red);
-          return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
-        }
-      }
-
-      console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
-
-      console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
-
-      // Upload images concurrently
-      try {
-          console.log("Uploading pictures".cyan);
-
-          const uploadPromises = imageCategories.map(category =>
-              uploadListingImagesToCloudinary(req.files[category])
-          );
-
-          const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
-
-          // Assign images to variables
-          bedroomPictures = bedroomPics;
-          livingRoomPictures = livingRoomPics;
-          bathroomToiletPictures = bathroomToiletPics;
-          kitchenPictures = kitchenPics;
-          facilityPictures = facilityPics;
-          otherPictures = otherPics;
-
-          console.log("Pictures uploaded".yellow);
-      } catch (error) {
-          console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
-
-          // Delete uploaded images in case of failure
-          await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
-
-          return res.status(500).json({
-              success: false,
-              message: `Error uploading listing images: ${error.message || error}`
-          });
-      }
-
-      
-
-      // Create a new listing in the database
-      const newListingData = {
-        ...formattedData,
-        user: userId,
-        propertyLocation: {
-          ...formattedData.propertyLocation,
-          latitude,
-          longitude,
-        },
-        bedroomPictures,
-        livingRoomPictures,
-        bathroomToiletPictures,
-        kitchenPictures,
-        facilityPictures,
-        otherPictures,
-      };
-
-      if (req.body.listingId) {
-        newListingData._id = req.body.listingId;
-      }
-
-      const newListing = await Listing.create(newListingData);
-
-      if (req.body.listingId) {
-        try {
-          const deletedDraft = await DraftListing.findOneAndDelete({
-            _id: req.body.listingId,
-          });
-  
-          if (deletedDraft) {
-            console.log("Draft listing deleted successfully".green);
-          }
-        } catch (deleteDraftError) {
-          console.error("Error deleting draft listing:", deleteDraftError);
-        }
-      }
-
-      console.log("New Listing successfully created".magenta);
-      return res.status(201).json({
-          success: true,
-          message: "You've successfully created a new listing",
-          data: newListing
+    // Validate that all required image categories have at least one image
+    const missingCategories = imageCategories.filter(category => !req.files[category]);
+    if (missingCategories.length > 0) {
+      console.log("At least one image is required from the image sections".red);
+      return res.status(400).json({
+        success: false,
+        message: `At least one image is required from the image sections: ${missingCategories.join(', ')}`
       });
-  } catch (error) {
-      console.error('Error creating property listing:', error.stack || error);
+    }
 
-      // Delete uploaded images if any error occurs after the upload
+    console.log('Formatting listings');
+    const formattedData = formatListingData(req);
+
+    let latitude, longitude;
+
+    // Check if latitude and longitude are already provided
+    if (formattedData.propertyLocation.latitude && formattedData.propertyLocation.longitude) {
+      latitude = formattedData.propertyLocation.latitude;
+      longitude = formattedData.propertyLocation.longitude;
+      console.log(`Latitude and Longitude already provided: ${latitude}, ${longitude}`.cyan);
+    } else {
+      // Fetch coordinates based on the address
+      try {
+        const { address, city, state } = formattedData.propertyLocation;
+        const fullAddress = `${address}, ${city}, ${state}`;
+        const coordinates = await getCoordinates(fullAddress);
+
+        latitude = coordinates.latitude;
+        longitude = coordinates.longitude;
+
+        console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
+      } catch (error) {
+        console.log(`Error getting coordinates: ${error}`.red);
+        return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
+      }
+    }
+
+    console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
+
+    // Upload images concurrently
+    try {
+      console.log("Uploading pictures".cyan);
+      const uploadPromises = imageCategories.map(category =>
+        uploadListingImagesToCloudinary(req.files[category])
+      );
+
+      const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
+
+      // Assign images to variables
+      bedroomPictures = bedroomPics;
+      livingRoomPictures = livingRoomPics;
+      bathroomToiletPictures = bathroomToiletPics;
+      kitchenPictures = kitchenPics;
+      facilityPictures = facilityPics;
+      otherPictures = otherPics;
+
+      console.log("Pictures uploaded".yellow);
+    } catch (error) {
+      console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
+      // Delete uploaded images in case of failure
       await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
 
       return res.status(500).json({
-          success: false,
-          message: `Server error: ${error.message}`,
-          error
+        success: false,
+        message: `Error uploading listing images: ${error.message || error}`
       });
+    }
+
+    // Create a new listing in the database
+    const newListingData = {
+      ...formattedData,
+      user: userId,
+      propertyId: generateListingId(),
+      propertyLocation: {
+        ...formattedData.propertyLocation,
+        latitude,
+        longitude,
+      },
+      bedroomPictures,
+      livingRoomPictures,
+      bathroomToiletPictures,
+      kitchenPictures,
+      facilityPictures,
+      otherPictures,
+      propertyType: propertyTypeArray // Store the validated property types
+    };
+
+    if (req.body.listingId) {
+      newListingData._id = req.body.listingId;
+    }
+
+    const newListing = await Listing.create(newListingData);
+
+    if (req.body.listingId) {
+      try {
+        const deletedDraft = await DraftListing.findOneAndDelete({
+          _id: req.body.listingId,
+        });
+  
+        if (deletedDraft) {
+          console.log("Draft listing deleted successfully".green);
+        }
+      } catch (deleteDraftError) {
+        console.error("Error deleting draft listing:", deleteDraftError);
+      }
+    }
+
+    console.log("New Listing successfully created".magenta);
+    return res.status(201).json({
+      success: true,
+      message: "You've successfully created a new listing",
+      data: newListing
+    });
+  } catch (error) {
+    console.error('Error creating property listing:', error.stack || error);
+
+    // Delete uploaded images if any error occurs after the upload
+    await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
+
+    return res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`,
+      error
+    });
   }
 });
 

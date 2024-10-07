@@ -80,7 +80,8 @@ const listingsSchema = new mongoose.Schema({
       required: [true, 'Property name is required.']
     },
     propertyType: { 
-      type: String,
+      type: [String],
+      enum: ["house", "apartment", "resort", "guest-house", "office-space", 'bungalow', 'villa', 'loft'],
       required: [true, 'Property type is required.']
     },
     bedroomTotal: {
