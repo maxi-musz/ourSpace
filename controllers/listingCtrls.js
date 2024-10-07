@@ -576,8 +576,10 @@ const filterListings = asyncHandler(async (req, res) => {
   let listings = await Listing.find(filter);
 
   // Step 2: Apply additional filters on the retrieved listings
-  if (propertyType) {
-    listings = listings.filter(listing => propertyType.includes(listing.propertyType));
+  if (propertyType && Array.isArray(propertyType)) {
+    listings = listings.filter(listing => 
+      listing.propertyType.some(type => propertyType.includes(type))
+    );
   }
 
   if (status) {
@@ -699,7 +701,6 @@ const getListingByCategory = asyncHandler(async (req, res) => {
     });
   }
 });
-
 
 const getSingleUserListing = asyncHandler(async (req, res) => {
   console.log("Fetching a single user listing".blue);
