@@ -34,8 +34,8 @@ export const formatListingData = (req) => {
       address: req.body['propertyLocation.address'],
       city: req.body['propertyLocation.city'],
       state: req.body['propertyLocation.state'],
-      apartmentNumber: req.body['propertyLocation.apartmentNumber'] ? safeParseInt(req.body['propertyLocation.apartmentNumber']) : null,
-      apartmentSize: req.body['propertyLocation.apartmentSize'] ? safeParseFloat(req.body['propertyLocation.apartmentSize']) : null
+      apartmentNumber: req.body['propertyLocation.apartmentNumber'] ? (req.body['propertyLocation.apartmentNumber']) : null,
+      apartmentSize: req.body['propertyLocation.apartmentSize'] ? (req.body['propertyLocation.apartmentSize']) : null
     },
 
     description: req.body.description,

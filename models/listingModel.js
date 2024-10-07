@@ -15,21 +15,8 @@ const propertyLocationSchema = new mongoose.Schema({
     },
     latitude: Number,
     longitude: Number,
-    apartmentNumber: {type: Number, default: null},
-    apartmentSize: {type: Number, default: null}
-});
-
-const dateSchema = new mongoose.Schema({
-  date: { 
-    type: String,
-    required: true,
-    validate: {
-      validator: function(v) {
-        return /\d{4}-\d{2}-\d{2}/.test(v); // Regex to validate YYYY-MM-DD format
-      },
-      message: props => `${props.value} is not a valid date format!`
-    }
-  }
+    apartmentNumber: {type: String, default: null},
+    apartmentSize: {type: String, default: null}
 });
 
 const numberOfGuestsSchema = new mongoose.Schema({
