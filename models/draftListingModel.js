@@ -3,31 +3,20 @@ import mongoose from "mongoose";
 const propertyLocationSchema = new mongoose.Schema({
   address: {
     type: String,
+    required: [true, "Address is required"]
   },
     city: {
       type: String,
-
+      required: [true, "City is required"]
     },
     state: {
       type: String,
+      required: [true, "State is required"]
     },
     latitude: Number,
     longitude: Number,
-    apartmentNumber: {type: Number, default: null},
-    apartmentSize: {type: Number, default: null}
-});
-
-const dateSchema = new mongoose.Schema({
-  date: { 
-    type: String,
-    required: true,
-    validate: {
-      validator: function(v) {
-        return /\d{4}-\d{2}-\d{2}/.test(v); // Regex to validate YYYY-MM-DD format
-      },
-      message: props => `${props.value} is not a valid date format!`
-    }
-  }
+    apartmentNumber: {type: String, default: null},
+    apartmentSize: {type: String, default: null}
 });
 
 const numberOfGuestsSchema = new mongoose.Schema({
@@ -81,34 +70,43 @@ const draftListingsSchema = new mongoose.Schema({
       default: "draft",
     },
     listedOnOtherPlatform: {
-      type: Boolean
+      type: Boolean,
+      required: [true, "listed on other platform which is of type boolean is required"]
     },
     propertyName: {
-      type: String
+      type: String,
+      required: [true, "Property name is required"]
     },
     propertyType: { 
       type: String,
+      required: [true, "Property type is required"]
     },
     bedroomTotal: {
       type: Number,
+      required: [true, "Bedroom total is required"]
     },
     livingRoomTotal: {
       type: Number,
+      required: [true, "Living room total is required"]
     },
     bedTotal: {
       type: Number,
+      required: [true, "Bed total is required"]
     },
     bathroomTotal: {
       type: Number,
+      required: [true, "Total number of bathrooms is required"]
     },
     toiletTotal: {
       type: Number,
+      required: [true, "Total number of toilets is required"]
     },
 
     propertyLocation: propertyLocationSchema,
 
     description: {
-      type: String
+      type: String,
+      required: [true, "Property description is required"]
     },
 
     bedroomPictures: [imageSchema],

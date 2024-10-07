@@ -158,8 +158,8 @@ export const formatSaveForLaterListingData = (req) => {
     if (req.body['propertyLocation.address']) formattedData.propertyLocation.address = req.body['propertyLocation.address'];
     if (req.body['propertyLocation.city']) formattedData.propertyLocation.city = req.body['propertyLocation.city'];
     if (req.body['propertyLocation.state']) formattedData.propertyLocation.state = req.body['propertyLocation.state'];
-    if (req.body['propertyLocation.apartmentNumber']) formattedData.propertyLocation.apartmentNumber = safeParseInt(req.body['propertyLocation.apartmentNumber']);
-    if (req.body['propertyLocation.apartmentSize']) formattedData.propertyLocation.apartmentSize = safeParseFloat(req.body['propertyLocation.apartmentSize']);
+    if (req.body['propertyLocation.apartmentNumber']) formattedData.propertyLocation.apartmentNumber = (req.body['propertyLocation.apartmentNumber']);
+    if (req.body['propertyLocation.apartmentSize']) formattedData.propertyLocation.apartmentSize = (req.body['propertyLocation.apartmentSize']);
   }
 
   if (req.body.description) formattedData.description = req.body.description;

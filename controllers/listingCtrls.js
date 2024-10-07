@@ -407,13 +407,13 @@ const saveListingForLater = asyncHandler(async (req, res) => {
       });
     }
 
-    const finalUpdatedListing = await DraftListing.findById(listingId)
+    // const finalUpdatedListing = await DraftListing.findById(listingId)
 
     console.log("Listing saved successfully as draft".magenta);
     res.status(200).json({
       success: true,
       message: "Listing saved successfully as draft",
-      data: finalUpdatedListing,
+      data: existingListing,
     });
   } catch (error) {
     console.error("Error saving listing:", error);
