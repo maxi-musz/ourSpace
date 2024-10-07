@@ -663,6 +663,8 @@ const soGetAllListings = asyncHandler(async (req, res) => {
 const getListingByCategory = asyncHandler(async (req, res) => {
   console.log("Fetching listings by category".yellow);
 
+  let { categoryType } = req.query
+
   if (!Array.isArray(categoryType)) {
     categoryType = typeof categoryType === 'string' ? categoryType.split(',').map(type => type.trim()) : [];
   }
