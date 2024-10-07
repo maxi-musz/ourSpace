@@ -658,6 +658,49 @@ const soGetAllListings = asyncHandler(async (req, res) => {
   }
 });
 
+const getListingByCategory = asyncHandler(async (req, res) => {
+  console.log("Fetching listings by category".yellow);
+
+  // Destructure categoryType correctly from the request body
+  const { categoryType } = req.body;
+
+  // Validate categoryType against allowedPropertyTypes
+  if (!allowedPropertyTypes.includes(categoryType)) {
+    console.log(`Invalid property type: ${categoryType}`.red);
+    return res.status(400).json({
+      success: false,
+      message: `Invalid property type: ${categoryType}. Allowed types are: ${allowedPropertyTypes.join(', ')}`
+    });
+  }
+
+  try {
+    // Fetch listings based on propertyType
+    const availableListings = await Listing.find({ propertyType: categoryType });
+    if (!availableListings || availableListings.length < 1) {
+      console.log("No listing found for the selected category".red);
+      return res.status(200).json({
+        success: true,
+        message: "No listings found for the selected category at the moment, please do check back later"
+      });
+    }
+
+    console.log(`Total of ${availableListings.length} listings found for ${categoryType} category`);
+    return res.status(200).json({
+      success: true,
+      message: `Total of ${availableListings.length} listings found for ${categoryType} category`,
+      data: availableListings
+    });
+
+  } catch (error) {
+    console.error("Error getting listing by selected category:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error getting listing by selected category, try again later"
+    });
+  }
+});
+
+
 const getSingleUserListing = asyncHandler(async (req, res) => {
   console.log("Fetching a single user listing".blue);
 
@@ -949,6 +992,7 @@ createListing,
 searchListings,
 filterListings,
 soGetAllListings,
+getListingByCategory,
 getSingleListing,
 getSingleUserListing,
 editListing,

@@ -108,7 +108,8 @@ const listingsSchema = new mongoose.Schema({
     propertyLocation: propertyLocationSchema,
 
     description: {
-      type: String
+      type: String,
+      required: [true, "Property description is required"]
     },
 
     bedroomPictures: [imageSchema],
@@ -188,8 +189,7 @@ const listingsSchema = new mongoose.Schema({
 
     discount: {
       type: Boolean,
-      default: false,
-      required: [true, "discount is required"]    
+      default: false, 
     },
 
     cancellationOption: {
@@ -227,7 +227,6 @@ const listingsSchema = new mongoose.Schema({
     freeCancellation: {
       type: Boolean,
       default: false,
-      required: true
     },
     maximumGuestNumber: numberOfGuestsSchema,
 
