@@ -825,7 +825,7 @@ const deleteListing = asyncHandler(async (req, res) => {
       success: false,
       message: "Valid listing Id is required"
     });
-  }
+  } 
 
   try {
     // I first try finding the listing in the Listing model
