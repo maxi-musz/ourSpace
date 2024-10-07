@@ -663,33 +663,37 @@ const soGetAllListings = asyncHandler(async (req, res) => {
 const getListingByCategory = asyncHandler(async (req, res) => {
   console.log("Fetching listings by category".yellow);
 
-  // Destructure categoryType correctly from the request body
-  const { categoryType } = req.body;
+  if (!Array.isArray(categoryType)) {
+    categoryType = typeof categoryType === 'string' ? categoryType.split(',').map(type => type.trim()) : [];
+  }
 
-  // Validate categoryType against allowedPropertyTypes
-  if (!allowedPropertyTypes.includes(categoryType)) {
-    console.log(`Invalid property type: ${categoryType}`.red);
+  console.log("Selected category:", categoryType);
+
+  // Validate each categoryType against allowedPropertyTypes
+  const invalidCategoryTypes = categoryType.filter(type => !allowedPropertyTypes.includes(type));
+  if (invalidCategoryTypes.length > 0) {
+    console.log(`Invalid property types: ${invalidCategoryTypes.join(', ')}`.red);
     return res.status(400).json({
       success: false,
-      message: `Invalid property type: ${categoryType}. Allowed types are: ${allowedPropertyTypes.join(', ')}`
+      message: `Invalid property type(s): ${invalidCategoryTypes.join(', ')}. Allowed types are: ${allowedPropertyTypes.join(', ')}`
     });
   }
 
   try {
-    // Fetch listings based on propertyType
-    const availableListings = await Listing.find({ propertyType: categoryType });
+    // Fetch listings based on propertyType as an array
+    const availableListings = await Listing.find({ propertyType: { $in: categoryType } });
     if (!availableListings || availableListings.length < 1) {
-      console.log("No listing found for the selected category".red);
+      console.log("No listings found for the selected category".red);
       return res.status(200).json({
         success: true,
         message: "No listings found for the selected category at the moment, please do check back later"
       });
     }
 
-    console.log(`Total of ${availableListings.length} listings found for ${categoryType} category`);
+    console.log(`Total of ${availableListings.length} listings found for ${categoryType.join(', ')} category(s)`);
     return res.status(200).json({
       success: true,
-      message: `Total of ${availableListings.length} listings found for ${categoryType} category`,
+      message: `Total of ${availableListings.length} listings found for ${categoryType.join(', ')} category(s)`,
       data: availableListings
     });
 
@@ -701,6 +705,7 @@ const getListingByCategory = asyncHandler(async (req, res) => {
     });
   }
 });
+
 
 const getSingleUserListing = asyncHandler(async (req, res) => {
   console.log("Fetching a single user listing".blue);
