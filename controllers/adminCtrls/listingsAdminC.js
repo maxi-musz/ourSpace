@@ -121,7 +121,7 @@ const updateListingStatus = asyncHandler(async (req, res) => {
                 return res.status(400).json({
                     success: false,
                     message: 'Listing cannot be approved. The following fields are missing or invalid:',
-                    errors: validationErrors
+                    data: validationErrors
                 });
             }
 
