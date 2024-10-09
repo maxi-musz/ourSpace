@@ -182,38 +182,33 @@ const createListing = asyncHandler(async (req, res) => {
     console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
 
     // Upload images concurrently
-    if(!req.body.listingId) {
-      try {
-        console.log("Uploading pictures".cyan);
-        const uploadPromises = imageCategories.map(category =>
-          uploadListingImagesToCloudinary(req.files[category])
-        );
-  
-        const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
-  
-        // Assign images to variables
-        bedroomPictures = bedroomPics;
-        livingRoomPictures = livingRoomPics;
-        bathroomToiletPictures = bathroomToiletPics;
-        kitchenPictures = kitchenPics;
-        facilityPictures = facilityPics;
-        otherPictures = otherPics;
-  
-        console.log("Pictures uploaded".yellow);
-      } catch (error) {
-        console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
-        // Delete uploaded images in case of failure
-        await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
-  
-        return res.status(500).json({
-          success: false,
-          message: `Error uploading listing images: ${error.message || error}`
-        });
-      }
-    } else {
-      console.log("Listing id has been provided, new listing is a draft, thereby not doing image upload")
+    try {
+      console.log("Uploading pictures".cyan);
+      const uploadPromises = imageCategories.map(category =>
+        uploadListingImagesToCloudinary(req.files[category])
+      );
+
+      const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
+
+      // Assign images to variables
+      bedroomPictures = bedroomPics;
+      livingRoomPictures = livingRoomPics;
+      bathroomToiletPictures = bathroomToiletPics;
+      kitchenPictures = kitchenPics;
+      facilityPictures = facilityPics;
+      otherPictures = otherPics;
+
+      console.log("Pictures uploaded".yellow);
+    } catch (error) {
+      console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
+      // Delete uploaded images in case of failure
+      await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
+
+      return res.status(500).json({
+        success: false,
+        message: `Error uploading listing images: ${error.message || error}`
+      });
     }
-    
 
     // Create a new listing in the database
     const newListingData = {
