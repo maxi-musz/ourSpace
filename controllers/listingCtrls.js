@@ -140,14 +140,16 @@ const createListing = asyncHandler(async (req, res) => {
   };
 
   try {
-    // Validate that all required image categories have at least one image
-    const missingCategories = imageCategories.filter(category => !req.files[category]);
-    if (missingCategories.length > 0) {
-      console.log("At least one image is required from the image sections".red);
-      return res.status(400).json({
-        success: false,
-        message: `At least one image is required from the image sections: ${missingCategories.join(', ')}`
-      });
+    if(!req.body.listingId) {
+      // Validate that all required image categories have at least one image
+      const missingCategories = imageCategories.filter(category => !req.files[category]);
+      if (missingCategories.length > 0) {
+        console.log("At least one image is required from the image sections".red);
+        return res.status(400).json({
+          success: false,
+          message: `At least one image is required from the image sections: ${missingCategories.join(', ')}`
+        });
+      }
     }
 
     console.log('Formatting listings');
@@ -180,33 +182,38 @@ const createListing = asyncHandler(async (req, res) => {
     console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
 
     // Upload images concurrently
-    try {
-      console.log("Uploading pictures".cyan);
-      const uploadPromises = imageCategories.map(category =>
-        uploadListingImagesToCloudinary(req.files[category])
-      );
-
-      const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
-
-      // Assign images to variables
-      bedroomPictures = bedroomPics;
-      livingRoomPictures = livingRoomPics;
-      bathroomToiletPictures = bathroomToiletPics;
-      kitchenPictures = kitchenPics;
-      facilityPictures = facilityPics;
-      otherPictures = otherPics;
-
-      console.log("Pictures uploaded".yellow);
-    } catch (error) {
-      console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
-      // Delete uploaded images in case of failure
-      await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
-
-      return res.status(500).json({
-        success: false,
-        message: `Error uploading listing images: ${error.message || error}`
-      });
+    if(!req.body.listingId) {
+      try {
+        console.log("Uploading pictures".cyan);
+        const uploadPromises = imageCategories.map(category =>
+          uploadListingImagesToCloudinary(req.files[category])
+        );
+  
+        const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
+  
+        // Assign images to variables
+        bedroomPictures = bedroomPics;
+        livingRoomPictures = livingRoomPics;
+        bathroomToiletPictures = bathroomToiletPics;
+        kitchenPictures = kitchenPics;
+        facilityPictures = facilityPics;
+        otherPictures = otherPics;
+  
+        console.log("Pictures uploaded".yellow);
+      } catch (error) {
+        console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
+        // Delete uploaded images in case of failure
+        await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
+  
+        return res.status(500).json({
+          success: false,
+          message: `Error uploading listing images: ${error.message || error}`
+        });
+      }
+    } else {
+      console.log("Listing id has been provided, new listing is a draft, thereby not doing image upload")
     }
+    
 
     // Create a new listing in the database
     const newListingData = {
@@ -325,9 +332,22 @@ const saveListingForLater = asyncHandler(async (req, res) => {
   let existingAvailableAmenities = existingListing ? existingListing.availableAmenities : {};
   const newAvailableAmenities = {
     ...existingAvailableAmenities,
-    ...formattedData.availableAmenities // This will only update provided fields in availableAmenities
+    propertyAmenities: formattedData.availableAmenities.propertyAmenities || existingAvailableAmenities.propertyAmenities,
+    roomFeatures: formattedData.availableAmenities.roomFeatures || existingAvailableAmenities.roomFeatures,
+    outdoorActivities: formattedData.availableAmenities.outdoorActivities || existingAvailableAmenities.outdoorActivities
   };
-  formattedData.availableAmenities = newAvailableAmenities;
+
+  // Combine all amenities into the `allAmenities` field
+  const allAmenitiesSet = new Set([
+    ...(newAvailableAmenities.propertyAmenities || []),
+    ...(newAvailableAmenities.roomFeatures || []),
+    ...(newAvailableAmenities.outdoorActivities || [])
+  ]);
+
+  formattedData.availableAmenities = {
+    ...newAvailableAmenities,
+    allAmenities: Array.from(allAmenitiesSet)
+  };
 
   let existingArrivalDepartureDetails = existingListing ? existingListing.arrivalDepartureDetails : {};
   const newArrivalDepartureDetails = {
@@ -426,9 +446,9 @@ const saveListingForLater = asyncHandler(async (req, res) => {
   try {
     if (existingListing) {
       console.log("Updating existing draft listing".green);
-      existingListing = await DraftListing.findByIdAndUpdate(listingId, updateData, {
-        new: true,
-      });
+      existingListing = await DraftListing.findByIdAndUpdate(listingId, updateData,
+      { new: true}
+    );
     } else {
       console.log("Creating new draft listing".green);
       existingListing = await DraftListing.create({
