@@ -233,6 +233,14 @@ export const formatSaveForLaterListingData = (req) => {
   }
 
   if (req.body.chargeType) formattedData.chargeType = req.body.chargeType;
+
+  if (req.body['guestMeansOfId.confirmationMail'] || req.body['guestMeansOfId.idCard']) {
+    formattedData.guestMeansOfId = {
+      confirmationMail: req.body['guestMeansOfId.confirmationMail'],
+      idCard: req.body['guestMeansOfId.idCard']
+    };
+  }
+
   if (req.body.chargeCurrency) formattedData.chargeCurrency = req.body.chargeCurrency;
   if (req.body.acceptOtherCurrency !== undefined) formattedData.acceptOtherCurrency = req.body.acceptOtherCurrency === 'true' || req.body.acceptOtherCurrency === true;
 

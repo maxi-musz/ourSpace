@@ -30,21 +30,29 @@ function generateListingId() {
 // UPLOAD IMAGES
 const uploadListingImagesToCloudinary = async (items) => {
   return Promise.all(items.map(async (item) => {
+    // Check if the image is already in the correct format (i.e., already has secure_url)
+    if (typeof item === 'object' && item.secure_url && item.secure_url.startsWith('http')) {
+      // The image is already uploaded, so return it as is
+      return { secure_url: item.secure_url, public_id: item.public_id || null };
+    } 
+    
+    // Check if it's a string that starts with 'http' (i.e., a URL)
     if (typeof item === 'string' && item.startsWith('http')) {
-     
+      // The image is a URL, so return it as is without uploading
       return { secure_url: item, public_id: null };
-    } else {
-      
-      const result = await cloudinaryConfig.uploader.upload(item.path, {
-        folder: 'ourSpace/listing-images',
-      });
-      return {
-        secure_url: result.secure_url,
-        public_id: result.public_id
-      };
-    }
+    } 
+    
+    // Otherwise, upload the file to Cloudinary
+    const result = await cloudinaryConfig.uploader.upload(item.path, {
+      folder: 'ourSpace/listing-images',
+    });
+    return {
+      secure_url: result.secure_url,
+      public_id: result.public_id
+    };
   }));
 };
+
 
 const deleteImagesFromCloudinary = async (publicIds) => {
   return Promise.all(publicIds.map(async (publicId) => {

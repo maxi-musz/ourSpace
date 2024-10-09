@@ -70,44 +70,35 @@ const draftListingsSchema = new mongoose.Schema({
       default: "draft",
     },
     listedOnOtherPlatform: {
-      type: Boolean,
-      required: [true, "listed on other platform which is of type boolean is required"]
+      type: Boolean
     },
     propertyName: {
-      type: String,
-      required: [true, "Property name is required"]
+      type: String
     },
     propertyType: { 
       type: [String],
-      enum: ["house", "apartment", "resort", "guest-house", "office-space", 'bungalow', 'villa', 'loft'],
-      required: [true, 'Property type is required.']
+      enum: ["house", "apartment", "resort", "guest-house", "office-space", 'bungalow', 'villa', 'loft']
     },
     bedroomTotal: {
-      type: Number,
-      required: [true, "Bedroom total is required"]
+      type: Number
     },
     livingRoomTotal: {
-      type: Number,
-      required: [true, "Living room total is required"]
+      type: Number
     },
     bedTotal: {
-      type: Number,
-      required: [true, "Bed total is required"]
+      type: Number
     },
     bathroomTotal: {
-      type: Number,
-      required: [true, "Total number of bathrooms is required"]
+      type: Number
     },
     toiletTotal: {
-      type: Number,
-      required: [true, "Total number of toilets is required"]
+      type: Number
     },
 
     propertyLocation: propertyLocationSchema,
 
     description: {
-      type: String,
-      required: [true, "Property description is required"]
+      type: String
     },
 
     bedroomPictures: [imageSchema],
