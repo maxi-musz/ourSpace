@@ -711,7 +711,8 @@ const getListingByCategory = asyncHandler(async (req, res) => {
       console.log("No listings found for the selected category".red);
       return res.status(200).json({
         success: true,
-        message: "No listings found for the selected category at the moment, please do check back later"
+        message: "No listings found for the selected category at the moment, please do check back later",
+        data: availableListings
       });
     }
 
