@@ -92,9 +92,10 @@ const updateListingStatus = asyncHandler(async (req, res) => {
 
     try {
         const { listingId, newListingStatus } = req.query;
-        console.log(newListingStatus, listingId)
+        console.log(newListingStatus, listingId);
 
-        if (!newListingStatus || !["approved", "rejected",'active', 'inactive', 'pending', 'draft', 'archived', 'blocked'].includes(newListingStatus)) {
+        // Validate the new listing status
+        if (!newListingStatus || !["approved", "rejected", 'active', 'inactive', 'pending', 'draft', 'archived', 'blocked'].includes(newListingStatus)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid listing status'
@@ -110,29 +111,40 @@ const updateListingStatus = asyncHandler(async (req, res) => {
             });
         }
 
-        if(newListingStatus === "approved" || newListingStatus === "active") {
+        // Perform validation for required fields when approving the listing
+        if (newListingStatus === "approved") {
+            const validationErrors = validateListingRequiredFields(listing);
+
+            if (validationErrors.length > 0) {
+                // If there are validation errors, reject the request with detailed error messages
+                return res.status(400).json({
+                    success: false,
+                    message: 'Listing cannot be approved. The following fields are missing or invalid:',
+                    errors: validationErrors
+                });
+            }
+
+            // If no validation errors, update the status to approved and listed
             listing.listingStatus = newListingStatus;
-            listing.status = "listed"
-
-            await listing.save();
-
-            res.status(200).json({
-                success: true,
-                message: 'Listing status updated successfully',
-                data: listing
-            });
+            listing.status = "listed";
+        } else if (newListingStatus === "active") {
+            // If marking as active, update the status
+            listing.listingStatus = newListingStatus;
+            listing.status = "listed";
         } else {
+            // For other statuses, mark the listing as unlisted
             listing.listingStatus = newListingStatus;
-            listing.status = "unlisted"
-
-            await listing.save();
-
-            res.status(200).json({
-                success: true,
-                message: 'Listing status updated successfully',
-                data: listing
-            });
+            listing.status = "unlisted";
         }
+
+        // Save the updated listing
+        await listing.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Listing status updated successfully',
+            data: listing
+        });
     } catch (error) {
         console.error(`Error updating listing status: ${error.message}`.red);
         return res.status(500).json({
@@ -223,4 +235,4 @@ export {
     updateListingStatus,
     updateStatus,
     tempUpdateListingStatus
-}
+} 

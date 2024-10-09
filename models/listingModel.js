@@ -2,16 +2,13 @@ import mongoose from "mongoose";
 
 const propertyLocationSchema = new mongoose.Schema({
   address: {
-    type: String,
-    required: [true, "city is required"]
+    type: String
   },
     city: {
-      type: String,
-      required: [true, "city is required"]
+      type: String
     },
     state: {
-      type: String,
-      required: [true, "state is required"]
+      type: String
     },
     latitude: Number,
     longitude: Number,
@@ -72,44 +69,35 @@ const listingsSchema = new mongoose.Schema({
     },
     listedOnOtherPlatform: {
       type: Boolean,
-      default: false,
-      required: true
+      default: false
     },
     propertyName: {
-      type: String,
-      required: [true, 'Property name is required.']
+      type: String
     },
     propertyType: { 
       type: [String],
-      enum: ["house", "apartment", "resort", "guest-house", "office-space", 'bungalow', 'villa', 'loft'],
-      required: [true, 'Property type is required.']
+      enum: ["house", "apartment", "resort", "guest-house", "office-space", 'bungalow', 'villa', 'loft']
     },
     bedroomTotal: {
-      type: Number,
-      required: [true, 'bedroom total is required']
+      type: Number
     },
     livingRoomTotal: {
-      type: Number,
-      required: [true, 'living room total is required']
+      type: Number
     },
     bedTotal: {
-      type: Number,
-      required: [true, 'bed total is required']
+      type: Number
     },
     bathroomTotal: {
-      type: Number,
-      required: [true, 'bathroom total is required'] 
+      type: Number
     },
     toiletTotal: {
-      type: Number,
-      required: [true, 'toilet total is required']
+      type: Number
     },
 
     propertyLocation: propertyLocationSchema,
 
     description: {
-      type: String,
-      required: [true, "Property description is required"]
+      type: String
     },
 
     bedroomPictures: [imageSchema],
@@ -171,20 +159,18 @@ const listingsSchema = new mongoose.Schema({
 
     chargeCurrency: {
       type: String,
-      default: "ngn",
-      required: [true, "Charge currency is required"]
+      default: "ngn"
     },
 
     acceptOtherCurrency: {
       type: Boolean,
-      required: [true, "Accept other currecny attestation is required"]
+      default: false
     },
 
     otherAcceptedCurrencies: [String],
 
     chargePerNight: {
-      type: Number,
-      required: [true, "How much to be charged per night is required"]
+      type: Number
     },
 
     discount: {
