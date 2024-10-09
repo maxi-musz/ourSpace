@@ -2,7 +2,7 @@ import opencage from 'opencage-api-client';
 import asyncHandler from "../middleware/asyncHandler.js";
 import Listing from "../models/listingModel.js";
 import cloudinaryConfig from "../uploadUtils/cloudinaryConfig.js";
-import formatListingData from "../utils/formatListingData.js"
+import { formatSaveForLaterListingData, formatListingData } from "../utils/formatListingData.js"
 import Booking from '../models/bookingModel.js';
 import DraftListing from '../models/draftListingModel.js';
 
@@ -30,21 +30,29 @@ function generateListingId() {
 // UPLOAD IMAGES
 const uploadListingImagesToCloudinary = async (items) => {
   return Promise.all(items.map(async (item) => {
+    // Check if the image is already in the correct format (i.e., already has secure_url)
+    if (typeof item === 'object' && item.secure_url && item.secure_url.startsWith('http')) {
+      // The image is already uploaded, so return it as is
+      return { secure_url: item.secure_url, public_id: item.public_id || null };
+    } 
+    
+    // Check if it's a string that starts with 'http' (i.e., a URL)
     if (typeof item === 'string' && item.startsWith('http')) {
-     
+      // The image is a URL, so return it as is without uploading
       return { secure_url: item, public_id: null };
-    } else {
-      
-      const result = await cloudinaryConfig.uploader.upload(item.path, {
-        folder: 'ourSpace/listing-images',
-      });
-      return {
-        secure_url: result.secure_url,
-        public_id: result.public_id
-      };
-    }
+    } 
+    
+    // Otherwise, upload the file to Cloudinary
+    const result = await cloudinaryConfig.uploader.upload(item.path, {
+      folder: 'ourSpace/listing-images',
+    });
+    return {
+      secure_url: result.secure_url,
+      public_id: result.public_id
+    };
   }));
 };
+
 
 const deleteImagesFromCloudinary = async (publicIds) => {
   return Promise.all(publicIds.map(async (publicId) => {
@@ -61,17 +69,45 @@ const deleteImagesFromCloudinary = async (publicIds) => {
   }));
 };
 
-//
+const allowedPropertyTypes = ["house", "apartment", "resort", "guest-house", "office-space", 'bungalow', 'villa', 'loft'];
+
 const createListing = asyncHandler(async (req, res) => {
   console.log("Creating a new listing".blue);
   const userId = req.user._id.toString();
 
-  if(req.user.userType !== "space-owner") {
-    console.log("Only space owners can create a listing".red)
+  if (req.user.userType !== "space-owner") {
+    console.log("Only space owners can create a listing".red);
     return res.status(404).json({
       success: false,
       message: "Only space owners can create new listing"
-    })
+    });
+  }
+
+  // Validate property type against the allowed values
+  const propertyTypes = req.body.propertyType; // This can be a string or an array
+  let propertyTypeArray;
+
+  // Check if propertyTypes is a string and split it into an array
+  if (typeof propertyTypes === 'string') {
+    propertyTypeArray = propertyTypes.split(',').map(type => type.trim());
+  } else if (Array.isArray(propertyTypes)) {
+    propertyTypeArray = propertyTypes; // It's already an array
+  } else {
+    console.log("Invalid property type format".red);
+    return res.status(400).json({
+      success: false,
+      message: "Property type must be a string or an array of strings."
+    });
+  }
+
+  // Validate each property type against the allowed values
+  const invalidPropertyTypes = propertyTypeArray.filter(type => !allowedPropertyTypes.includes(type));
+  if (invalidPropertyTypes.length > 0) {
+    console.log(`Invalid property types: ${invalidPropertyTypes.join(', ')}`.red);
+    return res.status(400).json({
+      success: false,
+      message: `Invalid property type(s): ${invalidPropertyTypes.join(', ')}. Allowed types are: ${allowedPropertyTypes.join(', ')}`
+    });
   }
 
   let bedroomPictures = [];
@@ -83,130 +119,153 @@ const createListing = asyncHandler(async (req, res) => {
 
   // Define the image categories required
   const imageCategories = [
-      'bedroomPictures', 
-      'livingRoomPictures', 
-      'bathroomToiletPictures', 
-      'kitchenPictures', 
-      'facilityPictures', 
-      'otherPictures'
+    'bedroomPictures', 
+    'livingRoomPictures', 
+    'bathroomToiletPictures', 
+    'kitchenPictures', 
+    'facilityPictures', 
+    'otherPictures'
   ];
 
   // Centralized image deletion function
   const deleteUploadedImages = async (imageArrays) => {
-      const allPublicIds = imageArrays.flat().map(image => image.public_id);
-      if (allPublicIds.length > 0) {
-          try {
-              await deleteImagesFromCloudinary(allPublicIds);
-          } catch (deleteError) {
-              console.error("Error during image deletion:", deleteError);
-          }
+    const allPublicIds = imageArrays.flat().map(image => image.public_id);
+    if (allPublicIds.length > 0) {
+      try {
+        await deleteImagesFromCloudinary(allPublicIds);
+      } catch (deleteError) {
+        console.error("Error during image deletion:", deleteError);
       }
+    }
   };
 
   try {
+    if(!req.body.listingId) {
       // Validate that all required image categories have at least one image
       const missingCategories = imageCategories.filter(category => !req.files[category]);
       if (missingCategories.length > 0) {
-          console.log("At least one image is required from the image sections".red);
-
-          return res.status(400).json({
-              success: false,
-              message: `At least one image is required from the image sections: ${missingCategories.join(', ')}`
-          });
+        console.log("At least one image is required from the image sections".red);
+        return res.status(400).json({
+          success: false,
+          message: `At least one image is required from the image sections: ${missingCategories.join(', ')}`
+        });
       }
+    }
 
-      console.log('Formatting listings');
-      const formattedData = formatListingData(req);
+    console.log('Formatting listings');
+    const formattedData = formatListingData(req);
 
-      let latitude, longitude;
+    let latitude, longitude;
 
+    // Check if latitude and longitude are already provided
+    if (formattedData.propertyLocation.latitude && formattedData.propertyLocation.longitude) {
+      latitude = formattedData.propertyLocation.latitude;
+      longitude = formattedData.propertyLocation.longitude;
+      console.log(`Latitude and Longitude already provided: ${latitude}, ${longitude}`.cyan);
+    } else {
       // Fetch coordinates based on the address
       try {
-          const { address, city, state } = formattedData.propertyLocation;
-          const fullAddress = `${address}, ${city}, ${state}`;
-          const coordinates = await getCoordinates(fullAddress);
+        const { address, city, state } = formattedData.propertyLocation;
+        const fullAddress = `${address}, ${city}, ${state}`;
+        const coordinates = await getCoordinates(fullAddress);
 
-          latitude = coordinates.latitude;
-          longitude = coordinates.longitude;
+        latitude = coordinates.latitude;
+        longitude = coordinates.longitude;
 
-          console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
+        console.log(`Latitude: ${latitude} and Longitude: ${longitude} obtained`.cyan);
       } catch (error) {
-          console.log(`Error getting coordinates: ${error}`.red);
-          return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
+        console.log(`Error getting coordinates: ${error}`.red);
+        return res.status(500).json({ success: false, message: `Error getting coordinates: ${error.message}` });
       }
+    }
 
-      console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
+    console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
 
-      // Upload images concurrently
-      try {
-          console.log("Uploading pictures".cyan);
+    // Upload images concurrently
+    try {
+      console.log("Uploading pictures".cyan);
+      const uploadPromises = imageCategories.map(category =>
+        uploadListingImagesToCloudinary(req.files[category])
+      );
 
-          const uploadPromises = imageCategories.map(category =>
-              uploadListingImagesToCloudinary(req.files[category])
-          );
+      const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
 
-          const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
+      // Assign images to variables
+      bedroomPictures = bedroomPics;
+      livingRoomPictures = livingRoomPics;
+      bathroomToiletPictures = bathroomToiletPics;
+      kitchenPictures = kitchenPics;
+      facilityPictures = facilityPics;
+      otherPictures = otherPics;
 
-          // Assign images to variables
-          bedroomPictures = bedroomPics;
-          livingRoomPictures = livingRoomPics;
-          bathroomToiletPictures = bathroomToiletPics;
-          kitchenPictures = kitchenPics;
-          facilityPictures = facilityPics;
-          otherPictures = otherPics;
-
-          console.log("Pictures uploaded".yellow);
-      } catch (error) {
-          console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
-
-          // Delete uploaded images in case of failure
-          await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
-
-          return res.status(500).json({
-              success: false,
-              message: `Error uploading listing images: ${error.message || error}`
-          });
-      }
-
-      
-
-  
-
-      // Create a new listing in the database
-      const newListing = await Listing.create({
-          ...formattedData,
-          user: userId,
-          propertyId: generateListingId(),
-          propertyLocation: {
-              ...formattedData.propertyLocation,
-              latitude,
-              longitude
-          },
-          bedroomPictures,
-          livingRoomPictures,
-          bathroomToiletPictures,
-          kitchenPictures,
-          facilityPictures,
-          otherPictures
-      });
-
-      console.log("New Listing successfully created".magenta);
-      return res.status(201).json({
-          success: true,
-          message: "You've successfully created a new listing",
-          data: newListing
-      });
-  } catch (error) {
-      console.error('Error creating property listing:', error.stack || error);
-
-      // Delete uploaded images if any error occurs after the upload
+      console.log("Pictures uploaded".yellow);
+    } catch (error) {
+      console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
+      // Delete uploaded images in case of failure
       await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
 
       return res.status(500).json({
-          success: false,
-          message: `Server error: ${error.message}`,
-          error
+        success: false,
+        message: `Error uploading listing images: ${error.message || error}`
       });
+    }
+
+    // Create a new listing in the database
+    const newListingData = {
+      ...formattedData,
+      user: userId,
+      propertyId: generateListingId(),
+      propertyLocation: {
+        ...formattedData.propertyLocation,
+        latitude,
+        longitude,
+      },
+      bedroomPictures,
+      livingRoomPictures,
+      bathroomToiletPictures,
+      kitchenPictures,
+      facilityPictures,
+      otherPictures,
+      propertyType: propertyTypeArray // Store the validated property types
+    };
+
+    if (req.body.listingId) {
+      newListingData._id = req.body.listingId;
+    }
+
+    const newListing = await Listing.create(newListingData);
+
+    if (req.body.listingId) {
+      try {
+        const deletedDraft = await DraftListing.findOneAndDelete({
+          _id: req.body.listingId,
+        });
+  
+        if (deletedDraft) {
+          console.log("Draft listing deleted successfully".green);
+        }
+      } catch (deleteDraftError) {
+        console.error("Error deleting draft listing:", deleteDraftError);
+      }
+    }
+
+    console.log("New Listing successfully created".magenta);
+    return res.status(201).json({
+      success: true,
+      message: "You've successfully created a new listing",
+      data: newListing
+    });
+  } catch (error) {
+    console.error('Error creating property listing:', error.stack || error);
+
+    // Delete uploaded images if any error occurs after the upload
+    await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
+
+    return res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`,
+      error
+    });
   }
 });
 
@@ -263,12 +322,94 @@ const saveListingForLater = asyncHandler(async (req, res) => {
   }
 
   // Format the listing data using the same logic as createListing
-  const formattedData = formatListingData(req);
+  const formattedData = formatSaveForLaterListingData(req);
+
+  let existingAvailableAmenities = existingListing ? existingListing.availableAmenities : {};
+  const newAvailableAmenities = {
+    ...existingAvailableAmenities,
+    propertyAmenities: formattedData.availableAmenities.propertyAmenities || existingAvailableAmenities.propertyAmenities,
+    roomFeatures: formattedData.availableAmenities.roomFeatures || existingAvailableAmenities.roomFeatures,
+    outdoorActivities: formattedData.availableAmenities.outdoorActivities || existingAvailableAmenities.outdoorActivities
+  };
+
+  // Combine all amenities into the `allAmenities` field
+  const allAmenitiesSet = new Set([
+    ...(newAvailableAmenities.propertyAmenities || []),
+    ...(newAvailableAmenities.roomFeatures || []),
+    ...(newAvailableAmenities.outdoorActivities || [])
+  ]);
+
+  formattedData.availableAmenities = {
+    ...newAvailableAmenities,
+    allAmenities: Array.from(allAmenitiesSet)
+  };
+
+  let existingArrivalDepartureDetails = existingListing ? existingListing.arrivalDepartureDetails : {};
+  const newArrivalDepartureDetails = {
+    ...existingArrivalDepartureDetails,
+    ...formattedData.arrivalDepartureDetails
+  };
+  formattedData.arrivalDepartureDetails = newArrivalDepartureDetails;
+
+  // Define the image categories required
+  const imageCategories = [
+    'bedroomPictures',
+    'livingRoomPictures',
+    'bathroomToiletPictures',
+    'kitchenPictures',
+    'facilityPictures',
+    'otherPictures',
+  ];
+
+  let updatedImages = {};
+  try {
+    console.log("Uploading new images and merging with existing images".blue);
+
+    for (let category of imageCategories) {
+      // Upload new images if they exist in the request
+      const newImages = req.files?.[category]
+        ? await uploadListingImagesToCloudinary(req.files[category])
+        : null;
+
+      // Retain existing images from the listing that are not in the removedImages list
+      const existingImages = existingListing && existingListing[category]
+        ? existingListing[category].filter(
+            (image) => !removedImages || !removedImages.includes(image.public_id)
+          )
+        : [];
+
+      // If new images are provided, merge them with the existing ones; otherwise, keep only existing images
+      updatedImages[category] = newImages ? [...existingImages, ...newImages] : existingImages;
+    }
+  } catch (error) {
+    console.error("Error during image upload:", error);
+    return res.status(500).json({
+      success: false,
+      message: `Error uploading new images: ${error.message}`,
+    });
+  }
+
+  // Merge formatted data with the updated images and existing listing data if it exists
+  let updateData = existingListing
+    ? {
+        ...existingListing.toObject(), // Spread the existing listing data to keep all current fields
+        ...formattedData,              // Overwrite with new data from the request body (e.g., fields being updated)
+        ...updatedImages,              // Include the updated images data
+      }
+    : {
+        ...formattedData,
+        ...updatedImages,
+      };
 
   let latitude, longitude;
 
-  // Fetch coordinates based on the address
-  if (formattedData.propertyLocation.state && formattedData.propertyLocation.city && formattedData.propertyLocation.address) {
+  // Fetch coordinates based on the address if provided
+  if (
+    formattedData.propertyLocation &&
+    formattedData.propertyLocation.state &&
+    formattedData.propertyLocation.city &&
+    formattedData.propertyLocation.address
+  ) {
     try {
       const { address, city, state } = formattedData.propertyLocation;
       const fullAddress = `${address}, ${city}, ${state}`;
@@ -287,70 +428,32 @@ const saveListingForLater = asyncHandler(async (req, res) => {
     }
   }
 
-  // Define the image categories required
-  const imageCategories = [
-    'bedroomPictures',
-    'livingRoomPictures',
-    'bathroomToiletPictures',
-    'kitchenPictures',
-    'facilityPictures',
-    'otherPictures',
-  ];
-
-  let updatedImages = {};
-  try {
-    console.log("Uploading new images and merging with existing images".blue);
-
-    for (let category of imageCategories) {
-      const newImages = req.files?.[category]
-        ? await uploadListingImagesToCloudinary(req.files[category])
-        : [];
-
-      const existingImages = existingListing
-        ? existingListing[category]?.filter((image) => Array.isArray(removedImages) && !removedImages.includes(image.public_id)) || []
-        : [];
-
-      updatedImages[category] = [...existingImages, ...newImages];
-    }
-  } catch (error) {
-    console.error("Error during image upload:", error);
-    return res.status(500).json({
-      success: false,
-      message: `Error uploading new images: ${error.message}`,
-    });
+  // Add location coordinates if available
+  if (latitude && longitude) {
+    updateData.propertyLocation = {
+      ...updateData.propertyLocation,
+      latitude,
+      longitude,
+    };
   }
 
   // Create a new listing or update the existing one
   try {
     if (existingListing) {
       console.log("Updating existing draft listing".green);
-      existingListing = await DraftListing.findByIdAndUpdate(
-        listingId,
-        {
-          ...formattedData,
-          propertyLocation: {
-            ...formattedData.propertyLocation,
-            latitude,
-            longitude,
-          },
-          ...updatedImages, // Add the merged image arrays
-        },
-        { new: true }
-      );
+      existingListing = await DraftListing.findByIdAndUpdate(listingId, updateData,
+      { new: true}
+    );
     } else {
       console.log("Creating new draft listing".green);
       existingListing = await DraftListing.create({
-        ...formattedData,
+        ...updateData,
         user: userId,
         propertyId: generateListingId(),
-        propertyLocation: {
-          ...formattedData.propertyLocation,
-          latitude,
-          longitude,
-        },
-        ...updatedImages, // Add the merged image arrays
       });
     }
+
+    // const finalUpdatedListing = await DraftListing.findById(listingId)
 
     console.log("Listing saved successfully as draft".magenta);
     res.status(200).json({
@@ -496,8 +599,10 @@ const filterListings = asyncHandler(async (req, res) => {
   let listings = await Listing.find(filter);
 
   // Step 2: Apply additional filters on the retrieved listings
-  if (propertyType) {
-    listings = listings.filter(listing => propertyType.includes(listing.propertyType));
+  if (propertyType && Array.isArray(propertyType)) {
+    listings = listings.filter(listing => 
+      listing.propertyType.some(type => propertyType.includes(type))
+    );
   }
 
   if (status) {
@@ -549,21 +654,24 @@ const filterListings = asyncHandler(async (req, res) => {
 // @desc    Get user listings
 // @route   GET /api/v1/listings
 // @access  Public
-const getUserApprovedListings = asyncHandler(async (req, res) => {
+const soGetAllListings = asyncHandler(async (req, res) => {
   
   try {
       console.log("Fetching user listings".blue);
 
       // Find listings based on the query object
       const listings = await Listing.find({user: req.user._id});
+      const draftListings = await DraftListing.find({user: req.user._id})
 
-      console.log(`Total of ${listings.length} listings fetched`.magenta);
+      const allListings = [...listings, ...draftListings];
+
+      console.log(`Total of ${allListings.length} listings fetched`.magenta);
 
       res.status(200).json({
           success: true,
-          total: listings.length,
+          total: allListings.length,
           message: 'Listings retrieved successfully',
-          data: listings,
+          data: allListings,
       });
   } catch (error) {
       console.error('Error fetching user listings:', error);
@@ -574,6 +682,56 @@ const getUserApprovedListings = asyncHandler(async (req, res) => {
       });
   }
 });
+
+const getListingByCategory = asyncHandler(async (req, res) => {
+  console.log("Fetching listings by category".yellow);
+
+  let { categoryType } = req.query
+
+  if (!Array.isArray(categoryType)) {
+    categoryType = typeof categoryType === 'string' ? categoryType.split(',').map(type => type.trim()) : [];
+  }
+
+  console.log("Selected category:", categoryType);
+
+  // Validate each categoryType against allowedPropertyTypes
+  const invalidCategoryTypes = categoryType.filter(type => !allowedPropertyTypes.includes(type));
+  if (invalidCategoryTypes.length > 0) {
+    console.log(`Invalid property types: ${invalidCategoryTypes.join(', ')}`.red);
+    return res.status(400).json({
+      success: false,
+      message: `Invalid property type(s): ${invalidCategoryTypes.join(', ')}. Allowed types are: ${allowedPropertyTypes.join(', ')}`
+    });
+  }
+
+  try {
+    // Fetch listings based on propertyType as an array
+    const availableListings = await Listing.find({ propertyType: { $in: categoryType } });
+    if (!availableListings || availableListings.length < 1) {
+      console.log("No listings found for the selected category".red);
+      return res.status(200).json({
+        success: true,
+        message: "No listings found for the selected category at the moment, please do check back later",
+        data: availableListings
+      });
+    }
+
+    console.log(`Total of ${availableListings.length} listings found for ${categoryType.join(', ')} category(s)`);
+    return res.status(200).json({
+      success: true,
+      message: `Total of ${availableListings.length} listings found for ${categoryType.join(', ')} category(s)`,
+      data: availableListings
+    });
+
+  } catch (error) {
+    console.error("Error getting listing by selected category:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error getting listing by selected category, try again later"
+    });
+  }
+});
+
 
 const getSingleUserListing = asyncHandler(async (req, res) => {
   console.log("Fetching a single user listing".blue);
@@ -629,7 +787,7 @@ const editListing = asyncHandler(async (req, res) => {
   const imageCategories = ['bedroomPictures', 'livingRoomPictures', 'bathroomToiletPictures', 'kitchenPictures', 'facilityPictures', 'otherPictures'];
   const missingCategories = imageCategories.filter(category => !existingListing[category] && !req.files[category]);
   if (missingCategories.length > 0) {
-      console.log("At least one image is required from all the image sections".red);
+      console.log(`At least one image is required from all the image sections: ${missingCategories.join(', ')}`.red);
 
       return res.status(400).json({
           success: false,
@@ -753,69 +911,123 @@ const editListing = asyncHandler(async (req, res) => {
   }
 });
 
-const deleteListing = asyncHandler(async(req, res) => {
-  console.log("Deleting listing...".yellow)
+const deleteListing = asyncHandler(async (req, res) => {
+  console.log("Deleting listing...".yellow);
 
-  const { listingId } = req.body
+  const { listingId } = req.body;
+  const userId = req.user._id.toString();
 
-  if(!listingId) {
-    console.log("Valid listing Id is required".red)
+  if (!listingId) {
+    console.log("Valid listing Id is required".red);
     return res.status(400).json({
       success: false,
       message: "Valid listing Id is required"
-    })
-  }
+    });
+  } 
 
   try {
-    const existingListing = await Listing.findByIdAndDelete(listingId)
+    // I first try finding the listing in the Listing model
+    let existingListing = await Listing.findById(listingId);
 
-    if(!existingListing) {
-      console.log("Listing selected to be deleted does not exist".red)
+    // If not found, I try finding it in the DraftListing model
+    let isDraft = false;
+    if (!existingListing) {
+      existingListing = await DraftListing.findById(listingId);
+      isDraft = !!existingListing; // I then set isDraft to true if found in DraftListing
+    }
+
+    if (!existingListing) {
+      console.log("Listing selected to be deleted does not exist".red);
       return res.status(404).json({
         success: false,
         message: "Listing selected to be deleted does not exist"
-      })
+      });
     }
 
-    const bookings = await Booking.find({ listing: listingId });
+    if (existingListing.user.toString() !== userId) {
+      console.log("Unauthorized attempt to delete listing".red);
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this listing"
+      });
+    }
 
-    // Checking if any booking has future dates in bookedDays
-    const currentDate = new Date();
-    for (const booking of bookings) {
-      const hasUpcomingBooking = booking.bookedDays.some(
-        (day) => new Date(day) > currentDate
-      );
+    // If it is a listing (not a draft), check if there are upcoming bookings
+    if (!isDraft) {
+      const bookings = await Booking.find({ listing: listingId });
+      const currentDate = new Date();
+      for (const booking of bookings) {
+        const hasUpcomingBooking = booking.bookedDays.some(
+          (day) => new Date(day) > currentDate
+        );
 
-      if (hasUpcomingBooking) {
-        console.log("Cannot delete listing, there are upcoming bookings".red);
-        return res.status(400).json({
-          success: false,
-          message: "Cannot delete listing as there are upcoming bookings.",
-        });
+        if (hasUpcomingBooking) {
+          console.log("Cannot delete listing, there are upcoming bookings".red);
+          return res.status(400).json({
+            success: false,
+            message: "Cannot delete listing as there are upcoming bookings."
+          });
+        }
       }
     }
 
-    console.log("Listing successfully deleted".america)
+    const imageCategories = [
+      "bedroomPictures",
+      "livingRoomPictures",
+      "bathroomToiletPictures",
+      "kitchenPictures",
+      "facilityPictures",
+      "otherPictures",
+    ];
+
+    const publicIds = [];
+    imageCategories.forEach((category) => {
+      if (existingListing[category] && Array.isArray(existingListing[category])) {
+        existingListing[category].forEach((image) => {
+          if (image.public_id) {
+            publicIds.push(image.public_id);
+          }
+        });
+      }
+    });
+
+    // Delete images from Cloudinary
+    if (publicIds.length > 0) {
+      await deleteImagesFromCloudinary(publicIds);
+    }
+
+    // Delete the listing or draft listing
+    if (isDraft) {
+      await DraftListing.findByIdAndDelete(listingId);
+      console.log("Draft listing successfully deleted".america);
+    } else {
+      await Listing.findByIdAndDelete(listingId);
+      console.log("Listing successfully deleted".america);
+    }
+
     return res.status(200).json({
       success: true,
       message: "Listing successfully deleted"
-    })
+    });
   } catch (error) {
-    console.error("Error deleting listing", error)
+    console.error("Error deleting listing", error);
     return res.status(500).json({
       success: false,
       message: "Error deleting listing"
-    })
+    });
   }
-})
+});
+
 
 export { 
 createListing,
 searchListings,
 filterListings,
-getUserApprovedListings,
+soGetAllListings,
+getListingByCategory,
 getSingleListing,
 getSingleUserListing,
 editListing,
-saveListingForLater
+saveListingForLater,
+deleteListing
 };

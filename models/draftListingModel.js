@@ -3,31 +3,20 @@ import mongoose from "mongoose";
 const propertyLocationSchema = new mongoose.Schema({
   address: {
     type: String,
+    required: [true, "Address is required"]
   },
     city: {
       type: String,
-
+      required: [true, "City is required"]
     },
     state: {
       type: String,
+      required: [true, "State is required"]
     },
     latitude: Number,
     longitude: Number,
-    apartmentNumber: {type: Number, default: null},
-    apartmentSize: {type: Number, default: null}
-});
-
-const dateSchema = new mongoose.Schema({
-  date: { 
-    type: String,
-    required: true,
-    validate: {
-      validator: function(v) {
-        return /\d{4}-\d{2}-\d{2}/.test(v); // Regex to validate YYYY-MM-DD format
-      },
-      message: props => `${props.value} is not a valid date format!`
-    }
-  }
+    apartmentNumber: {type: String, default: null},
+    apartmentSize: {type: String, default: null}
 });
 
 const numberOfGuestsSchema = new mongoose.Schema({
@@ -81,30 +70,29 @@ const draftListingsSchema = new mongoose.Schema({
       default: "draft",
     },
     listedOnOtherPlatform: {
-      type: Boolean,
-      required: [true, "Listed on other platform which is a boolean is required"]
+      type: Boolean
     },
     propertyName: {
-      type: String,
-      required: [true, "Property name is required"]
+      type: String
     },
     propertyType: { 
-      type: String,
+      type: [String],
+      enum: ["house", "apartment", "resort", "guest-house", "office-space", 'bungalow', 'villa', 'loft']
     },
     bedroomTotal: {
-      type: Number,
+      type: Number
     },
     livingRoomTotal: {
-      type: Number,
+      type: Number
     },
     bedTotal: {
-      type: Number,
+      type: Number
     },
     bathroomTotal: {
-      type: Number,
+      type: Number
     },
     toiletTotal: {
-      type: Number,
+      type: Number
     },
 
     propertyLocation: propertyLocationSchema,

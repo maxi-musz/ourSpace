@@ -212,23 +212,28 @@ app.use('/api/v1/paystack', paystackRoutes);
 
 =======
 // Default route
+app.get("/", (req, res) => {
+    console.log("ourSpace API is running".blue);
+    res.send("ourSpace API is running");
+});
+
 app.get("/api/v1", (req, res) => {
     console.log("ourSpace API is running".blue);
     res.send("ourSpace API is running");
 });
 
-// Cron job for production environment
-if (process.env.NODE_ENV === "production") {
-    cron.schedule('*/2 * * * *', async () => {
-        // console.log('Calling ourSpace API every 2 minutes'.green);
-        try {
-            const response = await axios.get('https://ourspace-dev.onrender.com/api/v1');
-            // console.log('Response from ourSpace API:', response.data);
-        } catch (error) {
-            console.error('Error calling ourSpace API:', error.message);
-        }
-    });
-}
+// // Cron job for production environment
+// if (process.env.NODE_ENV === "production") {
+//     cron.schedule('*/2 * * * *', async () => {
+//         // console.log('Calling ourSpace API every 2 minutes'.green);
+//         try {
+//             const response = await axios.get('https://ourspace-dev.onrender.com/api/v1');
+//             // console.log('Response from ourSpace API:', response.data);
+//         } catch (error) {
+//             console.error('Error calling ourSpace API:', error.message);
+//         }
+//     });
+// }
 
 // Fallback route for unmatched requests
 >>>>>>> ourspace/test

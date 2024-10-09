@@ -15,7 +15,7 @@ router
 
 router
 .route("/:id")
-.get(protect, admin, getListingById) 
+.get(protect, admin, getListingById)  
 
 <<<<<<< HEAD
 router

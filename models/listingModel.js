@@ -15,21 +15,8 @@ const propertyLocationSchema = new mongoose.Schema({
     },
     latitude: Number,
     longitude: Number,
-    apartmentNumber: {type: Number, default: null},
-    apartmentSize: {type: Number, default: null}
-});
-
-const dateSchema = new mongoose.Schema({
-  date: { 
-    type: String,
-    required: true,
-    validate: {
-      validator: function(v) {
-        return /\d{4}-\d{2}-\d{2}/.test(v); // Regex to validate YYYY-MM-DD format
-      },
-      message: props => `${props.value} is not a valid date format!`
-    }
-  }
+    apartmentNumber: {type: String, default: null},
+    apartmentSize: {type: String, default: null}
 });
 
 const numberOfGuestsSchema = new mongoose.Schema({
@@ -93,7 +80,8 @@ const listingsSchema = new mongoose.Schema({
       required: [true, 'Property name is required.']
     },
     propertyType: { 
-      type: String,
+      type: [String],
+      enum: ["house", "apartment", "resort", "guest-house", "office-space", 'bungalow', 'villa', 'loft'],
       required: [true, 'Property type is required.']
     },
     bedroomTotal: {
@@ -120,7 +108,8 @@ const listingsSchema = new mongoose.Schema({
     propertyLocation: propertyLocationSchema,
 
     description: {
-      type: String
+      type: String,
+      required: [true, "Property description is required"]
     },
 
     bedroomPictures: [imageSchema],
@@ -200,8 +189,7 @@ const listingsSchema = new mongoose.Schema({
 
     discount: {
       type: Boolean,
-      default: false,
-      required: [true, "discount is required"]    
+      default: false, 
     },
 
     cancellationOption: {
@@ -239,7 +227,6 @@ const listingsSchema = new mongoose.Schema({
     freeCancellation: {
       type: Boolean,
       default: false,
-      required: true
     },
     maximumGuestNumber: numberOfGuestsSchema,
 

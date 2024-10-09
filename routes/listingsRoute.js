@@ -4,10 +4,12 @@ import {
     createListing, 
     filterListings,
     getSingleListing,
-    getUserApprovedListings,
+    soGetAllListings,
     searchListings,
     editListing,
-    saveListingForLater
+    saveListingForLater,
+    deleteListing,
+    getListingByCategory
  } from '../controllers/listingCtrls.js';
 import upload from '../uploadUtils/multer.js';
 
@@ -46,7 +48,11 @@ router
 
 router
 .route("/get-user-listings")
-.get(protect, getUserApprovedListings)
+.get(protect, soGetAllListings)
+
+router
+.route("/get-listings-by-category")
+.get(getListingByCategory)
 
 // Get user listings
 router
@@ -64,6 +70,10 @@ router
     { name: 'facilityPictures', maxCount: 10 },
     { name: 'otherPictures', maxCount: 10 }
   ]), editListing);
+
+router
+.route("/delete-listing-or-draft")
+.delete(protect, deleteListing)
 
 export default router;
  
