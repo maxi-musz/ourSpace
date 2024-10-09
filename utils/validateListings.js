@@ -1,5 +1,5 @@
 // Helper function to validate required fields before approving the listing
-function validateListingRequiredFields(listing) {
+ export function validateListingRequiredFields(listing) {
     const errors = [];
 
     // Check basic required fields
