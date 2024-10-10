@@ -880,7 +880,9 @@ const editListing = asyncHandler(async (req, res) => {
                 latitude,
                 longitude
             },
-              ...updatedImages // Add the merged image arrays
+              ...updatedImages,
+              listingStatus: "pending",
+              status: "unlisted"
           },
           { new: true }
       );
