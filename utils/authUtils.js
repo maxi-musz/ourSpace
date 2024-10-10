@@ -9,6 +9,8 @@ import { passwordResetEmailTemplate } from '../email_templates/passwordResetEmai
 import { otpVerificationCodeTemplate } from '../email_templates/otpVerificationCodeTemplate.js';
 import { welcomeEmail } from '../email_templates/welcomeMail.js';
 import { successfulPaymentMail } from '../email_templates/successfulPaymentMail.js';
+import { listingRejectedEmail } from '../email_templates/listingRejectionEmail.js';
+import { ListingApprovedMail } from '../email_templates/listingApprovedEmail.js';
 
 const hashFunction = async (data) => {
   const saltRounds = 10; // Salt rounds for bcrypt
@@ -137,6 +139,72 @@ export const sendSuccessfulPaymentMail = async (email, fullName, apartmentName, 
     throw new Error('Failed to send welcome email');
   }
 }
+
+export const sendListingApprovedEmail= async (email, fullName, listingName, approvalDate) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, 
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    const htmlContent = await ListingApprovedMail(fullName, listingName, approvalDate);
+
+    const mailOptions = {
+      from: {
+        name: "Ourspace",
+        address: process.env.EMAIL_USER,
+      },
+      to: email,
+      subject: `new listing successfully approved`,
+      html: htmlContent
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    throw new Error('Failed to send welcome email');
+  }
+}
+
+export const sendListingRejectedEmail= async (email, fullName, listingName, rejectionDate, rejectionReason) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    const htmlContent = await listingRejectedEmail(fullName, listingName, rejectionDate, rejectionReason);
+
+    const mailOptions = {
+      from: {
+        name: "Ourspace",
+        address: process.env.EMAIL_USER,
+      },
+      to: email,
+      subject: `New listing rejected`,
+      html: htmlContent
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending listing rejection email:', error);
+    throw new Error('Failed to send listing rejection email');
+  }
+}
+
+
 
 export const verifyOTP = async (userId, inputOTP) => {
     console.log("Searching for otp".grey)
