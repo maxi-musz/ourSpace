@@ -887,6 +887,10 @@ const editListing = asyncHandler(async (req, res) => {
 
       const finalListing  = await Listing.findById(listingId)
 
+      finalListing.listingStatus = "pending"
+      finalListing.status = "unlisted"
+
+
       if(!finalListing) {
         console.log("Listing not found".red)
         return res.status(404).json({
