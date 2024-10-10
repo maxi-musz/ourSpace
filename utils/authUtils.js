@@ -11,6 +11,7 @@ import { welcomeEmail } from '../email_templates/welcomeMail.js';
 import { successfulPaymentMail } from '../email_templates/successfulPaymentMail.js';
 import { listingRejectedEmail } from '../email_templates/listingRejectionEmail.js';
 import { ListingApprovedMail } from '../email_templates/listingApprovedEmail.js';
+import { successfulBookingMailToSpaceOwner } from '../email_templates/successfulBookingMailToSpaceOwner.js';
 
 const hashFunction = async (data) => {
   const saltRounds = 10; // Salt rounds for bcrypt
@@ -108,38 +109,6 @@ export const sendWelcomeEmail = async (email, firstName) => {
   }
 }
 
-export const sendSuccessfulPaymentMail = async (email, fullName, apartmentName, totalNight, amountPaid) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
-
-    const htmlContent = await successfulPaymentMail(fullName, apartmentName, totalNight, amountPaid);
-
-    const mailOptions = {
-      from: {
-        name: "Ourspace",
-        address: process.env.EMAIL_USER,
-      },
-      to: email,
-      subject: `Payment successful for new bookings: ${amountPaid}`,
-      html: htmlContent
-    };
-
-    await transporter.sendMail(mailOptions);
-  } catch (error) {
-    console.error('Error sending welcome email:', error);
-    throw new Error('Failed to send welcome email');
-  }
-}
-
 export const sendListingApprovedEmail= async (email, fullName, listingName, approvalDate) => {
   try {
     const transporter = nodemailer.createTransport({
@@ -205,6 +174,68 @@ export const sendListingRejectedEmail= async (email, fullName, listingName, reje
 }
 
 
+export const sendSuccessfulPaymentMail = async (email, fullName, apartmentName, totalNight, amountPaid) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    const htmlContent = await successfulPaymentMail(fullName, apartmentName, totalNight, amountPaid);
+
+    const mailOptions = {
+      from: {
+        name: "Ourspace",
+        address: process.env.EMAIL_USER,
+      },
+      to: email,
+      subject: `Payment successful for new bookings: #${amountPaid}`,
+      html: htmlContent
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending successful bookings payment email:', error);
+    throw new Error('Failed to send successful bookings payment email');
+  }
+}
+export const sendSuccessfulBookingMailToSpaceOwner = async (email, spaceUserName, apartmentName, totalNight, daysBooked, totalPaid) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    const htmlContent = await successfulBookingMailToSpaceOwner(spaceUserName, apartmentName, totalNight, daysBooked, totalPaid);
+
+    const mailOptions = {
+      from: {
+        name: "Ourspace",
+        address: process.env.EMAIL_USER,
+      },
+      to: email,
+      subject: `New successful booking: #${totalPaid}`,
+      html: htmlContent
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending successful booking email to space owner:', error);
+    throw new Error('Error sending successful booking email to space owner');
+  }
+}
 
 export const verifyOTP = async (userId, inputOTP) => {
     console.log("Searching for otp".grey)

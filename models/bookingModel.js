@@ -60,11 +60,31 @@ const bookingSchema = new mongoose.Schema({
         required: true,
         min: [1, 'At least one guest is required.']
     },
-    amount: {
+
+    chargePerNight: {
         type: Number,
         required: true,
-        min: [0, 'Amount cannot be negative.']
+        min: [0, 'Charge per night cannot be negative.']
     },
+
+    totalNight: {
+        type: Number,
+        required: true,
+        min: [0, 'Total night is required.']
+    },
+
+    totalIncuredCharge: {
+        type: Number,
+        required: true,
+        min: [0, 'Total incured charge is required.']
+    },
+
+    totalIncuredChargeAfterDiscount: {
+        type: Number,
+        required: true,
+        min: [0, 'Total incured charge is required.']
+    },
+
     discount: {
         type: Number,
         default: 0,

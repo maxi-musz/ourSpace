@@ -84,14 +84,13 @@ const createListing = asyncHandler(async (req, res) => {
   }
 
   // Validate property type against the allowed values
-  const propertyTypes = req.body.propertyType; // This can be a string or an array
+  const propertyTypes = req.body.propertyType;
   let propertyTypeArray;
 
-  // Check if propertyTypes is a string and split it into an array
   if (typeof propertyTypes === 'string') {
     propertyTypeArray = propertyTypes.split(',').map(type => type.trim());
   } else if (Array.isArray(propertyTypes)) {
-    propertyTypeArray = propertyTypes; // It's already an array
+    propertyTypeArray = propertyTypes;
   } else {
     console.log("Invalid property type format".red);
     return res.status(400).json({
@@ -100,7 +99,6 @@ const createListing = asyncHandler(async (req, res) => {
     });
   }
 
-  // Validate each property type against the allowed values
   const invalidPropertyTypes = propertyTypeArray.filter(type => !allowedPropertyTypes.includes(type));
   if (invalidPropertyTypes.length > 0) {
     console.log(`Invalid property types: ${invalidPropertyTypes.join(', ')}`.red);
@@ -117,7 +115,6 @@ const createListing = asyncHandler(async (req, res) => {
   let facilityPictures = [];
   let otherPictures = [];
 
-  // Define the image categories required
   const imageCategories = [
     'bedroomPictures', 
     'livingRoomPictures', 
@@ -140,30 +137,16 @@ const createListing = asyncHandler(async (req, res) => {
   };
 
   try {
-    if(!req.body.listingId) {
-      // Validate that all required image categories have at least one image
-      const missingCategories = imageCategories.filter(category => !req.files[category]);
-      if (missingCategories.length > 0) {
-        console.log("At least one image is required from the image sections".red);
-        return res.status(400).json({
-          success: false,
-          message: `At least one image is required from the image sections: ${missingCategories.join(', ')}`
-        });
-      }
-    }
-
     console.log('Formatting listings');
     const formattedData = formatListingData(req);
 
     let latitude, longitude;
 
-    // Check if latitude and longitude are already provided
     if (formattedData.propertyLocation.latitude && formattedData.propertyLocation.longitude) {
       latitude = formattedData.propertyLocation.latitude;
       longitude = formattedData.propertyLocation.longitude;
       console.log(`Latitude and Longitude already provided: ${latitude}, ${longitude}`.cyan);
     } else {
-      // Fetch coordinates based on the address
       try {
         const { address, city, state } = formattedData.propertyLocation;
         const fullAddress = `${address}, ${city}, ${state}`;
@@ -184,9 +167,17 @@ const createListing = asyncHandler(async (req, res) => {
     // Upload images concurrently
     try {
       console.log("Uploading pictures".cyan);
-      const uploadPromises = imageCategories.map(category =>
-        uploadListingImagesToCloudinary(req.files[category])
-      );
+
+      // Filter out categories that don't have any files
+      const uploadPromises = imageCategories.map(category => {
+        if (req.files && req.files[category]) {
+          // Only upload if images exist for that category
+          return uploadListingImagesToCloudinary(req.files[category]);
+        } else {
+          // No images for this category, resolve with an empty array
+          return Promise.resolve([]);
+        }
+      });
 
       const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
 
@@ -201,7 +192,7 @@ const createListing = asyncHandler(async (req, res) => {
       console.log("Pictures uploaded".yellow);
     } catch (error) {
       console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
-      // Delete uploaded images in case of failure
+
       await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
 
       return res.status(500).json({
@@ -226,7 +217,7 @@ const createListing = asyncHandler(async (req, res) => {
       kitchenPictures,
       facilityPictures,
       otherPictures,
-      propertyType: propertyTypeArray // Store the validated property types
+      propertyType: propertyTypeArray
     };
 
     if (req.body.listingId) {
@@ -237,10 +228,7 @@ const createListing = asyncHandler(async (req, res) => {
 
     if (req.body.listingId) {
       try {
-        const deletedDraft = await DraftListing.findOneAndDelete({
-          _id: req.body.listingId,
-        });
-  
+        const deletedDraft = await DraftListing.findOneAndDelete({ _id: req.body.listingId });
         if (deletedDraft) {
           console.log("Draft listing deleted successfully".green);
         }
@@ -258,7 +246,6 @@ const createListing = asyncHandler(async (req, res) => {
   } catch (error) {
     console.error('Error creating property listing:', error.stack || error);
 
-    // Delete uploaded images if any error occurs after the upload
     await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
 
     return res.status(500).json({
@@ -268,6 +255,7 @@ const createListing = asyncHandler(async (req, res) => {
     });
   }
 });
+
 
 const saveListingForLater = asyncHandler(async (req, res) => {
   console.log("Saving new listing to draft".yellow);
