@@ -108,6 +108,7 @@ const createListing = asyncHandler(async (req, res) => {
     });
   }
 
+  // Initialize image arrays
   let bedroomPictures = [];
   let livingRoomPictures = [];
   let bathroomToiletPictures = [];
@@ -164,37 +165,45 @@ const createListing = asyncHandler(async (req, res) => {
 
     console.log(`Latitude: ${latitude} \nLongitude: ${longitude}`.yellow);
 
+    // Retrieve existing images from draft if they exist
+    const existingDraftListing = req.body.listingId ? await DraftListing.findById(req.body.listingId) : null;
+    if (existingDraftListing) {
+      console.log("Fetching images from draft listing".yellow);
+      bedroomPictures = existingDraftListing.bedroomPictures || [];
+      livingRoomPictures = existingDraftListing.livingRoomPictures || [];
+      bathroomToiletPictures = existingDraftListing.bathroomToiletPictures || [];
+      kitchenPictures = existingDraftListing.kitchenPictures || [];
+      facilityPictures = existingDraftListing.facilityPictures || [];
+      otherPictures = existingDraftListing.otherPictures || [];
+    }
+
     // Upload images concurrently
     try {
-      console.log("Uploading pictures".cyan);
+      console.log("Uploading new pictures if available".cyan);
 
-      // Filter out categories that don't have any files
       const uploadPromises = imageCategories.map(category => {
         if (req.files && req.files[category]) {
-          // Only upload if images exist for that category
           return uploadListingImagesToCloudinary(req.files[category]);
         } else {
-          // No images for this category, resolve with an empty array
-          return Promise.resolve([]);
+          // No new images for this category, resolve with the existing draft images
+          return Promise.resolve(existingDraftListing ? existingDraftListing[category] || [] : []);
         }
       });
 
-      const [bedroomPics, livingRoomPics, bathroomToiletPics, kitchenPics, facilityPics, otherPics] = await Promise.all(uploadPromises);
+      const [newBedroomPics, newLivingRoomPics, newBathroomToiletPics, newKitchenPics, newFacilityPics, newOtherPics] = await Promise.all(uploadPromises);
 
-      // Assign images to variables
-      bedroomPictures = bedroomPics;
-      livingRoomPictures = livingRoomPics;
-      bathroomToiletPictures = bathroomToiletPics;
-      kitchenPictures = kitchenPics;
-      facilityPictures = facilityPics;
-      otherPictures = otherPics;
+      // Merge new images with existing ones from the draft
+      bedroomPictures = [...bedroomPictures, ...newBedroomPics];
+      livingRoomPictures = [...livingRoomPictures, ...newLivingRoomPics];
+      bathroomToiletPictures = [...bathroomToiletPictures, ...newBathroomToiletPics];
+      kitchenPictures = [...kitchenPictures, ...newKitchenPics];
+      facilityPictures = [...facilityPictures, ...newFacilityPics];
+      otherPictures = [...otherPictures, ...newOtherPics];
 
-      console.log("Pictures uploaded".yellow);
+      console.log("Pictures uploaded and merged".yellow);
     } catch (error) {
       console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
-
       await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
-
       return res.status(500).json({
         success: false,
         message: `Error uploading listing images: ${error.message || error}`
@@ -226,6 +235,7 @@ const createListing = asyncHandler(async (req, res) => {
 
     const newListing = await Listing.create(newListingData);
 
+    // If draft exists, delete it after successful creation
     if (req.body.listingId) {
       try {
         const deletedDraft = await DraftListing.findOneAndDelete({ _id: req.body.listingId });
@@ -245,9 +255,7 @@ const createListing = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating property listing:', error.stack || error);
-
     await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
-
     return res.status(500).json({
       success: false,
       message: `Server error: ${error.message}`,
