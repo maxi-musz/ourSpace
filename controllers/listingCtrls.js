@@ -180,27 +180,28 @@ const createListing = asyncHandler(async (req, res) => {
     // Upload images concurrently
     try {
       console.log("Uploading new pictures if available".cyan);
-
+    
       const uploadPromises = imageCategories.map(category => {
         if (req.files && req.files[category]) {
+          // Upload new images and replace existing ones
           return uploadListingImagesToCloudinary(req.files[category]);
         } else {
-          // No new images for this category, resolve with the existing draft images
+          // No new images for this category, keep the existing draft images
           return Promise.resolve(existingDraftListing ? existingDraftListing[category] || [] : []);
         }
       });
-
+    
       const [newBedroomPics, newLivingRoomPics, newBathroomToiletPics, newKitchenPics, newFacilityPics, newOtherPics] = await Promise.all(uploadPromises);
-
-      // Merge new images with existing ones from the draft
-      bedroomPictures = [...bedroomPictures, ...newBedroomPics];
-      livingRoomPictures = [...livingRoomPictures, ...newLivingRoomPics];
-      bathroomToiletPictures = [...bathroomToiletPictures, ...newBathroomToiletPics];
-      kitchenPictures = [...kitchenPictures, ...newKitchenPics];
-      facilityPictures = [...facilityPictures, ...newFacilityPics];
-      otherPictures = [...otherPictures, ...newOtherPics];
-
-      console.log("Pictures uploaded and merged".yellow);
+    
+      // Use either the new uploaded images or the existing draft images, do not merge
+      bedroomPictures = newBedroomPics.length > 0 ? newBedroomPics : bedroomPictures;
+      livingRoomPictures = newLivingRoomPics.length > 0 ? newLivingRoomPics : livingRoomPictures;
+      bathroomToiletPictures = newBathroomToiletPics.length > 0 ? newBathroomToiletPics : bathroomToiletPictures;
+      kitchenPictures = newKitchenPics.length > 0 ? newKitchenPics : kitchenPictures;
+      facilityPictures = newFacilityPics.length > 0 ? newFacilityPics : facilityPictures;
+      otherPictures = newOtherPics.length > 0 ? newOtherPics : otherPictures;
+    
+      console.log("Pictures uploaded successfully".yellow);
     } catch (error) {
       console.error('Error uploading images:', error.stack || JSON.stringify(error, null, 2));
       await deleteUploadedImages([bedroomPictures, livingRoomPictures, bathroomToiletPictures, kitchenPictures, facilityPictures, otherPictures]);
