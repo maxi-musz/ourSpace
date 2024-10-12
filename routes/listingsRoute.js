@@ -55,6 +55,7 @@ router
 .route("/get-listings-by-category")
 .get(getListingByCategory)
 
+// Get all listings
 router
 .route("/get-all-listings-homepage")
 .get(getAllListingForHomepage)
