@@ -679,6 +679,39 @@ const soGetAllListings = asyncHandler(async (req, res) => {
   }
 });
 
+const getAllListingForHomepage = asyncHandler(async (req, res) => {
+  console.log("Fetching all listings for homepage".yellow);
+
+  try {
+    // Fetch listings with status 'listed', sorted by creation date in descending order
+    const availableListings = await Listing.find({ status: "listed" }).sort({ createdAt: -1 });
+
+    if (!availableListings || availableListings.length < 1) {
+      console.log("No listings found".red);
+      return res.status(200).json({
+        success: true,
+        message: "No listings found at the moment, please check back later.",
+        data: []
+      });
+    }
+
+    console.log(`Total of ${availableListings.length} listings found`.green);
+
+    return res.status(200).json({
+      success: true,
+      message: `Total of ${availableListings.length} listings found.`,
+      data: availableListings
+    });
+
+  } catch (error) {
+    console.error("Error fetching listings for homepage:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching listings for homepage, please try again later."
+    });
+  }
+});
+
 const getListingByCategory = asyncHandler(async (req, res) => {
   console.log("Fetching listings by category".yellow);
 
@@ -1026,6 +1059,7 @@ createListing,
 searchListings,
 filterListings,
 soGetAllListings,
+getAllListingForHomepage,
 getListingByCategory,
 getSingleListing,
 getSingleUserListing,

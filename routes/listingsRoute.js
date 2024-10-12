@@ -9,7 +9,8 @@ import {
     editListing,
     saveListingForLater,
     deleteListing,
-    getListingByCategory
+    getListingByCategory,
+    getAllListingForHomepage
  } from '../controllers/listingCtrls.js';
 import upload from '../uploadUtils/multer.js';
 
@@ -53,6 +54,10 @@ router
 router
 .route("/get-listings-by-category")
 .get(getListingByCategory)
+
+router
+.route("/get-all-listings-homepage")
+.get(getAllListingForHomepage)
 
 // Get user listings
 router
