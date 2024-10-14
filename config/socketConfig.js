@@ -30,7 +30,7 @@ const socketHandlers = (io) => {
       });
     
       //
-      socket.once('send-message', async (data) => {
+      socket.on('send-message', async (data) => {
         try {
           // Ensure sender joins the room
           socket.join(room);
