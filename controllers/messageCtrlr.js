@@ -399,8 +399,6 @@ const sendMessage = asyncHandler(async (data) => {
       voiceNote: newMessage.voiceNote || []
     };
 
-    // console.log(`Response: ${formattedResponse}`.america)
-
     return formattedResponse
   } catch (error) {
     console.error("Error sending message:", error);
@@ -489,6 +487,7 @@ const postmanSendMessage = asyncHandler(async (req, res) => {
     };
 
     // Send a success response with the formatted data
+    console.log("New message successfully sesaved to db".magenta)
     return res.status(201).json({
       success: true,
       message: "Message sent successfully",

@@ -43,6 +43,7 @@ const socketHandlers = (io) => {
 
           if(data.roomName === room) {
             io.to(room).emit('message-response', {room, res});
+            console.log("New message successfully delivered to receiver".america)
           }
       
           if (clients && clients.size === 2) {
