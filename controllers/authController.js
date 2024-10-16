@@ -622,9 +622,9 @@ const googleCallback = asyncHandler((req, res) => {
         secure: process.env.NODE_ENV === 'production',
       });
   
-      console.log("User authenticated successfully".america)
+      console.log("User authenticated successfully".america) 
       
-      const redirectUrl = `https://ourspace-git-dev-ourspace-global.vercel.app/callback?accessToken=${accessToken}&refreshToken=${refreshToken}&user=${encodeURIComponent(JSON.stringify(user))}`;
+      const redirectUrl = `https://exploreourspace.com/callback?accessToken=${accessToken}&refreshToken=${refreshToken}&user=${encodeURIComponent(JSON.stringify(user))}`;
       res.redirect(redirectUrl);
 
     })(req, res);
@@ -652,11 +652,19 @@ const sendResetPasswordLink = asyncHandler(async (req, res) => {
 
     await user.save();
 
-    const frontendStagingUrl = process.env.OUR_SPACE_STAGING_URL
+    const frontendStagingUrl = process.env.OUR_SPACE_DEV_URL
+    const frontendProdUrl = process.env.OUR_SPACE_PROD_URL
     
 
     // Send reset email with link
-    const resetUrl = `${frontendStagingUrl}/?reset-token=${resetToken}`;
+    let resetUrl;
+
+    if(process.env.NODE_ENV === "production"){
+        resetUrl = `${frontendProdUrl}/?reset-token=${resetToken}`;
+    }
+    if(process.env.NODE_ENV === "development"){
+        resetUrl = `${frontendStagingUrl}/?reset-token=${resetToken}`;
+    }
 
     const htmlContent = passwordResetEmailTemplate(email, resetUrl);
 
