@@ -62,7 +62,7 @@ const corsOptions = {
         "https://ourspace-git-dev-ourspace-global.vercel.app",
         "https://ourspace-admin-6rlb.vercel.app/dashboard",
         "https://www.exploreourspace.com",
-        "https://www.admin.exploreourspace.com",
+        "https://admin.exploreourspace.com/",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
