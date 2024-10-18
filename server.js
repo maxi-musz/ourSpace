@@ -54,19 +54,18 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// CORS configuration
+
 const corsOptions = {
     origin: [
         "http://localhost:3000", 
         "http://localhost:3001", 
-        "https://ourspace-git-dev-ourspace-global.vercel.app/",
-        "https://ourspace-admin-6rlb.vercel.app/dashboard/",
-        "https://www.exploreourspace.com/",
-        "https://www.admin.exploreourspace.com/",
+        "https://ourspace-git-dev-ourspace-global.vercel.app",
+        "https://ourspace-admin-6rlb.vercel.app/dashboard",
+        "https://www.exploreourspace.com",
+        "https://www.admin.exploreourspace.com",
     ],
-    // origin: "*",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true, 
+    credentials: true,
     optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
