@@ -474,16 +474,20 @@ const getSingleListing = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-      console.log(`Searching for listing with ID: ${id}`.yellow);
+      // console.log(`Searching for listing with ID: ${id}`.yellow);
 
       const listing = await Listing.findById(id);
 
-      if (!listing) {
+      if(!listing) {
+        const draftListing = await DraftListing.findById(id)
+
+        if(!draftListing) {
           console.log(`Listing with ID: ${id} not found`.red);
           return res.status(404).json({
               success: false,
               message: "Listing not found",
           });
+        }
       }
 
       console.log("Listing found".green);
@@ -951,6 +955,7 @@ const deleteListing = asyncHandler(async (req, res) => {
   console.log("Deleting listing...".yellow);
 
   const { listingId } = req.body;
+  console.log(`Listing Id: ${listingId}`.cyan)
   const userId = req.user._id.toString();
 
   if (!listingId) {
