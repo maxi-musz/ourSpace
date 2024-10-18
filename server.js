@@ -56,16 +56,17 @@ app.use(passport.session());
 
 // CORS configuration
 const corsOptions = {
-    // origin: [
-    //     "http://localhost:3000", 
-    //     "https://exploreourspace.com",
-    //     "https://ourspace-git-dev-ourspace-global.vercel.app/",
-    //     "https://ourspace-kxwcfzd7a-ourspace-global.vercel.app/", 
-    //     "https://ourspace-admin-6rlb.vercel.app/dashboard",
-    // ],
-    origin: "*",
+    origin: [
+        "http://localhost:3000", 
+        "http://localhost:3001", 
+        "https://ourspace-git-dev-ourspace-global.vercel.app/",
+        "https://ourspace-admin-6rlb.vercel.app/dashboard",
+        "https://exploreourspace.com",
+        "https://admin.exploreourspace.com",
+    ],
+    // origin: "*",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true,
+    credentials: true, 
     optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
