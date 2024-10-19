@@ -10,7 +10,9 @@ import {
     saveListingForLater,
     deleteListing,
     getListingByCategory,
-    getAllListingForHomepage
+    getAllListingForHomepage,
+    addSpaceOwnerIdToBookings,
+    updateInvoiceIdsForBookings
  } from '../controllers/listingCtrls.js';
 import upload from '../uploadUtils/multer.js';
 
@@ -80,6 +82,14 @@ router
 router
 .route("/delete-listing-or-draft")
 .delete(protect, deleteListing)
+
+// Temporary
+router
+.route("/add-space-owner-id")
+.post(addSpaceOwnerIdToBookings)
+router
+.route("/add-invoiceid")
+.post(updateInvoiceIdsForBookings)
 
 export default router;
  

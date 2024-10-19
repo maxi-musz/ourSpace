@@ -1059,6 +1059,83 @@ const deleteListing = asyncHandler(async (req, res) => {
   }
 });
 
+function generateInvoiceId() {
+  const randomDigits = Array.from({ length: 8 }, () => Math.floor(Math.random() * 10)).join('');
+  return `#${randomDigits}`;
+}
+
+// Temporary
+const addSpaceOwnerIdToBookings = asyncHandler(async (req, res) => {
+  try {
+    // Step 1: Fetch all bookings
+    const bookings = await Booking.find().populate("listing");
+    for (const booking of bookings) {
+      if (!booking.spaceOwnerId && booking.listing && booking.listing.user) {
+        booking.spaceOwnerId = booking.listing.user._id;
+        booking.invoiceId = generateInvoiceId()
+        await booking.save();
+      }
+    }
+
+    console.log("Attachment completed".bgMagenta)
+    return res.status(200).json({
+      success: true,
+      message: "Successfully added spaceOwnerId to all bookings",
+    });
+  } catch (error) {
+    console.error("Error updating bookings with spaceOwnerId", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update bookings",
+    });
+  }
+});
+
+const updateInvoiceIdsForBookings = asyncHandler(async (req, res) => {
+  try {
+    // Step 1: Fetch all bookings that do not have an invoiceId
+    const bookingsWithoutInvoiceId = await Booking.find({ invoiceId: null });
+    
+    if (bookingsWithoutInvoiceId.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No bookings without invoiceId found",
+      });
+    }
+
+    // Step 2: Iterate over each booking and assign a unique invoiceId
+    for (const booking of bookingsWithoutInvoiceId) {
+      let isUnique = false;
+      let invoiceId;
+
+      // Ensure that the generated invoiceId is unique
+      while (!isUnique) {
+        invoiceId = generateInvoiceId();
+        const existingBooking = await Booking.findOne({ invoiceId });
+        if (!existingBooking) {
+          isUnique = true;
+        }
+      }
+
+      booking.invoiceId = invoiceId; // Set the generated invoiceId
+      await booking.save(); // Save the booking with the new invoiceId
+    }
+
+    console.log("Successfully updated all bookings with missing invoiceId".bgGreen);
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully updated ${bookingsWithoutInvoiceId.length} bookings with missing invoiceId`,
+    });
+  } catch (error) {
+    console.error("Error updating invoiceId for bookings", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update invoiceId for bookings",
+    });
+  }
+});
+
 
 export { 
 createListing,
@@ -1071,5 +1148,7 @@ getSingleListing,
 getSingleUserListing,
 editListing,
 saveListingForLater,
-deleteListing
+deleteListing,
+addSpaceOwnerIdToBookings,
+updateInvoiceIdsForBookings
 };

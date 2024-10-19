@@ -216,7 +216,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
 
         const ourspaceEmail = process.env.OUR_SPACE_EMAIL;
         const maximusEmail = process.env.MAXIMUS_EMAIL;
-        const paymentNotificationEmail = `${ourspaceEmail}, ${maximusEmail}`;
+         
         
         await sendEmail(
             maximusEmail,

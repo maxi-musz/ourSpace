@@ -23,6 +23,7 @@ import profileRoutes from "./routes/profileRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 import socketHandlers from "./config/socketConfig.js"
+import walletRoutes from "./routes/walletRoutes.js"
 
 // Admin routes
 import adminDashboardR from "./routes/adminRoutes/adminDashboardR.js";
@@ -60,7 +61,7 @@ const corsOptions = {
         "http://localhost:3000", 
         "http://localhost:3001", 
         "https://ourspace-git-dev-ourspace-global.vercel.app",
-        "https://ourspace-admin-6rlb.vercel.app/dashboard",
+        "https://ourspace-admin-6rlb.vercel.app",
         "https://www.exploreourspace.com",
         "https://admin.exploreourspace.com",
     ],
@@ -101,6 +102,7 @@ app.use("/api/v1/settings", userSettingsR);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/paystack", paystackRoutes);
+app.use("/api/v1/wallet", walletRoutes)
 
 // Admin routes
 app.use("/api/v1/admin/dashboard", adminDashboardR);

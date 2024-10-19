@@ -70,7 +70,7 @@ export const successfulBookingMailToSpaceOwner = async (spaceUserName, apartment
                   <ul>
                       <li><strong>Total Nights:</strong> ${totalNight}</li>
                       <li><strong>Booked Dates:</strong> ${daysBooked}</li>
-                      <li><strong>Total Paid:</strong> $${totalPaid}</li>
+                      <li><strong>Total Paid:</strong> #${totalPaid}</li>
                   </ul>
                   <p>Please make sure that the apartment is ready and well-prepared for the guest's arrival. You can log in to your account to view more details and manage the booking.</p>
                   <p>If you have any questions or need assistance, feel free to <a href="mailto:ourspacegloballtd@gmail.com">contact our support team</a>.</p>
