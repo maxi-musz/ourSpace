@@ -6,7 +6,18 @@ import { formatAmount, formatDate } from "../utils/helperFunction.js";
 const getWallet = asyncHandler(async (req, res) => {
     console.log("Getting wallet dashboard...".blue);
 
-    const walletMetrics = await Wallet.find({user: req.user._id})
+    let walletMetrics = await Wallet.findOne({user: req.user._id})
+
+    if (!walletMetrics) {
+        console.log("Wallet not found, using default values".yellow);
+        walletMetrics = {
+            currentBalance: 0,
+            totalWithdrawn: 0,
+            totalEarned: 0,
+        };
+    }
+
+    console.log(`Wallet: ${walletMetrics}`)
 
     try {
         // Fetch bookings and populate related models (listing and user)
@@ -19,7 +30,6 @@ const getWallet = asyncHandler(async (req, res) => {
 
         console.log(`Total of ${bookings.length} bookings found`.green);
 
-        // Format the bookings into the desired format
         const formattedBookings = bookings.map(booking => ({
             invoiceId: booking.invoiceId,  
             date: formatDate(booking.createdAt),
@@ -34,9 +44,9 @@ const getWallet = asyncHandler(async (req, res) => {
             message: `Total of ${bookings.length} bookings found`,
             data: {
                 wallet: {
-                    currentBalance: `#${walletMetrics.currentBalance}`,
-                    witdrawn: `#${walletMetrics.totalWithdrawn}`,
-                    allTimeEarned: `#${walletMetrics.allTimeEarned}`
+                    currentBalance: `#${formatAmount(walletMetrics.currentBalance)}`,
+                    witdrawn: `#${formatAmount(walletMetrics.totalWithdrawn)}`,
+                    allTimeEarned: `#${formatAmount(walletMetrics.totalEarned)}`
                 },
                 bookings: formattedBookings
             }

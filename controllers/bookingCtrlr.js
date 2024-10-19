@@ -7,6 +7,7 @@ import Notification from '../models/notificationModel.js';
 import Message from '../models/messageModel.js';
 import { sendSuccessfulBookingMailToSpaceOwner, sendSuccessfulPaymentMail } from '../utils/authUtils.js';
 import { formatAmount } from '../utils/helperFunction.js';
+import Wallet from '../models/walletModel.js';
 
 function generateInvoiceId() {
     const randomDigits = Array.from({ length: 8 }, () => Math.floor(Math.random() * 10)).join('');
@@ -315,13 +316,13 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        if (booking.paystackPaymentStatus === 'success') {
-            console.log("booking has already been verified as successful".bgRed);
-            return res.status(400).json({
-                success: false,
-                message: 'Transaction has already been verified as successful.',
-            });
-        }
+        // if (booking.paystackPaymentStatus === 'success') {
+        //     console.log("booking has already been verified as successful".bgRed);
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'Transaction has already been verified as successful.',
+        //     });
+        // }
 
         const amountPaidToPaystack = paystackKoboAmount / 100;
 
@@ -338,10 +339,10 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
         const totalNights = booking.bookedDays
         const totalBookedNights = totalNights.length
 
-        // Update transaction status to 'success'
+        // Step 5: Update the booking's status and generate invoiceId
         booking.paystackPaymentStatus = 'success';
         booking.bookingStatus = 'upcoming';
-        booking.invoiceId = generateInvoiceId()
+        booking.invoiceId = generateInvoiceId();
         await booking.save();
 
         if (!booking) {
@@ -410,6 +411,37 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
                 booking.bookedDays,
                 formattedBookingTotalCharge
             )
+
+            // const wallet = await Wallet.find({user: listing.user._id})
+
+            // if(!wallet || wallet) {
+            //     const newTotalEarned = wallet.totalEarned + booking.totalIncuredCharge
+            //     const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn
+
+            //     wallet.totalEarned = newTotalEarned
+            //     wallet.currentBalance = newCurrentBalance
+            // }
+
+            let wallet = await Wallet.findOne({ user: listing.user._id });
+
+            if (!wallet) {
+                // If no wallet exists, create a new wallet for the user
+                wallet = new Wallet({
+                    user: listing.user._id,
+                    totalEarned: booking.totalIncuredCharge,
+                    currentBalance: booking.totalIncuredCharge,
+                    totalWithdrawn: 0
+                });
+            } else {
+                // Update the existing wallet
+                const newTotalEarned = wallet.totalEarned + booking.totalIncuredCharge;
+                const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn;
+
+                wallet.totalEarned = newTotalEarned;
+                wallet.currentBalance = newCurrentBalance;
+            }
+
+            await wallet.save();
 
             res.status(200).json({
                 success: true,
