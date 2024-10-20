@@ -24,6 +24,7 @@ import messageRoutes from "./routes/messageRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 import socketHandlers from "./config/socketConfig.js"
 import walletRoutes from "./routes/walletRoutes.js"
+import calendarRoutes from "./routes/calendarRoutes.js"
 
 // Admin routes
 import adminDashboardR from "./routes/adminRoutes/adminDashboardR.js";
@@ -64,6 +65,7 @@ const corsOptions = {
         "https://ourspace-admin-6rlb.vercel.app",
         "https://www.exploreourspace.com",
         "https://admin.exploreourspace.com",
+        "https://ourspace-staging.vercel.app"
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
@@ -103,6 +105,7 @@ app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/paystack", paystackRoutes);
 app.use("/api/v1/wallet", walletRoutes)
+app.use("/api/v1/calendar", calendarRoutes)
 
 // Admin routes
 app.use("/api/v1/admin/dashboard", adminDashboardR);

@@ -13,6 +13,18 @@ export const formatDate = (date) => {
       hour12: true  // e.g. "10:23 AM"
     });
 };
+
+export const formatDateWithoutTime = (date) => {
+    return new Date(date).toLocaleString('en-US', {
+      month: 'short',  // e.g. "Aug"
+      day: 'numeric',  // e.g. "16"
+      weekday: 'short' // e.g "Wed"
+      // year: 'numeric', // Uncomment if you want to include the year
+      // hour: 'numeric',  // Remove these lines to exclude time
+      // minute: 'numeric', // Remove these lines to exclude time
+      // hour12: true // Remove this line if you don't want AM/PM
+    });
+};
   
 // Function to format the amount with commas
 export const formatAmount = (amount) => {
