@@ -65,7 +65,7 @@ const corsOptions = {
         "https://ourspace-admin-6rlb.vercel.app",
         "https://www.exploreourspace.com",
         "https://admin.exploreourspace.com",
-        "https://ourspace-staging.vercel.app/"
+        "https://ourspace-staging.vercel.app"
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
