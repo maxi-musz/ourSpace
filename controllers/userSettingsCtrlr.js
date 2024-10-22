@@ -73,7 +73,7 @@ const editProfileInfo = asyncHandler(async (req, res) => {
         if (state) user.state = state;
         if (city) user.city = city;
         if (homeAddress) user.homeAddress = homeAddress;
-        if (phoneNumber) user.phoneNumber = phoneNumber;
+        if (phoneNumber) user.phoneNumber = phoneNumber; 
 
         let removedImage = req.body.removedImage; // Changed to singular
 

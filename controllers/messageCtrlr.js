@@ -162,13 +162,9 @@ const spaceOwnerGetAllChats = async (req, res) => {
 const spaceUserGetAllChats = async (req, res) => {
   console.log("Space user get all chats".yellow);
 
-  console.log("Request User Object:", req.user);
-
   try {
     const currentUserId = req.user._id;
     const userType = req.user.userType;
-
-    console.log(`Current user id: ${currentUserId}\nUserType: ${userType}`);
 
     if (userType !== "space-user") {
       console.log("Only space users are allowed".red);
@@ -323,7 +319,7 @@ const getMessagesForAListing = asyncHandler(async (data) => {
 
 //                                 send message
 const sendMessage = asyncHandler(async (data) => {
-  console.log("Sending a new message".yellow);
+  console.log("Sending a new message".cyan);
 
   try {
     const { senderId, listingId, content, receiverId, messageMedia, voiceNote } = data;
@@ -402,8 +398,6 @@ const sendMessage = asyncHandler(async (data) => {
       messageMedia: newMessage.messageMedia || [],
       voiceNote: newMessage.voiceNote || []
     };
-
-    // console.log(`Response: ${formattedResponse}`.america)
 
     return formattedResponse
   } catch (error) {
@@ -493,6 +487,7 @@ const postmanSendMessage = asyncHandler(async (req, res) => {
     };
 
     // Send a success response with the formatted data
+    console.log("New message successfully sesaved to db".magenta)
     return res.status(201).json({
       success: true,
       message: "Message sent successfully",

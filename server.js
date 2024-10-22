@@ -46,6 +46,8 @@ import profileRoutes from "./routes/profileRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import paystackRoutes from "./routes/extras/paystackRoutes.js";
 import socketHandlers from "./config/socketConfig.js"
+import walletRoutes from "./routes/walletRoutes.js"
+import calendarRoutes from "./routes/calendarRoutes.js"
 
 // Admin routes
 import adminDashboardR from "./routes/adminRoutes/adminDashboardR.js";
@@ -92,20 +94,17 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-<<<<<<< HEAD
+
 const corsOptions = {
-=======
-// CORS configuration
-const corsOptions = {
-    // origin: [
-    //     "http://localhost:3000", 
-    //     "https://exploreourspace.com",
-    //     "https://ourspace-git-dev-ourspace-global.vercel.app/",
-    //     "https://ourspace-kxwcfzd7a-ourspace-global.vercel.app/", 
-    //     "https://ourspace-admin-6rlb.vercel.app/dashboard",
-    // ],
->>>>>>> ourspace/test
-    origin: "*",
+    origin: [
+        "http://localhost:3000", 
+        "http://localhost:3001", 
+        "https://ourspace-git-dev-ourspace-global.vercel.app",
+        "https://ourspace-admin-6rlb.vercel.app",
+        "https://www.exploreourspace.com",
+        "https://admin.exploreourspace.com",
+        "https://ourspace-staging.vercel.app",
+    ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
     optionsSuccessStatus: 200
@@ -194,6 +193,8 @@ app.use("/api/v1/settings", userSettingsR);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/paystack", paystackRoutes);
+app.use("/api/v1/wallet", walletRoutes)
+app.use("/api/v1/calendar", calendarRoutes)
 
 // Admin routes
 app.use("/api/v1/admin/dashboard", adminDashboardR);
@@ -222,7 +223,7 @@ app.get("/api/v1", (req, res) => {
     res.send("ourSpace API is running");
 });
 
-// // Cron job for production environment
+// Cron job for production environment
 // if (process.env.NODE_ENV === "production") {
 //     cron.schedule('*/2 * * * *', async () => {
 //         // console.log('Calling ourSpace API every 2 minutes'.green);

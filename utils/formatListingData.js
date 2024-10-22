@@ -275,7 +275,6 @@ export const formatSaveForLaterListingData = (req) => {
         : req.body['calendar.bookedDays'].split(',').map(date => date.trim());
     }
   }
-
   return formattedData;
 };
 

@@ -11,7 +11,9 @@ import { otpVerificationCodeTemplate } from '../email_templates/otpVerificationC
 =======
 import { welcomeEmail } from '../email_templates/welcomeMail.js';
 import { successfulPaymentMail } from '../email_templates/successfulPaymentMail.js';
->>>>>>> ourspace/test
+import { listingRejectedEmail } from '../email_templates/listingRejectionEmail.js';
+import { ListingApprovedMail } from '../email_templates/listingApprovedEmail.js';
+import { successfulBookingMailToSpaceOwner } from '../email_templates/successfulBookingMailToSpaceOwner.js';
 
 const hashFunction = async (data) => {
   const saltRounds = 10; // Salt rounds for bcrypt
@@ -115,6 +117,71 @@ export const sendWelcomeEmail = async (email, firstName) => {
   }
 }
 
+export const sendListingApprovedEmail= async (email, fullName, listingName, approvalDate) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, 
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    const htmlContent = await ListingApprovedMail(fullName, listingName, approvalDate);
+
+    const mailOptions = {
+      from: {
+        name: "Ourspace",
+        address: process.env.EMAIL_USER,
+      },
+      to: email,
+      subject: `new listing successfully approved`,
+      html: htmlContent
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    throw new Error('Failed to send welcome email');
+  }
+}
+
+export const sendListingRejectedEmail= async (email, fullName, listingName, rejectionDate, rejectionReason) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    const htmlContent = await listingRejectedEmail(fullName, listingName, rejectionDate, rejectionReason);
+
+    const mailOptions = {
+      from: {
+        name: "Ourspace",
+        address: process.env.EMAIL_USER,
+      },
+      to: email,
+      subject: `New listing rejected`,
+      html: htmlContent
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending listing rejection email:', error);
+    throw new Error('Failed to send listing rejection email');
+  }
+}
+
+
 export const sendSuccessfulPaymentMail = async (email, fullName, apartmentName, totalNight, amountPaid) => {
   try {
     const transporter = nodemailer.createTransport({
@@ -136,14 +203,45 @@ export const sendSuccessfulPaymentMail = async (email, fullName, apartmentName, 
         address: process.env.EMAIL_USER,
       },
       to: email,
-      subject: `Payment successful for new bookings: ${amountPaid}`,
+      subject: `Payment successful for new bookings: #${amountPaid}`,
       html: htmlContent
     };
 
     await transporter.sendMail(mailOptions);
   } catch (error) {
-    console.error('Error sending welcome email:', error);
-    throw new Error('Failed to send welcome email');
+    console.error('Error sending successful bookings payment email:', error);
+    throw new Error('Failed to send successful bookings payment email');
+  }
+}
+export const sendSuccessfulBookingMailToSpaceOwner = async (email, spaceUserName, apartmentName, totalNight, daysBooked, totalPaid) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    const htmlContent = await successfulBookingMailToSpaceOwner(spaceUserName, apartmentName, totalNight, daysBooked, totalPaid);
+
+    const mailOptions = {
+      from: {
+        name: "Ourspace",
+        address: process.env.EMAIL_USER,
+      },
+      to: email,
+      subject: `New successful booking: #${totalPaid}`,
+      html: htmlContent
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending successful booking email to space owner:', error);
+    throw new Error('Error sending successful booking email to space owner');
   }
 }
 

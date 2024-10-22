@@ -3,6 +3,9 @@ import opencage from 'opencage-api-client';
 import asyncHandler from "../../middleware/asyncHandler.js"
 import Listing from "../../models/listingModel.js"
 import cloudinaryConfig from '../../uploadUtils/cloudinaryConfig.js';
+import { validateListingRequiredFields } from '../../utils/validateListings.js';
+import sendEmail from '../../utils/sendMail.js';
+import { sendListingApprovedEmail, sendListingRejectedEmail } from '../../utils/authUtils.js';
 
 <<<<<<< HEAD
 const getCoordinates = async (address) => {
@@ -214,16 +217,16 @@ const updateListingStatus = asyncHandler(async (req, res) => {
 
     try {
         const { listingId, newListingStatus } = req.query;
-        console.log(newListingStatus, listingId)
 
-        if (!newListingStatus || !["approved", "rejected",'active', 'inactive', 'pending', 'draft', 'archived', 'blocked'].includes(newListingStatus)) {
+        // Validate the new listing status
+        if (!newListingStatus || !["approved", "rejected", 'active', 'inactive', 'pending', 'draft', 'archived', 'blocked'].includes(newListingStatus)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid listing status'
             });
         }
 
-        const listing = await Listing.findById(listingId);
+        const listing = await Listing.findById(listingId).populate('user');
 
         if (!listing) {
             return res.status(404).json({
@@ -232,29 +235,61 @@ const updateListingStatus = asyncHandler(async (req, res) => {
             });
         }
 
-        if(newListingStatus === "approved" || newListingStatus === "active") {
+        // Perform validation for required fields when approving the listing
+        if (newListingStatus === "approved") {
+            const validationErrors = validateListingRequiredFields(listing);
+
+            const to = listing.user.email;
+            const fullName = listing.user.firstName;
+            const listingName = listing.propertyName
+            const rejectionDate = new Date()
+            const approvalDate = new Date()
+
+            if (validationErrors.length > 0) {
+                const formattedErrors = validationErrors.join('<br>');
+
+                // Send mail to notify the listing owner
+                const to = listing.user.email;
+                const fullName = listing.user.firstName;
+                const listingName = listing.propertyName
+                const rejectionReason = formattedErrors
+                
+
+                await sendListingRejectedEmail(to, fullName, listingName, rejectionDate, rejectionReason)
+
+                console.log("Listing cannot be approved. An email containing the missing details has already also been sent to the property owner".red)
+                return res.status(400).json({
+                    success: false,
+                    message: 'Listing cannot be approved. An email containing the missing details has already also been sent to the property owner. The following fields are missing or invalid:',
+                    data: validationErrors
+                });
+            }
+
+            // If no validation errors, update the status to approved and listed
+            console.log("Sending email to user for successful approval".blue)
+            await sendListingApprovedEmail(to, fullName, listingName, approvalDate)
+
             listing.listingStatus = newListingStatus;
-            listing.status = "listed"
-
-            await listing.save();
-
-            res.status(200).json({
-                success: true,
-                message: 'Listing status updated successfully',
-                data: listing
-            });
+            listing.status = "listed";
+        } else if (newListingStatus === "active") {
+            // If marking as active, update the status
+            listing.listingStatus = newListingStatus;
+            listing.status = "listed";
         } else {
+            // For other statuses, mark the listing as unlisted
             listing.listingStatus = newListingStatus;
-            listing.status = "unlisted"
-
-            await listing.save();
-
-            res.status(200).json({
-                success: true,
-                message: 'Listing status updated successfully',
-                data: listing
-            });
+            listing.status = "unlisted";
         }
+
+        // Save the updated listing
+        await listing.save();
+
+        console.log("Listing status successful updated".magenta)
+        res.status(200).json({
+            success: true,
+            message: 'Listing status updated successfully',
+            data: listing
+        });
     } catch (error) {
         console.error(`Error updating listing status: ${error.message}`.red);
         return res.status(500).json({
@@ -264,6 +299,7 @@ const updateListingStatus = asyncHandler(async (req, res) => {
         });
     }
 });
+
 
 const tempUpdateListingStatus = asyncHandler(async (req, res) => {
     console.log("Updating listing status".yellow);
@@ -349,4 +385,4 @@ export {
     updateListingStatus,
     updateStatus,
     tempUpdateListingStatus
-}
+} 

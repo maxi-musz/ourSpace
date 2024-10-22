@@ -5,7 +5,14 @@ import sendEmail from "../utils/sendMail.js"
 import Booking from '../models/bookingModel.js';
 import Notification from '../models/notificationModel.js';
 import Message from '../models/messageModel.js';
-import { sendSuccessfulPaymentMail } from '../utils/authUtils.js';
+import { sendSuccessfulBookingMailToSpaceOwner, sendSuccessfulPaymentMail } from '../utils/authUtils.js';
+import { formatAmount } from '../utils/helperFunction.js';
+import Wallet from '../models/walletModel.js';
+
+function generateInvoiceId() {
+    const randomDigits = Array.from({ length: 8 }, () => Math.floor(Math.random() * 10)).join('');
+    return `#${randomDigits}`;
+}
 
 export const checkAvailability = asyncHandler(async (req, res) => {
     console.log("Checking availability before booking endpoint...".blue);
@@ -94,13 +101,12 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
     const userId = req.user._id
 
     const {
-        email, amountInNaira, callBackUrl,listingId, newBookedDays,
+        email, callBackUrl,listingId, newBookedDays,
         firstName, lastName, phoneNumber, bookingForSomeone, totalGuest, discount
     } = req.body;
 
     const requiredFields = {
-        email, 
-        amountInNaira, 
+        email,
         callBackUrl, 
         listingId, 
         newBookedDays, 
@@ -122,10 +128,20 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 
-    const amountInKobo = amountInNaira * 100;
+    
 
     // Retrieve listing from database
-    const listing = await Listing.findById(listingId);
+    const listing = await Listing.findById(listingId).populate('user');
+
+    const listingCharge = listing.chargePerNight
+    const totalNights = newBookedDays.length - 1
+    const amountIncurred = listingCharge * totalNights
+    const totalAmountIncured = amountIncurred + 2000
+    const listingDiscount = listing.discount
+
+    console.log("Booked dates: ", newBookedDays)
+
+    const amountInKobo = totalAmountIncured * 100;
 
     if (!listing) {
         console.log("Listing not found".red)
@@ -172,6 +188,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         const newBooking = await Booking.create({
             user: userId,
             listing: listingId,
+            spaceOwnerId: listing.user._id,
             paystackRef: reference,
             paystackAccessCode: access_code,
             paystackReference: reference,
@@ -183,23 +200,28 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             bookingForSomeone,
             bookedDays: newBookedDays,
             totalGuest,
-            amount: amountInNaira,
+            chargePerNight: listingCharge,
+            totalNight: totalNights,
+            totalIncuredCharge: totalAmountIncured,
+            totalIncuredChargeAfterDiscount: totalAmountIncured,
             discount: discount || 0
         });
-
         await newBooking.save()
         
 
-        console.log(`Transaction initialized for amount: ₦${amountInNaira}`.cyan);
-
+        console.log(`charge per night: ${listingCharge}\nTotal nights booked: ${totalNights}\nTotal incured charge: ${totalAmountIncured}\n`.cyan)
         res.status(200).json({
             success: true,
-            message: `Transaction initialized successfully and new booking created.`,
+            message: `Transaction initialized. Total amount incured for ${totalNights} night(s) at ${listingCharge} per night is: ${totalAmountIncured}`,
             data: {
                 authorization_url,
                 access_code,
                 reference,
                 callBackWithReference,
+                chargePerNight: listingCharge,
+                totalNights: totalNights,
+                totalIncuredAmount: totalAmountIncured
+
             },
         });
     } catch (error) {
@@ -210,7 +232,6 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 });
-
 
 export const handleWebhook = async (req, res) => {
     const event = req.body;
@@ -285,7 +306,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        const booking = await Booking.findOne({ paystackReference: reference }).populate('user');
+        const booking = await Booking.findOne({ paystackReference: reference }).populate('user').populate('listing');
 
         if (!booking) {
             console.log("Payment was successful, but the booking was not found in the database".red);
@@ -295,17 +316,19 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        if (booking.paystackPaymentStatus === 'success') {
-            console.log("booking has already been verified as successful".bgRed);
-            return res.status(400).json({
-                success: false,
-                message: 'Transaction has already been verified as successful.',
-            });
-        }
+        // if (booking.paystackPaymentStatus === 'success') {
+        //     console.log("booking has already been verified as successful".bgRed);
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'Transaction has already been verified as successful.',
+        //     });
+        // }
 
-        const normalAmount = paystackKoboAmount / 100;
+        const amountPaidToPaystack = paystackKoboAmount / 100;
 
-        if (booking.amount !== normalAmount) {
+        console.log(`Total incured charge: ${booking.totalIncuredCharge}\nAmount paid by user: ${amountPaidToPaystack}`.yellow)
+
+        if (booking.totalIncuredCharge !== amountPaidToPaystack) {
             console.log("Paid amount does not match expected amount.".red)
             return res.status(400).json({
                 success: false,
@@ -313,22 +336,13 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        console.log("Listing apartment Name: ",listing.propertyName)
         const totalNights = booking.bookedDays
         const totalBookedNights = totalNights.length
-        await sendSuccessfulPaymentMail(
-            userId.email, 
-            userId.firstName, 
-            listing.propertyName, 
-            totalBookedNights, 
-            normalAmount
-          );
-          
-        console.log("Payment confirmed, and email sent".cyan);
 
-        // Update transaction status to 'success'
+        // Step 5: Update the booking's status and generate invoiceId
         booking.paystackPaymentStatus = 'success';
         booking.bookingStatus = 'upcoming';
+        booking.invoiceId = generateInvoiceId();
         await booking.save();
 
         if (!booking) {
@@ -339,17 +353,13 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        
-
         if(listing) {
-            
             const newBookedDays = booking.bookedDays;
             console.log("Booked days: ",newBookedDays)
             listing.calendar.bookedDays = [...listing.calendar.bookedDays, ...newBookedDays];
             // Check if the user is already in propertyUsers
             if (!listing.propertyUsers.includes(userId)) {
-                listing.propertyUsers.push(userId); // Add the current user's ID to the propertyUsers array
-                // console.log(`User ${userId} added to propertyUsers array of listing ${listingId}`.green);
+                listing.propertyUsers.push(userId); 
             } else {
                 console.log(`User ${userId} already exists in propertyUsers array of listing ${listingId}`.yellow);
             }
@@ -359,14 +369,13 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             console.log("Transaction verified, listing and booking details updated successfully.".cyan);
 
             const listingOwner = listing.user;
-            const displayImage = listingOwner.profilePic.url || '';
 
             // create a new notification
             await Notification.create({
                 user: userId,
                 listing: listingId,
                 title: listing.propertyName,
-                subTitle: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
+                subTitle: `Your payment of ₦${formatAmount(amountPaidToPaystack)} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
             });
 
             console.log("Notification created successfully.".green);
@@ -377,9 +386,62 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
                 receiver: req.user._id,
                 listing: listingId,
                 propertyUserId: req.user._id, 
-                content: `Your payment of ₦${normalAmount} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
+                content: `Your payment of ₦${formatAmount(amountPaidToPaystack)} has been confirmed and your booking is successful for ${newBookedDays.length} day(s) at ${listing.propertyName}`,
             });
 
+            const formattedAmount = formatAmount(amountPaidToPaystack)
+
+            // Send mail to space user
+            await sendSuccessfulPaymentMail(
+                req.user.email, 
+                req.user.firstName, 
+                listing.propertyName, 
+                totalBookedNights, 
+                formattedAmount
+            );
+
+            const formattedBookingTotalCharge = formatAmount(booking.totalIncuredCharge)
+    
+            // Send mail to listing owner
+            await sendSuccessfulBookingMailToSpaceOwner(
+                listing.user.email,
+                req.user.firstName,
+                listing.propertyName,
+                totalBookedNights,
+                booking.bookedDays,
+                formattedBookingTotalCharge
+            )
+
+            // const wallet = await Wallet.find({user: listing.user._id})
+
+            // if(!wallet || wallet) {
+            //     const newTotalEarned = wallet.totalEarned + booking.totalIncuredCharge
+            //     const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn
+
+            //     wallet.totalEarned = newTotalEarned
+            //     wallet.currentBalance = newCurrentBalance
+            // }
+
+            let wallet = await Wallet.findOne({ user: listing.user._id });
+
+            if (!wallet) {
+                // If no wallet exists, create a new wallet for the user
+                wallet = new Wallet({
+                    user: listing.user._id,
+                    totalEarned: booking.totalIncuredCharge,
+                    currentBalance: booking.totalIncuredCharge,
+                    totalWithdrawn: 0
+                });
+            } else {
+                // Update the existing wallet
+                const newTotalEarned = wallet.totalEarned + booking.totalIncuredCharge;
+                const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn;
+
+                wallet.totalEarned = newTotalEarned;
+                wallet.currentBalance = newCurrentBalance;
+            }
+
+            await wallet.save();
 
             res.status(200).json({
                 success: true,

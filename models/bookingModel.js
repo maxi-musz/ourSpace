@@ -11,6 +11,15 @@ const bookingSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    spaceOwnerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      invoiceId: { 
+        type: String, 
+        default: null, 
+        unique: true 
+    },
     paystackAccessCode: { type: String, required: true },
     paystackReference: { type: String, required: true },
     paystackPaymentStatus: {
@@ -60,17 +69,66 @@ const bookingSchema = new mongoose.Schema({
         required: true,
         min: [1, 'At least one guest is required.']
     },
-    amount: {
+
+    chargePerNight: {
         type: Number,
         required: true,
-        min: [0, 'Amount cannot be negative.']
+        min: [0, 'Charge per night cannot be negative.']
     },
+
+    totalNight: {
+        type: Number,
+        required: true,
+        min: [0, 'Total night is required.']
+    },
+
+    totalIncuredCharge: {
+        type: Number,
+        required: true,
+        min: [0, 'Total incured charge is required.']
+    },
+
+    totalIncuredChargeAfterDiscount: {
+        type: Number,
+        required: true,
+        min: [0, 'Total incured charge is required.']
+    },
+
     discount: {
         type: Number,
         default: 0,
         min: [0, 'Discount cannot be negative.']
     },
 }, { timestamps: true });
+
+// Pre-save hook to generate and assign a unique invoiceId
+bookingSchema.pre('save', async function (next) {
+    const booking = this;
+
+    // Only generate if invoiceId is not already set
+    if (!booking.invoiceId) {
+        let isUnique = false;
+        let invoiceId;
+
+        // Generate new invoiceId until it's unique
+        while (!isUnique) {
+            invoiceId = generateInvoiceId();
+            const existingBooking = await mongoose.models.Booking.findOne({ invoiceId });
+            if (!existingBooking) {
+                isUnique = true;
+            }
+        }
+
+        booking.invoiceId = invoiceId;
+    }
+
+    next();
+});
+
+function generateInvoiceId() {
+  const randomDigits = Array.from({ length: 8 }, () => Math.floor(Math.random() * 10)).join('');
+  return `#${randomDigits}`;
+}
 
 const Booking = mongoose.model('Booking', bookingSchema);
 
