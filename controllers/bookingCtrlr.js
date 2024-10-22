@@ -342,7 +342,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
         }
 
         const totalNights = booking.bookedDays
-        const totalBookedNights = totalNights.length - 1
+        const totalBookedNights = totalNights.length
 
         // Step 5: Update the booking's status and generate invoiceId
         booking.paystackPaymentStatus = 'success';
@@ -374,6 +374,37 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             console.log("Transaction verified, listing and booking details updated successfully.".cyan);
 
             const listingOwner = listing.user;
+
+            console.log("Updating wallet".blue) 
+
+            let wallet = await Wallet.findOne({ user: listing.user._id });
+
+            // Subtract 10% and 2000 from the total incurred charge
+            const realListingChargePerNIght = listing.chargePerNightWithout10Percent
+            console.log("type: ", typeof(realListingChargePerNIght))
+
+            // console.log(`Total incured charge: ${booking.totalIncuredCharge} \nsemi final incured charge: ${semiFinalIncuredCharge}\nAfter removing 10%: ${afterRemoving10Percent} \nfinal incured charge: ${newTotalIncuredCharge}`.cyan)
+
+            if (!wallet) {
+                console.log("No wallet info found, creating a new one".yellow);
+                // If no wallet exists, create a new wallet for the user
+                wallet = new Wallet({
+                    user: listing.user._id,
+                    totalEarned: realListingChargePerNIght,  // Use final incurred charge
+                    currentBalance: realListingChargePerNIght, // Use final incurred charge
+                    totalWithdrawn: 0
+                });
+            } else {
+                // Update the existing wallet
+                const newTotalEarned = wallet.totalEarned + realListingChargePerNIght;
+                const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn;
+
+                wallet.totalEarned = newTotalEarned;
+                wallet.currentBalance = newCurrentBalance;
+            }
+
+            await wallet.save();
+            console.log("Wallet successfully updated".green)
 
             // create a new notification
             await Notification.create({
@@ -417,30 +448,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
                 formattedBookingTotalCharge
             )
 
-            let wallet = await Wallet.findOne({ user: listing.user._id });
-
-            // Subtract 10% and 2000 from the total incurred charge
-            const finalIncuredCharge = booking.totalIncuredCharge - (booking.totalIncuredCharge * 0.1) - 2000;
-
-            if (!wallet) {
-                console.log("No wallet info found, creating a new one".yellow);
-                // If no wallet exists, create a new wallet for the user
-                wallet = new Wallet({
-                    user: listing.user._id,
-                    totalEarned: finalIncuredCharge,  // Use final incurred charge
-                    currentBalance: finalIncuredCharge, // Use final incurred charge
-                    totalWithdrawn: 0
-                });
-            } else {
-                // Update the existing wallet
-                const newTotalEarned = wallet.totalEarned + finalIncuredCharge;
-                const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn;
-
-                wallet.totalEarned = newTotalEarned;
-                wallet.currentBalance = newCurrentBalance;
-            }
-
-            await wallet.save();
+            
 
 
             console.log("Wallet: ", wallet)

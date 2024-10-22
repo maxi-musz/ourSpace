@@ -141,6 +141,9 @@ const createListing = asyncHandler(async (req, res) => {
     console.log('Formatting listings'.cyan);
     const formattedData = formatListingData(req);
 
+    const chargePerNightWithout10Percent = formattedData.chargePerNight
+    console.log("pure charge per night: ", chargePerNightWithout10Percent)
+
     formattedData.chargePerNight = Math.round(formattedData.chargePerNight * 1.1);
 
     let latitude, longitude;
@@ -216,6 +219,7 @@ const createListing = asyncHandler(async (req, res) => {
     // Create a new listing in the database
     const newListingData = {
       ...formattedData,
+      chargePerNightWithout10Percent,
       user: userId,
       propertyId: generateListingId(),
       propertyLocation: {
