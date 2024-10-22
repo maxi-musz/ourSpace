@@ -128,18 +128,23 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 
+    const uniqueBookedDays = newBookedDays.length === 2 && newBookedDays[0] === newBookedDays[1] 
+    ? [newBookedDays[0]] // Only keep one if both dates are the same
+    : newBookedDays;
+
+    console.log("Final Booked dates: ", uniqueBookedDays);
     
 
     // Retrieve listing from database
     const listing = await Listing.findById(listingId).populate('user');
 
     const listingCharge = listing.chargePerNight
-    const totalNights = newBookedDays.length - 1
+    const totalNights = uniqueBookedDays.length
     const amountIncurred = listingCharge * totalNights
     const totalAmountIncured = amountIncurred + 2000
     const listingDiscount = listing.discount
 
-    console.log("Booked dates: ", newBookedDays)
+    console.log("Booked dates: ", uniqueBookedDays)
 
     const amountInKobo = totalAmountIncured * 100;
 
@@ -151,7 +156,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 
-    const conflictingDates = listing.calendar.unavailableDays.filter(date => newBookedDays.includes(date));
+    const conflictingDates = listing.calendar.unavailableDays.filter(date => uniqueBookedDays.includes(date));
 
     if (conflictingDates.length > 0) {
         console.log("Some of the selected dates are already booked".red)
@@ -198,7 +203,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             email,
             phoneNumber,
             bookingForSomeone,
-            bookedDays: newBookedDays,
+            bookedDays: uniqueBookedDays,
             totalGuest,
             chargePerNight: listingCharge,
             totalNight: totalNights,
@@ -337,7 +342,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
         }
 
         const totalNights = booking.bookedDays
-        const totalBookedNights = totalNights.length
+        const totalBookedNights = totalNights.length - 1
 
         // Step 5: Update the booking's status and generate invoiceId
         booking.paystackPaymentStatus = 'success';
@@ -412,29 +417,23 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
                 formattedBookingTotalCharge
             )
 
-            // const wallet = await Wallet.find({user: listing.user._id})
-
-            // if(!wallet || wallet) {
-            //     const newTotalEarned = wallet.totalEarned + booking.totalIncuredCharge
-            //     const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn
-
-            //     wallet.totalEarned = newTotalEarned
-            //     wallet.currentBalance = newCurrentBalance
-            // }
-
             let wallet = await Wallet.findOne({ user: listing.user._id });
 
+            // Subtract 10% and 2000 from the total incurred charge
+            const finalIncuredCharge = booking.totalIncuredCharge - (booking.totalIncuredCharge * 0.1) - 2000;
+
             if (!wallet) {
+                console.log("No wallet info found, creating a new one".yellow);
                 // If no wallet exists, create a new wallet for the user
                 wallet = new Wallet({
                     user: listing.user._id,
-                    totalEarned: booking.totalIncuredCharge,
-                    currentBalance: booking.totalIncuredCharge,
+                    totalEarned: finalIncuredCharge,  // Use final incurred charge
+                    currentBalance: finalIncuredCharge, // Use final incurred charge
                     totalWithdrawn: 0
                 });
             } else {
                 // Update the existing wallet
-                const newTotalEarned = wallet.totalEarned + booking.totalIncuredCharge;
+                const newTotalEarned = wallet.totalEarned + finalIncuredCharge;
                 const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn;
 
                 wallet.totalEarned = newTotalEarned;
@@ -442,6 +441,9 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             }
 
             await wallet.save();
+
+
+            console.log("Wallet: ", wallet)
 
             res.status(200).json({
                 success: true,
