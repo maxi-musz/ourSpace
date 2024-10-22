@@ -138,8 +138,10 @@ const createListing = asyncHandler(async (req, res) => {
   };
 
   try {
-    console.log('Formatting listings');
+    console.log('Formatting listings'.cyan);
     const formattedData = formatListingData(req);
+
+    formattedData.chargePerNight = Math.round(formattedData.chargePerNight * 1.1);
 
     let latitude, longitude;
 

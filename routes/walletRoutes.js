@@ -1,5 +1,5 @@
 import express from "express";
-import { getBookingPDF, getSingleBookingFromWalletDashboard, getWallet } from "../controllers/walletController.js";
+import { getBookingPDF, getSingleBookingFromWalletDashboard, getWallet, spaceOwnerGetBanks, spaceOwnerVerifyBankDetails, } from "../controllers/walletController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router()
@@ -16,5 +16,14 @@ router
 router
 .route("/download-invoice-as-pdf")
 .get(protect, getBookingPDF)
+
+router
+.route("/withdraw-funds")
+.get(protect, spaceOwnerGetBanks)
+
+router
+.route("/verify-bank-details")
+.get(protect, spaceOwnerVerifyBankDetails)
+
 export default router
 
