@@ -135,7 +135,8 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
 
     const listingCharge = listing.chargePerNight
     const totalNights = newBookedDays.length
-    const totalAmountIncured = listingCharge * totalNights + 2000
+    const amountIncurred = listingCharge * totalNights
+    const totalAmountIncured = amountIncurred + 2000
     const listingDiscount = listing.discount
 
     const amountInKobo = totalAmountIncured * 100;
