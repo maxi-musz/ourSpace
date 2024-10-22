@@ -522,6 +522,38 @@ export const handleCallback = async (req, res) => {
     }
 }; 
 
+export const adjustRealChargePerNight = asyncHandler(async (req, res) => {
+    console.log("Adjusting real charge per night and adding 10%".yellow);
+
+    // Fetch all listings
+    const listings = await Listing.find();
+    
+    if (listings && listings.length > 0) {
+        console.log(`Total of ${listings.length} listings found`.green);
+
+        // Iterate over each listing to update its chargePerNight and add chargePerNightWithout10Percent
+        for (const listing of listings) {
+            
+            // Set the chargePerNightWithout10Percent to the current value of chargePerNight
+            listing.chargePerNightWithout10Percent = Math.round(listing.chargePerNightWithout10Percent);
+
+            // Update chargePerNight by adding 10%
+            listing.chargePerNight = Math.round(listing.chargePerNight * 1.1)
+
+            // Save the updated listing back to the database
+            await listing.save();
+            
+            console.log(`Updated listing with ID: ${listing._id}`.cyan);
+        }
+
+        res.status(200).json({ message: 'Listings updated successfully', totalListingsUpdated: listings.length });
+    } else {
+        console.log("No listings found.".red);
+        res.status(404).json({ message: 'No listings found' });
+    }
+});
+
+
 export const getBookingsForListingId = asyncHandler(async (req, res) => {
     const { listingId } = req.params;
   
