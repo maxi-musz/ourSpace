@@ -134,10 +134,12 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
     const listing = await Listing.findById(listingId).populate('user');
 
     const listingCharge = listing.chargePerNight
-    const totalNights = newBookedDays.length
+    const totalNights = newBookedDays.length - 1
     const amountIncurred = listingCharge * totalNights
     const totalAmountIncured = amountIncurred + 2000
     const listingDiscount = listing.discount
+
+    console.log("Booked dates: ", newBookedDays)
 
     const amountInKobo = totalAmountIncured * 100;
 
