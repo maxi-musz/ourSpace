@@ -1,29 +1,37 @@
 import express from "express";
-import { getBookingPDF, getSingleBookingFromWalletDashboard, getWallet, spaceOwnerGetBanks, spaceOwnerVerifyBankDetails, } from "../controllers/walletController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import { getBookingPDF, soGetSingleBookingFromWalletDashboard, spaceOwnerGetBanksAndSavedAccount, spaceOwnerGetWallet, spaceOwnerSaveNewAccountDetails, spaceOwnerVerifyAccountNumber } from "../controllers/walletController.js";
 
 const router = express.Router()
 
 
 router
-.route("/get-wallet-dashboard")
-.get(protect, getWallet)
+.route("/so-get-wallet-dashboard")
+.get(protect, spaceOwnerGetWallet)
 
 router
-.route("/view-payment-invoice")
-.get(protect, getSingleBookingFromWalletDashboard)
+.route("/so-view-payment-invoice")
+.get(protect, soGetSingleBookingFromWalletDashboard)
 
 router
-.route("/download-invoice-as-pdf")
+.route("/so-download-invoice-as-pdf")
 .get(protect, getBookingPDF)
 
 router
-.route("/withdraw-funds")
-.get(protect, spaceOwnerGetBanks)
+.route("/so-withdraw-funds")
+.get(protect, spaceOwnerGetBanksAndSavedAccount)
 
 router
-.route("/verify-bank-details")
-.get(protect, spaceOwnerVerifyBankDetails)
+.route("/so-verify-account-number")
+.post(protect, spaceOwnerVerifyAccountNumber)
+
+router
+.route("/so-save-new-bank-details")
+.post(protect, spaceOwnerSaveNewAccountDetails)
+
+router
+.route("/so-save-new-bank-details")
+.post(protect, spaceOwnerSaveNewAccountDetails)
 
 export default router
 

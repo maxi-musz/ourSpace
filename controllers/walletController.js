@@ -3,8 +3,10 @@ import asyncHandler from "../middleware/asyncHandler.js";
 import Booking from "../models/bookingModel.js";
 import Wallet from "../models/walletModel.js";
 import { formatAmount, formatDate, generateBookingInvoicePDF } from "../utils/helperFunction.js";
+import BankDetails from "../models/bankModel.js";
+import User from "../models/userModel.js";
 
-const getWallet = asyncHandler(async (req, res) => {
+export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
     console.log("Getting wallet dashboard...".blue);
 
     let walletMetrics = await Wallet.findOne({user: req.user._id})
@@ -60,7 +62,7 @@ const getWallet = asyncHandler(async (req, res) => {
     }
 });
 
-const getSingleBookingFromWalletDashboard = asyncHandler(async (req, res) => {
+export const soGetSingleBookingFromWalletDashboard = asyncHandler(async (req, res) => {
     console.log("Getting single booking from wallet dashboard".cyan);
 
     const { walletBookingId } = req.body;  // If this is from a POST request
@@ -101,7 +103,7 @@ const getSingleBookingFromWalletDashboard = asyncHandler(async (req, res) => {
     }
 });
 
-const getBookingPDF = asyncHandler(async (req, res) => {
+export const getBookingPDF = asyncHandler(async (req, res) => {
     console.log("Generating invoice pdf".blue)
     const { walletBookingId } = req.body;
 
@@ -135,7 +137,7 @@ const getBookingPDF = asyncHandler(async (req, res) => {
     }
 });
 
-export const spaceOwnerGetBanks = async (req, res) => {
+export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) => {
     console.log("Getting all banks".yellow)
     try {
         const response = await axios.get('https://api.paystack.co/bank', {
@@ -144,9 +146,18 @@ export const spaceOwnerGetBanks = async (req, res) => {
             }
         });
 
+        const userSavedBankDetails = await BankDetails.find({user: req.user._id})
+
+        const formattedUserSavedBankAccounts = userSavedBankDetails.map(bank => ({
+            bankName: bank.bank_name,
+            accountNumber: bank.account_number,
+            accountName: bank.account_name,
+            bankCode: bank.bank_code
+        }))
+
         const { status, data } = response.data;
 
-        const formattedBanks = data.map(bank => ({
+        const formattedPaystackBanks = data.map(bank => ({
             name: bank.name,
             code: bank.code
         }));
@@ -156,7 +167,10 @@ export const spaceOwnerGetBanks = async (req, res) => {
             return res.status(200).json({
                 success: true,
                 message: "Bank list retrieved successfully",
-                banks: formattedBanks
+                data: {
+                    userSavedBankAccounts: formattedUserSavedBankAccounts,
+                    allBanks: formattedPaystackBanks
+                }
             });
         } else {
             console.log("Failed to retrieve bank list".red)
@@ -173,12 +187,13 @@ export const spaceOwnerGetBanks = async (req, res) => {
             message: "An error occurred while retrieving the bank list"
         });
     }
-};
+});
 
-export const spaceOwnerVerifyBankDetails = async (req, res) => {
-    const { account_number, bank_code } = req.body; // bank_code represents the bank name in paystack
-    
+export const spaceOwnerVerifyAccountNumber = asyncHandler(async (req, res) => {
+    const { account_number, bank_code } = req.body;
+
     try {
+        // Verify bank details with Paystack
         const response = await axios.get(`https://api.paystack.co/bank/resolve`, {
             params: {
                 account_number,
@@ -192,10 +207,12 @@ export const spaceOwnerVerifyBankDetails = async (req, res) => {
         const { status, data } = response.data;
 
         if (status) {
+
+            console.log("Account name successfully retrieved: ", data.account_name)
             return res.status(200).json({
                 success: true,
                 message: "Bank details verified successfully",
-                account_name: data.account_name // Return account name to the frontend
+                account_name: data.account_name
             });
         } else {
             return res.status(400).json({
@@ -203,7 +220,6 @@ export const spaceOwnerVerifyBankDetails = async (req, res) => {
                 message: "Failed to verify bank details"
             });
         }
-
     } catch (error) {
         console.error("Error verifying bank details", error);
         return res.status(500).json({
@@ -211,92 +227,150 @@ export const spaceOwnerVerifyBankDetails = async (req, res) => {
             message: "An error occurred while verifying bank details"
         });
     }
-};
+});
 
-export const createOrFindTransferRecipient = async (req, res) => {
-    const { account_number, bank_code, bank_name, account_name } = req.body;
+export const spaceOwnerSaveNewAccountDetails = asyncHandler(async (req, res) => {
+    console.log("User adding new account details for withdrawal".blue);
 
-    const userId = req.user._id
+    const userId = req.user._id;
 
-    try {
-        // Find the user's bank details in the database
-        let userBankDetails = await BankDetails.findOne({ user: userId });
+    const existingUser = await User.findById(userId);
 
-        if (userBankDetails) {
-            // Check if the bank account already exists
-            const existingBank = userBankDetails.banks.find(bank => 
-                bank.account_number === account_number && 
-                bank.bank_code === bank_code
-            );
-
-            if (existingBank) {
-                // Bank already exists, return the recipient_code
-                return res.status(200).json({
-                    success: true,
-                    message: "Transfer recipient already exists",
-                    recipient_code: existingBank.recipient_code,
-                });
-            }
-        } else {
-            // If no BankDetails entry exists for the user, create one
-            userBankDetails = new BankDetails({ user: userId, banks: [] });
-        }
-
-        // If no existing bank found, create a new transfer recipient via Paystack
-        const response = await axios.post(
-            `https://api.paystack.co/transferrecipient`, 
-            {
-                type: "nuban",
-                name: account_name,
-                account_number: account_number,
-                bank_code: bank_code,
-                currency: "NGN",
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
-                }
-            }
-        );
-
-        const { status, data } = response.data;
-
-        if (status) {
-            // Add the new bank and recipient_code to the user's bank array
-            const newBank = {
-                bank_name: bank_name,
-                bank_code: bank_code,
-                account_number: account_number,
-                account_name: account_name,
-                recipient_code: data.recipient_code,
-            };
-
-            userBankDetails.banks.push(newBank);
-            await userBankDetails.save();  // Save the new bank details
-
-            return res.status(200).json({
-                success: true,
-                message: "Transfer recipient created successfully",
-                recipient_code: data.recipient_code,
-            });
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: "Failed to create transfer recipient",
-            });
-        }
-
-    } catch (error) {
-        console.error("Error creating transfer recipient", error);
-        return res.status(500).json({
+    if (!existingUser) {
+        console.log("User not found".red);
+        return res.status(404).json({
             success: false,
-            message: "An error occurred while creating transfer recipient",
+            message: "User not found"
         });
     }
-};
+
+    const { account_number, bank_code } = req.body;
+
+    if (!bank_code || !account_number) {
+        console.log("Bank code and account number are required before saving new bank details");
+        return res.status(500).json({
+            success: false,
+            message: "Bank code and account number are required before saving new bank details"
+        });
+    }
+
+    // Check if the entered accountexists in the list of accounts fr that user first
+    let bankDetails = await BankDetails.findOne({ user: userId });
+    if(bankDetails) {
+        const existingAccount = bankDetails.banks.some(bank => bank.account_number === account_number);
+    
+        if (existingAccount) {
+            console.log("Bank account already exists in the list of saved banks".red);
+            return res.status(400).json({ success: false, message: 'Bank account already exists in the list of saved banks' });
+        }
+    }
+
+    // call paystack resolve to get account name
+    try {
+        const response = await axios.get(`https://api.paystack.co/bank/resolve`, {
+            params: {
+                account_number: account_number,
+                bank_code: bank_code
+            },
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`
+            }
+        });
+
+        const { status: resolve_status, data: resolve_data } = response.data;
+
+        // Ensure that Paystack returns valid data
+        if (resolve_status && resolve_data) {
+
+            console.log("Creating new transfer recipient".green) //Create new transfer recipient for the user
+            const transfer_recipient_response = await axios.post(
+                `https://api.paystack.co/transferrecipient`, 
+                {
+                    type: "nuban",
+                    name: resolve_data.account_name,
+                    account_number: resolve_data.account_number,
+                    bank_code: bank_code,
+                    currency: "NGN",
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
+                    }
+                }
+            );
+    
+            const { status: recipient_status, data:recipient_data } = transfer_recipient_response.data;
+            
+            if(recipient_status && recipient_data){
+                console.log("New transfer recipient successfully created", recipient_data.recipient_code)
+    
+                    // Push new bank details into the array
+                    if(bankDetails) {
+                        bankDetails.banks.push({
+                            bank_name: recipient_data.details.bank_name,
+                            account_number: recipient_data.details.account_number,
+                            account_name: recipient_data.details.account_name,
+                            bank_code: recipient_data.details.bank_code,
+                            transfer_recipient: recipient_data.recipient_code
+                        });
+
+                        await bankDetails.save()
+
+                        console.log("Successfully added a new bank details to the list of banks".rainbow)
+                        return res.status(200).json({
+                            success: true,
+                            message: "Successfully added a new bank details to the list of banks"
+                        })
+                    } else {
+                        bankDetails = new BankDetails ({
+                            user: userId,
+                            banks: {
+                                bank_name: recipient_data.details.bank_name,
+                                account_number: recipient_data.details.account_number,
+                                account_name: recipient_data.details.account_name,
+                                bank_code: recipient_data.details.bank_code,
+                                recipient_code: recipient_data.recipient_code
+                            }
+                        })
+                        await bankDetails.save()
+
+                        console.log("New bank account successfully saved".rainbow)
+
+                        return res.status(200).json({
+                            success: true,
+                            message: "New bank account successfully saved",
+                            data: bankDetails
+                        })
+                    }
+                    
+                } else {
+                    console.log("Error generating reciepint code".red)
+                    return res.status(400).json({
+                        success: false,
+                        message: "Error generating reciepint code"
+                    });
+                
+            }
+        } else {
+            console.log("Error verifying account number".red)
+            return res.status(400).json({
+                success: false,
+                message: "Error verifying account number"
+            });
+        }
+    } catch (error) {
+        console.error("Error verifying bank details", error);
+        return res.status(500).json({
+            success: false,
+            message: "An error occurred while verifying bank details"
+        });
+    }
+});
 
 export const initiateTransfer = async (req, res) => {
-    const { amount, recipient_code, reason } = req.body;
+    const { amount, recipient_code } = req.body;
+
+    const reason = "Withdrawal from wallet"
 
     try {
         const response = await axios.post(
@@ -304,8 +378,8 @@ export const initiateTransfer = async (req, res) => {
             {
                 source: "balance",  // Paystack balance
                 amount: amount * 100,  // Amount in kobo (multiply NGN by 100)
-                recipient: recipient_code,  // Transfer recipient's code
-                reason: reason || "Withdrawal from wallet",  // Optional transfer reason
+                recipient: recipient_code,  
+                reason: reason  
             },
             {
                 headers: {
@@ -315,6 +389,8 @@ export const initiateTransfer = async (req, res) => {
         );
 
         const { status, data } = response.data;
+
+        console.log("data from withdrawal request: ", data)
 
         if (status) {
             return res.status(200).json({
@@ -417,10 +493,3 @@ export const verifyTransaction = async (req, res) => {
         });
     }
 };
-
-
-export {
-    getWallet,
-    getSingleBookingFromWalletDashboard,
-    getBookingPDF
-}

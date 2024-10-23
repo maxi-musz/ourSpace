@@ -180,7 +180,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
+                    Authorization: `Bearer ${process.env.PAYSTACK_LIVE_SECRET_KEY}`,
                     'Content-Type': 'application/json',
                 },
             }
@@ -296,7 +296,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             `https://api.paystack.co/transaction/verify/${reference}`,
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
+                    Authorization: `Bearer ${process.env.PAYSTACK_LIVE_SECRET_KEY}`,
                 },
             }
         );
