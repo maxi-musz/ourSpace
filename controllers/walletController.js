@@ -50,7 +50,7 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
         const formattedWithdrawals = withdrawals.map((withdrawal) => ({
             id: withdrawal._id,
             invoiceId: withdrawal.paystack_id,
-            dateTime: formatDateWithoutTime(withdrawal.createdAt),
+            date: formatDate(withdrawal.createdAt),
             description: withdrawal.reason,
             status: withdrawal.status,
             amount: withdrawal.amount,
@@ -294,7 +294,7 @@ export const spaceOwnerSaveNewAccountDetails = asyncHandler(async (req, res) => 
     // Check if the entered accountexists in the list of accounts fr that user first
     let bankDetails = await BankDetails.findOne({ user: userId });
     if(bankDetails) {
-        const existingAccount = bankDetails.banks.some(bank => bank.account_number === account_number);
+        const existingAccount = bankDetails.banks.some(bank => bank.accountNumber === account_number);
     
         if (existingAccount) {
             console.log("Bank account already exists in the list of saved banks".red);
