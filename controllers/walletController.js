@@ -40,7 +40,7 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
             description: `${booking.listing.propertyId} - ${booking.listing.propertyName} (Room ${booking.listing.propertyLocation.apartmentNumber})`,
             spaceUserName: booking.user.firstName,
             totalNights: booking.totalNight,
-            amount: `${formatAmount(booking.totalIncuredChargeAfterDiscount)}`  
+            amount: booking.totalIncuredChargeAfterDiscount 
         }));
 
         return res.status(200).json({
@@ -48,9 +48,9 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
             message: `Total of ${bookings.length} bookings found`,
             data: {
                 wallet: {
-                    currentBalance: `${formatAmount(walletMetrics.currentBalance)}`,
-                    witdrawn: `${formatAmount(walletMetrics.totalWithdrawn)}`,
-                    allTimeEarned: `${formatAmount(walletMetrics.totalEarned)}`
+                    currentBalance: walletMetrics.currentBalance,
+                    witdrawn: walletMetrics.totalWithdrawn,
+                    allTimeEarned: walletMetrics.totalEarned
                 },
                 bookings: formattedBookings
             }
