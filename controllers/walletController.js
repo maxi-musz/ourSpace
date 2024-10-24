@@ -141,6 +141,7 @@ export const getBookingPDF = asyncHandler(async (req, res) => {
 
 export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) => {
     console.log("Getting all banks".yellow)
+    console.log("User", req.user._id)
     try {
         const response = await axios.get('https://api.paystack.co/bank', {
             headers: {
@@ -148,14 +149,18 @@ export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) =
             }
         });
 
-        const userSavedBankDetails = await BankDetails.find({user: req.user._id})
+        const userSavedBankDetails = await BankDetails.find({ user: req.user._id });
 
-        const formattedUserSavedBankAccounts = userSavedBankDetails.map(bank => ({
-            bankName: bank.bank_name,
-            accountNumber: bank.account_number,
-            accountName: bank.account_name,
-            bankCode: bank.bank_code
-        }))
+        const formattedUserSavedBankAccounts = userSavedBankDetails.flatMap(bankDetail => 
+            bankDetail.banks.map(bank => ({
+                bankName: bank.bank_name,
+                accountNumber: bank.account_number,
+                accountName: bank.account_name,
+                bankCode: bank.bank_code
+            }))
+        );
+
+        // console.log("Banks", formattedUserSavedBankAccounts);
 
         const { status, data } = response.data;
 
@@ -163,6 +168,8 @@ export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) =
             name: bank.name,
             code: bank.code
         }));
+
+        
 
         if (status) {
             console.log("Bank list retrieved successfully".blue)

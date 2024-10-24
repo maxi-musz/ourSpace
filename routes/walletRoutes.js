@@ -18,7 +18,7 @@ router
 .get(protect, getBookingPDF)
 
 router
-.route("/so-withdraw-funds")
+.route("/so-get-banks-with-saved-accts")
 .get(protect, spaceOwnerGetBanksAndSavedAccount)
 
 router
