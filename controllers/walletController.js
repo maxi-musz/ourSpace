@@ -2,7 +2,7 @@ import axios from "axios";
 import asyncHandler from "../middleware/asyncHandler.js";
 import Booking from "../models/bookingModel.js";
 import Wallet from "../models/walletModel.js";
-import { formatAmount, formatDate, generateBookingInvoicePDF } from "../utils/helperFunction.js";
+import { formatAmount, formatDate, formatDateWithoutTime, generateBookingInvoicePDF } from "../utils/helperFunction.js";
 import BankDetails from "../models/bankModel.js";
 import User from "../models/userModel.js";
 import Withdrawal from "../models/withdrawalRequestModel.js";
@@ -49,12 +49,12 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
 
         const formattedWithdrawals = withdrawals.map((withdrawal) => ({
             id: withdrawal._id,
-            invoice_id: withdrawal.paystack_id,
-            date_time: formatDate(withdrawal.createdAt),
+            invoiceId: withdrawal.paystack_id,
+            dateTime: formatDateWithoutTime(withdrawal.createdAt),
             description: withdrawal.reason,
             status: withdrawal.status,
             amount: withdrawal.amount,
-            account_name: withdrawal.user.firstName
+            accountName: withdrawal.user.firstName
         }))
 
         return res.status(200).json({
