@@ -170,7 +170,7 @@ export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) =
                 bankName: bank.bank_name,
                 accountNumber: bank.account_number,
                 accountName: bank.account_name,
-                bankCode: bank.bank_code
+                recipient_code: bank.recipient_code
             }))
         );
 
