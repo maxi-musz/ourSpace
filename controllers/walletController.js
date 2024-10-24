@@ -172,7 +172,7 @@ export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) =
                 bankName: bank.bankName,
                 accountNumber: bank.accountNumber,
                 accountName: bank.accountName,
-                recipient_code: bank.recipientCode
+                recipientCode: bank.recipientCode
             }))
         );
 
@@ -535,20 +535,6 @@ export const spaceUserGetWallet = asyncHandler(async(req, res) => {
         walletMetrics = newWallet
     }
 
-    const bookings = await Booking.find({
-        user: user_id,
-    }).populate("listing").sort({ createdAt: -1 });
-
-    // Format the bookings for the response
-    const formattedBookings = bookings.map((booking) => ({
-        property_name: booking.listing?.propertyName || 'N/A',
-        property_type: booking.listing?.propertyType[0] || 'N/A',
-        property_image: booking.listing?.bedroomPictures[0].secure_url,
-        booking_time: formatDate(booking.createdAt), 
-        amount: formatAmount(booking.chargePerNight + 2000), 
-        booking_status: booking.bookingStatus
-    }));
-
     const updatedWalletMetrics = await Wallet.findOne({ user: user_id });
 
     console.log("Space user wallet dashboard successfully retrieved".rainbow)
@@ -562,6 +548,8 @@ export const spaceUserGetWallet = asyncHandler(async(req, res) => {
         }
     })
 })
+
+export const getBooking
 
 export const spaceUserInitialiseFundWallet = async (req, res) => {
     console.log("Initializing Paystack payment for wallet funding...".green);
