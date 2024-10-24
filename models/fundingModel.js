@@ -14,8 +14,10 @@ const walletFundingSchema = new mongoose.Schema({
      all_time_wallet_funding: { type: Number, required: true },
      authorization_url: { type: String, required: true },
      access_code: { type: String, required: true },
-     paystack_ref: { type: String, required: true}
-})
+     paystack_ref: { type: String, required: true},
+     display_image: { type: String, required: true},
+     mode_of_funding: {type: String, default: "web-payment", required: true}
+}, {timestamps: true})
 
 const FundingHistory = mongoose.model("FundingHistory", walletFundingSchema)
 

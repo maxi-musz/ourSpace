@@ -555,8 +555,8 @@ export const spaceUserGetWallet = asyncHandler(async(req, res) => {
     })
 })
 
-export const getBookingsForSpaceUsersWallet = asyncHandler(async (req, res) => {
-    console.log("Getting booking history for space owner".blue);
+export const getTransactionsForSpaceUsersWallet = asyncHandler(async (req, res) => {
+    console.log("Getting transaction history for space users".blue);
 
     const { paystackPaymentStatus } = req.query;
     const user_id = req.user._id; 
@@ -580,15 +580,6 @@ export const getBookingsForSpaceUsersWallet = asyncHandler(async (req, res) => {
             .populate("listing")
             .sort({ createdAt: -1 });
 
-        if (!bookings.length) {
-            console.log("No bookings found at the moment".green);
-            return res.status(200).json({
-                success: true,
-                message: "No bookings found at the moment",
-                data: []
-            });
-        }
-
         // Format booking data
         const formattedBookings = bookings.map((booking) => ({
             id: booking._id,
@@ -600,12 +591,30 @@ export const getBookingsForSpaceUsersWallet = asyncHandler(async (req, res) => {
             paymentStatus: booking.paystackPaymentStatus
         }));
 
-        console.log("Bookings retrieved successfully".green);
+        const fundinghistory = await FundingHistory.find({user: req.user._id})
+
+        const formattedFundingHistory = fundinghistory.map((funding) => ({
+            id: funding._id,
+            propertyImage: funding.display_image,
+            propertyName: "Wallet funding",
+            propertyType: funding.mode_of_funding,
+            date: formatDate(funding.createdAt),
+            amount: funding.amount_to_fund,
+            paymentStatus: funding.payment_status
+        }))
+
+        console.log("History", formattedFundingHistory)
+
+        const formattedResponse = formattedBookings.concat(formattedFundingHistory).sort((a, b) => new Date(b.date)- new Date(a.date))
+
+        console.log(`Bookings total: ${bookings.length}`)
+        console.log(`Fundings total: ${fundinghistory.length}`)
+        console.log(`Bookings retrieved successfully`.green);
         return res.status(200).json({
             success: true,
             message: "Bookings retrieved successfully",
             totalBookings: formattedBookings.length,
-            data: formattedBookings
+            data: formattedResponse
         });
 
     } catch (error) {
@@ -687,8 +696,10 @@ export const spaceUserInitialiseFundWallet = async (req, res) => {
 
         const newFunding = await FundingHistory.create({
             user: user_id,
+            display_image: "https://asset.cloudinary.com/dyshmmjis/d8e05916c710840313af682f1e9919ac",
             amount_to_fund: amount,
             payment_status: "pending",
+            mode_of_funding: "web-payment",
             current_balance_before_funding: wallet.currentBalance,
             current_balance_after_funding: wallet.currentBalance + amount,
             all_time_wallet_funding: wallet.allTimeFunding + amount,
