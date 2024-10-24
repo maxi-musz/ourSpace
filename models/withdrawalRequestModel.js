@@ -31,12 +31,14 @@ const withdrawalSchema = new mongoose.Schema({
     },
     status: { 
         type: String, 
-        enum: ["pending", "failed", "successful"],
+        enum: ["pending", "failed", "completed"],
         default: 'pending', 
         required: true
     },
     paystack_status: {
         type: String,
+        enum: ["otp", "pending", "completed"],
+        default: "otp",
         required: true
     },
     transfer_success_id: { 
@@ -56,6 +58,9 @@ const withdrawalSchema = new mongoose.Schema({
         default: 'Withdrawal from wallet' 
     },
     failures: { 
+        type: String 
+    },
+    otp: { 
         type: String 
     },
     paystack_createdAt: { 

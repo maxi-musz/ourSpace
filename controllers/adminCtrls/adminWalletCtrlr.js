@@ -22,21 +22,21 @@ export const getPendingWithdrawals = asyncHandler(async (req, res) => {
 });
 
 export const approveWithdrawal = asyncHandler(async (req, res) => {
-    console.log("All withdrawals retrieved".rainbow)
-    const { withdrawalId, otp } = req.body;
+    console.log("Admin approving withdrawal".rainbow)
+
+    const { otp, withdrawalId } = req.body;
 
     try {
-        // Find the withdrawal by its ID
         const withdrawal = await Withdrawal.findById(withdrawalId);
 
-        if (!withdrawal || withdrawal.status !== 'otp_required') {
+        if (!withdrawal || withdrawal.paystack_status !== 'otp') {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid or already processed withdrawal',
             });
         }
 
-        // Store the OTP in the withdrawal object
+        // // Store the OTP in the withdrawal object
         withdrawal.otp = otp;
 
         // Communicate with Paystack to approve the transfer
@@ -44,20 +44,23 @@ export const approveWithdrawal = asyncHandler(async (req, res) => {
             `https://api.paystack.co/transfer/finalize_transfer`,
             {
                 transfer_code: withdrawal.transfer_code, // The transfer code from Paystack
-                otp, // The OTP provided by the admin
+                otp, 
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, // Paystack secret key
+                    Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
                 },
             }
         );
 
         const { status, message } = response.data;
 
+        console.log("Response", response.data)
+
         if (status) {
-            withdrawal.status = 'completed'; // Mark withdrawal as completed
-            withdrawal.otp_verified = true;
+            withdrawal.status = 'completed';
+            withdrawal.paystack_status = 'completed'
+            // withdrawal.otp_verified = true;
             await withdrawal.save();
 
             return res.status(200).json({

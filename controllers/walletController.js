@@ -216,10 +216,11 @@ export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) =
 });
 
 export const spaceOwnerVerifyAccountNumber = asyncHandler(async (req, res) => {
+    console.log("User verifying account number".blue)
+
     const { account_number, bank_code } = req.body;
 
     try {
-        // Verify bank details with Paystack
         const response = await axios.get(`https://api.paystack.co/bank/resolve`, {
             params: {
                 account_number,
@@ -233,27 +234,38 @@ export const spaceOwnerVerifyAccountNumber = asyncHandler(async (req, res) => {
         const { status, data } = response.data;
 
         if (status) {
-
-            console.log("Account name successfully retrieved: ", data.account_name)
+            console.log("Account name successfully retrieved: ", data.account_name);
             return res.status(200).json({
                 success: true,
                 message: "Bank details verified successfully",
                 account_name: data.account_name
             });
         } else {
+            console.log(`Failed to verify bank details: ${data.message}`);
             return res.status(400).json({
                 success: false,
-                message: "Failed to verify bank details"
+                message: `Failed to verify bank details: ${data.message}`
             });
         }
     } catch (error) {
-        console.error("Error verifying bank details", error);
-        return res.status(500).json({
-            success: false,
-            message: "An error occurred while verifying bank details"
-        });
+        // Handle the error message and extract the response message
+        if (error.response && error.response.data && error.response.data.message) {
+            console.error(error.response.data.message);
+            return res.status(error.response.status).json({
+                success: false,
+                message: error.response.data.message  // Extract the specific error message from Paystack
+            });
+        } else {
+            // For unexpected errors
+            console.error("Unexpected error verifying bank details", error);
+            return res.status(500).json({
+                success: false,
+                message: "An unexpected error occurred while verifying bank details"
+            });
+        }
     }
 });
+
 
 export const spaceOwnerSaveNewAccountDetails = asyncHandler(async (req, res) => {
     console.log("User adding new account details for withdrawal".blue);
