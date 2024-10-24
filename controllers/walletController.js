@@ -54,7 +54,7 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
             description: withdrawal.reason,
             status: withdrawal.status,
             amount: withdrawal.amount,
-            accountName: withdrawal.user.firstName
+            accountName: withdrawal.user.firstName + withdrawal.user.lastName
         }))
 
         return res.status(200).json({
@@ -169,10 +169,10 @@ export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) =
         const formattedUserSavedBankAccounts = userSavedBankDetails.flatMap(bankDetail => 
             bankDetail.banks.map(bank => ({
                 id: bank.id,
-                bankName: bank.bank_name,
-                accountNumber: bank.account_number,
-                accountName: bank.account_name,
-                recipient_code: bank.recipient_code
+                bankName: bank.bankName,
+                accountNumber: bank.accountNumber,
+                accountName: bank.accountName,
+                recipient_code: bank.recipientCode
             }))
         );
 
