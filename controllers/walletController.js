@@ -48,6 +48,7 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
         }).populate("user").sort({createdAt: -1})
 
         const formattedWithdrawals = withdrawals.map((withdrawal) => ({
+            id: withdrawal._id,
             invoice_id: withdrawal.paystack_id,
             date_time: formatDate(withdrawal.createdAt),
             description: withdrawal.reason,
@@ -167,6 +168,7 @@ export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) =
 
         const formattedUserSavedBankAccounts = userSavedBankDetails.flatMap(bankDetail => 
             bankDetail.banks.map(bank => ({
+                id: bank.id,
                 bankName: bank.bank_name,
                 accountNumber: bank.account_number,
                 accountName: bank.account_name,
@@ -179,6 +181,7 @@ export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) =
         const { status, data } = response.data;
 
         const formattedPaystackBanks = data.map(bank => ({
+            id: bank.id,
             name: bank.name,
             code: bank.code
         }));
