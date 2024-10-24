@@ -655,7 +655,7 @@ export const spaceUserInitialiseFundWallet = async (req, res) => {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_LIVE_SECRET_KEY}`,
+                    Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
                     'Content-Type': 'application/json',
                 },
             }
@@ -725,7 +725,7 @@ export const spaceUserVerifyWalletFunding = async (req, res) => {
     try {
         const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
             headers: {
-                Authorization: `Bearer ${process.env.PAYSTACK_LIVE_SECRET_KEY}`
+                Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`
             }
         });
 
