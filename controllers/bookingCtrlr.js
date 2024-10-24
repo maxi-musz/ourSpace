@@ -314,10 +314,10 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
         const booking = await Booking.findOne({ paystackReference: reference }).populate('user').populate('listing');
 
         if (!booking) {
-            console.log("Payment was successful, but the booking was not found in the database".red);
+            console.log("Payment was successful, but the booking was not found".red);
             return res.status(404).json({
                 success: false,
-                message: 'Payment was successful, but the booking was not found in the database.',
+                message: 'Payment was successful, but the booking was not found.',
             });
         }
 

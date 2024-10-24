@@ -1,6 +1,6 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
-import { getBookingPDF, soGetSingleBookingFromWalletDashboard, spaceOwnerGetBanksAndSavedAccount, spaceOwnerGetWallet, spaceOwnerSaveNewAccountDetails, spaceOwnerVerifyAccountNumber } from "../controllers/walletController.js";
+import { getBookingPDF, initiateWithdrawal, soGetSingleBookingFromWalletDashboard, spaceOwnerGetBanksAndSavedAccount, spaceOwnerGetWallet, spaceOwnerSaveNewAccountDetails, spaceOwnerVerifyAccountNumber, spaceUserGetWallet, spaceUserInitialiseFundWallet, spaceUserVerifyWalletFunding } from "../controllers/walletController.js";
 
 const router = express.Router()
 
@@ -32,6 +32,22 @@ router
 router
 .route("/so-save-new-bank-details")
 .post(protect, spaceOwnerSaveNewAccountDetails)
+
+router
+.route("/so-initiate-withdrawal")
+.post(protect, initiateWithdrawal)
+
+router
+.route("/su-get-wallet")
+.get(protect, spaceUserGetWallet)
+
+router
+.route("/su-initialise-wallet-funding")
+.post(protect, spaceUserInitialiseFundWallet)
+
+router
+.route("/su-verify-wallet-funding")
+.post(protect, spaceUserVerifyWalletFunding)
 
 export default router
 

@@ -5,6 +5,8 @@ import Wallet from "../models/walletModel.js";
 import { formatAmount, formatDate, generateBookingInvoicePDF } from "../utils/helperFunction.js";
 import BankDetails from "../models/bankModel.js";
 import User from "../models/userModel.js";
+import Withdrawal from "../models/withdrawalRequestModel.js";
+import FundingHistory from "../models/fundingModel.js";
 
 export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
     console.log("Getting wallet dashboard...".blue);
@@ -367,8 +369,30 @@ export const spaceOwnerSaveNewAccountDetails = asyncHandler(async (req, res) => 
     }
 });
 
-export const initiateTransfer = async (req, res) => {
-    const { amount, recipient_code } = req.body;
+export const initiateWithdrawal = async (req, res) => {
+
+    console.log("Inititating withdrawal".blue)
+    const { withdrawal_amount, recipient_code } = req.body;
+
+    if(!withdrawal_amount ||!recipient_code) {
+        console.log("Withdrawal amount and recipient codes are required".red)
+        return res.status(500).json({
+            success: false,
+            message: "Withdrawal amount and recipient codes are required"
+        })
+    }
+
+    // const withdrawal_amount = Number(withdrawal_amount);
+
+    const wallet= await Wallet.findOne({user: req.user._id})
+
+    if(!wallet || wallet.currentBalance < withdrawal_amount){
+        console.log(`Wallet balance: ${formatAmount(wallet.currentBalance)} less than withdrawal request amount of ${formatAmount(withdrawal_amount)}`.red)
+        return res.status(200).json({
+            success: true,
+            message: `Wallet balance: ${formatAmount(wallet.currentBalance)} less than withdrawal request amount of ${formatAmount(withdrawal_amount)}`
+        })
+    }
 
     const reason = "Withdrawal from wallet"
 
@@ -377,7 +401,7 @@ export const initiateTransfer = async (req, res) => {
             `https://api.paystack.co/transfer`, 
             {
                 source: "balance",  // Paystack balance
-                amount: amount * 100,  // Amount in kobo (multiply NGN by 100)
+                amount: withdrawal_amount * 100,  // Amount in kobo (multiply NGN by 100)
                 recipient: recipient_code,  
                 reason: reason  
             },
@@ -393,90 +417,300 @@ export const initiateTransfer = async (req, res) => {
         console.log("data from withdrawal request: ", data)
 
         if (status) {
+            console.log(`Withdrawal request for amount ${withdrawal_amount} successfully submitted`)
+
+            // Save new wihtdrawal request to database
+            const newWithdrawal = new Withdrawal({
+                user: req.user._id, 
+                paystack_id: data.id,
+                amount: data.amount / 100,
+                recipient_code: recipient_code,
+                transfer_code: data.transfer_code, 
+                reference: data.reference,
+                source: data.source,
+                status: data.status, 
+                transfer_success_id: data.transferSuccessId,
+                transfer_trials: data.transfer_trials,
+                reason: reason,
+                failures: data.failures || null, // Optionally store any failures
+                paystack_createdAt: data.createdAt,
+                paystack_updatedAt: data.updatedAt
+            });
+
+            await newWithdrawal.save();
+
+            wallet.currentBalance -= withdrawal_amount;
+            wallet.totalWithdrawn += withdrawal_amount;
+            await wallet.save();
+
+            const formattedResponse = {
+                amount: data.amount,
+                status: "pending",
+
+            }
+
             return res.status(200).json({
                 success: true,
-                message: "Transfer initiated successfully",
-                transfer_details: data  // Return transfer details
+                message: `You have successfully requested for withdrawal for a total amount of ${withdrawal_amount} which is currently pending and you're expected to receive the funds within 25 minutes after the request`,
+                transfer_details: formattedResponse  // Return transfer details
             });
         } else {
+            console.log("Failed to initiate withdrawal")
             return res.status(400).json({
                 success: false,
-                message: "Failed to initiate transfer",
+                message: "Failed to initiate withdrawal",
             });
         }
 
     } catch (error) {
-        console.error("Error initiating transfer", error);
+        console.error("Error initiating withdrawal", error);
         return res.status(500).json({
             success: false,
-            message: "An error occurred while initiating the transfer"
+            message: "An error occurred while initiating the withdrawal"
         });
     }
 };
+                                                 //  SPACE USERS WALLET TAB
+export const spaceUserGetWallet = asyncHandler(async(req, res) => {
+    console.log("Space user get wallet endpoint".blue)
 
-export const fundWallet = async (req, res) => {
-    const { email, amount } = req.body; // Email of the user funding wallet, and the amount they want to fund
-    
-    // Paystack requires the amount in kobo (multiply by 100)
+    const user_id = req.user._id
+
+    const existing_user = await User.findOne(user_id)
+
+    if (!existing_user) {
+        console.log("User does not exist".red);
+        return res.status(404).json({
+            success: false,
+            message: "User does not exist"
+        });
+    }
+
+    let walletMetrics = await Wallet.findOne({user: user_id})
+
+    if(!walletMetrics) {
+        const newWallet = new Wallet({
+            user: user_id,
+            current_balance: 0,
+            total_withdrawn: 0,
+            total_earned: 0
+        })
+        await newWallet.save()
+        walletMetrics = newWallet
+    }
+
+    const bookings = await Booking.find({
+        user: user_id,
+    }).populate("listing").sort({ createdAt: -1 });
+
+    // Format the bookings for the response
+    const formattedBookings = bookings.map((booking) => ({
+        property_name: booking.listing?.propertyName || 'N/A',
+        property_type: booking.listing?.propertyType[0] || 'N/A',
+        property_image: booking.listing?.bedroomPictures[0].secure_url,
+        booking_time: formatDate(booking.createdAt), 
+        amount: formatAmount(booking.chargePerNight + 2000), 
+        booking_status: booking.bookingStatus
+    }));
+
+    const updatedWalletMetrics = await Wallet.findOne({ user: user_id });
+
+    console.log("Space user wallet dashboard successfully retrieved".rainbow)
+    return res.status(200).json({
+        success: true,
+        message: "Space user wallet dashboard successfully retrieved",
+        totalBookings: bookings.length,
+        data: {
+            walletMetrics: updatedWalletMetrics,
+            bookings: formattedBookings
+        }
+    })
+})
+
+export const spaceUserInitialiseFundWallet = async (req, res) => {
+    console.log("Initializing Paystack payment for wallet funding...".green);
+    const { amount, callBackUrl } = req.body;
+    const user_id = req.user._id
+    const email = req.user.email
+
+    const requiredFields = {
+        amount,
+        callBackUrl, 
+        user_id, 
+        email
+    };
+
+    const missingFields = Object.entries(requiredFields)
+    .filter(([key, value]) => !value)
+    .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+        console.log("Missing fields:", missingFields.join(', ').red);
+        return res.status(400).json({
+            success: false,
+            message: `Missing the following field(s): ${missingFields.join(', ')}`
+        });
+    }
+
     const amountInKobo = amount * 100;
 
     try {
-        const response = await axios.post(`https://api.paystack.co/transaction/initialize`, {
-            email,
-            amount: amountInKobo,
-            callback_url: "https://yourdomain.com/api/paystack/verify"  // Callback for verifying the payment
-        }, {
-            headers: {
-                Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`
+        const response = await axios.post(
+            'https://api.paystack.co/transaction/initialize',
+            {
+                email,
+                amount: amountInKobo,
+                callback_url: callBackUrl,
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.PAYSTACK_LIVE_SECRET_KEY}`,
+                    'Content-Type': 'application/json',
+                },
             }
-        });
+        );
 
-        const { status, data } = response.data;
+        const { authorization_url, access_code, reference } = response.data.data;
 
-        if (status) {
-            return res.status(200).json({
-                success: true,
-                message: "Payment initialized",
-                payment_url: data.authorization_url // URL to redirect the user to for completing payment
+        console.log("Response: ", response.data)
+
+        const call_back_with_reference = `${callBackUrl}?reference=${reference}`;
+
+        let wallet;
+
+        wallet = await Wallet.findOne({user: user_id})
+        if(!wallet) {
+            console.log("Creating new wallet for user".yellow)
+            wallet = new Wallet({
+                user: user_id,
+                currentBalance: 0,  
+                totalWithdrawn: 0, 
+                totalEarned: 0,
+                allTimeFunding: 0
             });
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: "Failed to initialize payment"
-            });
+        
+            // Save the newly created wallet to the database
+            await wallet.save();
+            console.log("New wallet created for user".green);
         }
 
+        const newFunding = await FundingHistory.create({
+            user: user_id,
+            amount_to_fund: amount,
+            payment_status: "pending",
+            current_balance_before_funding: wallet.currentBalance,
+            current_balance_after_funding: wallet.currentBalance + amount,
+            all_time_wallet_funding: wallet.allTimeFunding + amount,
+            authorization_url: authorization_url,
+            access_code: access_code,
+            paystack_ref: reference,
+        })
+
+        await newFunding.save()
+    
+        console.log(`Wallet funding transaction initialized for total amount of ${amount}`)
+        res.status(200).json({
+            success: true,
+            message: `Wallet funding transaction initialized for total amount of ${amount}`,
+            data: {
+                authorization_url,
+                access_code,
+                reference,
+                call_back_with_reference,
+                amount: amount
+            },
+        });
     } catch (error) {
-        console.error("Error initializing payment", error);
-        return res.status(500).json({
+        console.error("Wallet funding transaction failed:", error.message);
+        res.status(500).json({
             success: false,
-            message: "An error occurred while initializing payment"
+            message: 'Wallet funding transaction failed', error,
         });
     }
 };
-
-export const verifyTransaction = async (req, res) => {
-    const { reference } = req.query;  // Paystack provides a reference for the transaction
+export const spaceUserVerifyWalletFunding = async (req, res) => {
+    const { reference } = req.body;  
 
     try {
         const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
             headers: {
-                Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`
+                Authorization: `Bearer ${process.env.PAYSTACK_LIVE_SECRET_KEY}`
             }
         });
 
-        const { status, data } = response.data;
+        const { status: paystackStatus, amount: paystackKoboAmount, customer } = response.data.data;
 
-        if (status && data.status === 'success') {
-            // Payment was successful, update the user's wallet balance
-            const user = await User.findOne({ email: data.customer.email });
-            user.walletBalance += data.amount / 100;  // Add the funded amount to wallet (in Naira)
-            await user.save();
+        if (paystackStatus !== 'success') {
+            console.log("Payment failed".red);
+            return res.status(400).json({
+                success: false,
+                message: 'Payment was not successful.',
+            });
+        }
 
+        if (paystackStatus && paystackStatus === 'success') {
+            console.log(response.data);
+            const formattedPaystackResponse = {
+                message: response.data.message,
+                status: response.data.data.status,
+                reference: response.data.data.reference,
+                amount: response.data.data.amount,
+                transaction_message: response.data.data.message,
+                paid_at: response.data.data.paid_at,
+                created_at: response.data.data.created_at,
+                fees: response.data.data.fees,
+                authorization_code: response.data.data.authorization.authorization_code,
+                bank: response.data.data.authorization.bank,
+                country_code: response.data.data.authorization.country_code,
+                brand: response.data.data.authorization.brand,
+                account_name: response.data.data.authorization.account_name,
+                transaction_date: response.data.data.transaction_date
+            };
+
+            const fundinghistory = await FundingHistory.findOne({ paystack_ref: reference });
+            if (!fundinghistory) {
+                console.log("Payment was successful, but the funding history was not found in the database".red);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Payment was successful, but the funding history was not found.',
+                });
+            }
+
+            if (fundinghistory.payment_status === 'successful') {
+                console.log("Transaction has already been verified as successful".bgRed);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Transaction has already been verified as successful.',
+                });
+            }
+
+            fundinghistory.payment_status = "successful";
+            await fundinghistory.save()
+
+            const existing_user = await User.findOne({ email: req.user.email });
+            if (!existing_user) {
+                console.log("User who initiated this transaction can't be found again".red);
+                return res.status(500).json({
+                    success: false,
+                    message: "User who initiated this transaction can't be found again"
+                });
+            }
+
+            const wallet = await Wallet.findOne({ user: req.user._id });
+            wallet.currentBalance += (paystackKoboAmount / 100);  // Corrected line
+            wallet.allTimeFunding += (paystackKoboAmount / 100);  // Corrected line
+            await wallet.save();
+            
+            const formattedRes = {
+                current_balance: wallet.currentBalance,
+                all_time_funding: wallet.allTimeFunding
+            }
+
+            console.log("Payment verified and wallet updated successfully".rainbow);
             return res.status(200).json({
                 success: true,
-                message: "Payment verified and wallet funded successfully",
-                walletBalance: user.walletBalance
+                message: "Payment verified and wallet updated successfully",
+                wallet: formattedRes
             });
         } else {
             return res.status(400).json({
