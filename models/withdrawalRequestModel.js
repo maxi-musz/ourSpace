@@ -31,7 +31,13 @@ const withdrawalSchema = new mongoose.Schema({
     },
     status: { 
         type: String, 
+        enum: ["pending", "failed", "successful"],
         default: 'pending', 
+        required: true
+    },
+    paystack_status: {
+        type: String,
+        required: true
     },
     transfer_success_id: { 
         type: String, 

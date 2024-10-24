@@ -43,15 +43,29 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
             amount: booking.totalIncuredChargeAfterDiscount 
         }));
 
+        const withdrawals = await Withdrawal.find({
+            user: req.user._id,
+        }).populate("user").sort({createdAt: -1})
+
+        const formattedWithdrawals = withdrawals.map((withdrawal) => ({
+            invoice_id: withdrawal.paystack_id,
+            date_time: formatDate(withdrawal.createdAt),
+            description: withdrawal.reason,
+            status: withdrawal.status,
+            amount: withdrawal.amount,
+            account_name: withdrawal.user.firstName
+        }))
+
         return res.status(200).json({
             success: true,
-            message: `Total of ${bookings.length} bookings found`,
+            message: "User dashboard successfully retrieved",
             data: {
                 wallet: {
                     currentBalance: walletMetrics.currentBalance,
                     witdrawn: walletMetrics.totalWithdrawn,
                     allTimeEarned: walletMetrics.totalEarned
                 },
+                withdrawals: formattedWithdrawals,
                 bookings: formattedBookings
             }
         });
@@ -435,7 +449,8 @@ export const initiateWithdrawal = async (req, res) => {
                 transfer_code: data.transfer_code, 
                 reference: data.reference,
                 source: data.source,
-                status: data.status, 
+                status: "pending",
+                paystack_status: data.status, 
                 transfer_success_id: data.transferSuccessId,
                 transfer_trials: data.transfer_trials,
                 reason: reason,
