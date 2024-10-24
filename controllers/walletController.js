@@ -558,7 +558,7 @@ export const spaceUserGetWallet = asyncHandler(async(req, res) => {
 export const getBookingsForSpaceUsersWallet = asyncHandler(async (req, res) => {
     console.log("Getting booking history for space owner".blue);
 
-    const { paystackPaymentStatus } = req.body;
+    const { paystackPaymentStatus } = req.query;
     const user_id = req.user._id; 
 
     if ( paystackPaymentStatus && !["pending", "success", "failed"].includes(paystackPaymentStatus)) {
