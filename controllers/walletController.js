@@ -82,7 +82,7 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
 export const soGetSingleBookingFromWalletDashboard = asyncHandler(async (req, res) => {
     console.log("Getting single booking from wallet dashboard".cyan);
 
-    const { walletBookingId } = req.body;  // If this is from a POST request
+    const { walletBookingId } = req.body;
     console.log(walletBookingId);
 
     try {
@@ -120,7 +120,7 @@ export const soGetSingleBookingFromWalletDashboard = asyncHandler(async (req, re
     }
 });
 
-export const getBookingPDF = asyncHandler(async (req, res) => {
+export const downloadBookingPDF = asyncHandler(async (req, res) => {
     console.log("Generating invoice pdf".blue)
     const { walletBookingId } = req.body;
 
@@ -549,7 +549,68 @@ export const spaceUserGetWallet = asyncHandler(async(req, res) => {
     })
 })
 
-export const getBooking
+export const getBookingsForSpaceUsersWallet = asyncHandler(async (req, res) => {
+    console.log("Getting booking history for space owner".blue);
+
+    const { paystackPaymentStatus } = req.body;
+    const user_id = req.user._id; 
+
+    if ( paystackPaymentStatus && !["pending", "success", "failed"].includes(paystackPaymentStatus)) {
+        console.log("Invalid payment status".red);
+        return res.status(400).json({
+            success: false,
+            message: "Invalid or missing payment status"
+        });
+    }
+
+    let filter = { user: user_id };
+
+    if (paystackPaymentStatus) {
+        filter.paystackPaymentStatus = paystackPaymentStatus;
+    }
+
+    try {
+        const bookings = await Booking.find(filter)
+            .populate("listing")
+            .sort({ createdAt: -1 });
+
+        if (!bookings.length) {
+            console.log("No bookings found at the moment".green);
+            return res.status(200).json({
+                success: true,
+                message: "No bookings found at the moment",
+                data: []
+            });
+        }
+
+        // Format booking data
+        const formattedBookings = bookings.map((booking) => ({
+            id: booking._id,
+            propertyName: booking.listing?.propertyName || 'N/A',
+            propertyType: booking.listing?.propertyType[0] || 'N/A',
+            propertyImage: booking.listing?.bedroomPictures[0]?.secure_url || 'N/A',
+            date: formatDate(booking.createdAt),
+            amount: booking.chargePerNight + 2000,
+            paymentStatus: booking.paystackPaymentStatus
+        }));
+
+        console.log("Bookings retrieved successfully".green);
+        return res.status(200).json({
+            success: true,
+            message: "Bookings retrieved successfully",
+            totalBookings: formattedBookings.length,
+            data: formattedBookings
+        });
+
+    } catch (error) {
+        console.error("Error retrieving bookings: ", error);
+        return res.status(500).json({
+            success: false,
+            message: "An error occurred while retrieving bookings",
+            error: error.message
+        });
+    }
+});
 
 export const spaceUserInitialiseFundWallet = async (req, res) => {
     console.log("Initializing Paystack payment for wallet funding...".green);

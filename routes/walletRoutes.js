@@ -1,6 +1,6 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
-import { getBookingPDF, initiateWithdrawal, soGetSingleBookingFromWalletDashboard, spaceOwnerGetBanksAndSavedAccount, spaceOwnerGetWallet, spaceOwnerSaveNewAccountDetails, spaceOwnerVerifyAccountNumber, spaceUserGetWallet, spaceUserInitialiseFundWallet, spaceUserVerifyWalletFunding } from "../controllers/walletController.js";
+import { downloadBookingPDF, getBookingsForSpaceUsersWallet, initiateWithdrawal, soGetSingleBookingFromWalletDashboard, spaceOwnerGetBanksAndSavedAccount, spaceOwnerGetWallet, spaceOwnerSaveNewAccountDetails, spaceOwnerVerifyAccountNumber, spaceUserGetWallet, spaceUserInitialiseFundWallet, spaceUserVerifyWalletFunding } from "../controllers/walletController.js";
 
 const router = express.Router()
 
@@ -15,7 +15,7 @@ router
 
 router
 .route("/so-download-invoice-as-pdf")
-.get(protect, getBookingPDF)
+.post(protect, downloadBookingPDF)
 
 router
 .route("/so-get-banks-with-saved-accts")
@@ -40,6 +40,10 @@ router
 router
 .route("/su-get-wallet")
 .get(protect, spaceUserGetWallet)
+
+router
+.route("/su-get-wallet-payments")
+.get(protect, getBookingsForSpaceUsersWallet)
 
 router
 .route("/su-initialise-wallet-funding")
