@@ -48,9 +48,9 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
             message: `Total of ${bookings.length} bookings found`,
             data: {
                 wallet: {
-                    currentBalance: `#${formatAmount(walletMetrics.currentBalance)}`,
+                    currentBalance: `${formatAmount(walletMetrics.currentBalance)}`,
                     witdrawn: `#${formatAmount(walletMetrics.totalWithdrawn)}`,
-                    allTimeEarned: `#${formatAmount(walletMetrics.totalEarned)}`
+                    allTimeEarned: `${formatAmount(walletMetrics.totalEarned)}`
                 },
                 bookings: formattedBookings
             }
