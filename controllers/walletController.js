@@ -54,7 +54,7 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
             description: withdrawal.reason,
             status: withdrawal.status,
             amount: withdrawal.amount,
-            accountName: withdrawal.user.firstName + withdrawal.user.lastName
+            accountName: withdrawal.user.firstName + " " + withdrawal.user.lastName
         }))
 
         return res.status(200).json({
@@ -468,15 +468,18 @@ export const initiateWithdrawal = async (req, res) => {
                 transfer_success_id: data.transferSuccessId,
                 transfer_trials: data.transfer_trials,
                 reason: reason,
-                failures: data.failures || null, // Optionally store any failures
+                failures: data.failures || null,
                 paystack_createdAt: data.createdAt,
                 paystack_updatedAt: data.updatedAt
             });
 
             await newWithdrawal.save();
 
-            wallet.currentBalance -= withdrawal_amount;
-            wallet.totalWithdrawn += withdrawal_amount;
+            wallet.totalWithdrawn = Number(wallet.totalWithdrawn);
+            const withdrawalAmountInNaira = Number(withdrawal_amount)
+
+            wallet.currentBalance -= withdrawalAmountInNaira;
+            wallet.totalWithdrawn += withdrawalAmountInNaira;
             await wallet.save();
 
             const formattedResponse = {
