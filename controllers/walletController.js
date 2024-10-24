@@ -537,14 +537,17 @@ export const spaceUserGetWallet = asyncHandler(async(req, res) => {
 
     const updatedWalletMetrics = await Wallet.findOne({ user: user_id });
 
+    const formattedWallet = {
+        walletBalance: updatedWalletMetrics.currentBalance,
+        allTimeFunding: updatedWalletMetrics.allTimeFunding
+    }
+
     console.log("Space user wallet dashboard successfully retrieved".rainbow)
     return res.status(200).json({
         success: true,
         message: "Space user wallet dashboard successfully retrieved",
-        totalBookings: bookings.length,
         data: {
-            walletMetrics: updatedWalletMetrics,
-            bookings: formattedBookings
+            walletMetrics: formattedWallet
         }
     })
 })
