@@ -266,7 +266,6 @@ export const spaceOwnerVerifyAccountNumber = asyncHandler(async (req, res) => {
     }
 });
 
-
 export const spaceOwnerSaveNewAccountDetails = asyncHandler(async (req, res) => {
     console.log("User adding new account details for withdrawal".blue);
 
@@ -345,11 +344,11 @@ export const spaceOwnerSaveNewAccountDetails = asyncHandler(async (req, res) => 
                     // Push new bank details into the array
                     if(bankDetails) {
                         bankDetails.banks.push({
-                            bank_name: recipient_data.details.bank_name,
-                            account_number: recipient_data.details.account_number,
-                            account_name: recipient_data.details.account_name,
-                            bank_code: recipient_data.details.bank_code,
-                            transfer_recipient: recipient_data.recipient_code
+                            bankName: recipient_data.details.bank_name,
+                            accountNumber: recipient_data.details.account_number,
+                            accountName: recipient_data.details.account_name,
+                            bankCode: recipient_data.details.bank_code,
+                            recipientCode: recipient_data.recipient_code
                         });
 
                         await bankDetails.save()
@@ -363,11 +362,11 @@ export const spaceOwnerSaveNewAccountDetails = asyncHandler(async (req, res) => 
                         bankDetails = new BankDetails ({
                             user: userId,
                             banks: {
-                                bank_name: recipient_data.details.bank_name,
-                                account_number: recipient_data.details.account_number,
-                                account_name: recipient_data.details.account_name,
-                                bank_code: recipient_data.details.bank_code,
-                                recipient_code: recipient_data.recipient_code
+                                bankName: recipient_data.details.bank_name,
+                                accountNumber: recipient_data.details.account_number,
+                                accountName: recipient_data.details.account_name,
+                                bankCode: recipient_data.details.bank_code,
+                                recipientCode: recipient_data.recipient_code
                             }
                         })
                         await bankDetails.save()
