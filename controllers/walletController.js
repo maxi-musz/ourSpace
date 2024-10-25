@@ -121,10 +121,8 @@ export const soGetSingleBookingFromWalletDashboard = asyncHandler(async (req, re
 });
 
 export const downloadBookingPDF = asyncHandler(async (req, res) => {
-    console.log("Generating invoice pdf".blue)
+    console.log("Generating invoice pdf".blue);
     const { walletBookingId } = req.query;
-
-    console.log("Pa:", req.params)
 
     try {
         const bookingPayment = await Booking.findById(walletBookingId).populate('listing');
@@ -144,6 +142,10 @@ export const downloadBookingPDF = asyncHandler(async (req, res) => {
             amount: `#${formatAmount(bookingPayment.totalIncuredChargeAfterDiscount)}`
         };
 
+        // Set headers to indicate a PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="invoice.pdf"');
+
         // Call the PDF generation function
         generateBookingInvoicePDF(bookingData, res);
 
@@ -155,6 +157,7 @@ export const downloadBookingPDF = asyncHandler(async (req, res) => {
         });
     }
 });
+
 
 export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) => {
     console.log("Getting all banks".yellow)

@@ -475,7 +475,7 @@ const saveListingForLater = asyncHandler(async (req, res) => {
 });
 
 const getSingleListing = asyncHandler(async (req, res) => {
-  console.log("Fetching a single listing".blue);
+  console.log("Fetching a single listing for any user".blue);
 
   const { id } = req.params;
 
@@ -496,12 +496,24 @@ const getSingleListing = asyncHandler(async (req, res) => {
         }
       }
 
+      const formattedUser = {
+        id: listing.user._id,
+        displayImage: listing.user.profilePic.secure_url,
+        name: listing.user.firstName + " " + listing.user.lastName,
+        verification: listing.user.isKycVerified,
+        totalRatings: listing.user.totalRatings,
+        totalReviews: listing.user.totalReviews
+      }
+
       console.log("Listing found".green);
       
       res.status(200).json({
           success: true,
           message: "Listing retrieved successfully",
-          data: listing,
+          data: {
+            user: formattedUser,
+            listing: listing
+          },
       });
   } catch (error) {
       console.error('Error fetching listing:', error);

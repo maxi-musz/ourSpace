@@ -71,6 +71,21 @@ const userSchema = new mongoose.Schema({
         required: true,
         default: false
     },
+    isKycVerified: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
+    totalRatings: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    totalReviews: {
+        type: Number,
+        required: true,
+        default: 0
+    },
     accountStatus: {
         type: String,
         default: "active",
