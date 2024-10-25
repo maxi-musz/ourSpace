@@ -122,7 +122,9 @@ export const soGetSingleBookingFromWalletDashboard = asyncHandler(async (req, re
 
 export const downloadBookingPDF = asyncHandler(async (req, res) => {
     console.log("Generating invoice pdf".blue)
-    const { walletBookingId } = req.body;
+    const { walletBookingId } = req.params;
+
+    console.log("Pa:", req.params)
 
     try {
         const bookingPayment = await Booking.findById(walletBookingId).populate('listing');
