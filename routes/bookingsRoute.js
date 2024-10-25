@@ -1,5 +1,5 @@
 import express from "express";
-import { adjustRealChargePerNight, checkAvailability, getBookingsForListingId, initializeTransaction, verifyTransaction } from "../controllers/bookingCtrlr.js";
+import { bookWithWallet, checkAvailability, getBookingsForListingId, initializeTransaction, verifyTransaction } from "../controllers/bookingCtrlr.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router  = express.Router()
@@ -14,7 +14,7 @@ router
 .get(protect, getBookingsForListingId)
 
 router
-.route("/adjust")
-.patch(protect, adjustRealChargePerNight)
+.route("/book-with-wallet")
+.patch(protect, bookWithWallet)
 
 export default router 

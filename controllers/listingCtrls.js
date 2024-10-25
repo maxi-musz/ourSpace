@@ -482,7 +482,7 @@ const getSingleListing = asyncHandler(async (req, res) => {
   try {
       // console.log(`Searching for listing with ID: ${id}`.yellow);
 
-      const listing = await Listing.findById(id);
+      const listing = await Listing.findById(id).populate('user');
 
       if(!listing) {
         const draftListing = await DraftListing.findById(id)
@@ -500,11 +500,13 @@ const getSingleListing = asyncHandler(async (req, res) => {
         id: listing.user._id,
         displayImage: listing.user.profilePic.secure_url,
         name: listing.user.firstName + " " + listing.user.lastName,
-        verification: listing.user.isKycVerified,
+        kycVerification: listing.user.isKycVerified,
         totalRatings: listing.user.totalRatings,
         totalReviews: listing.user.totalReviews
       }
 
+      listing.user = undefined;
+      
       console.log("Listing found".green);
       
       res.status(200).json({

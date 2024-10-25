@@ -2,7 +2,7 @@ import axios from "axios";
 import asyncHandler from "../middleware/asyncHandler.js";
 import Booking from "../models/bookingModel.js";
 import Wallet from "../models/walletModel.js";
-import { formatAmount, formatDate, formatDateWithoutTime, generateBookingInvoicePDF } from "../utils/helperFunction.js";
+import { formatAmount, formatDate, formatDateWithoutTime, generateBookingInvoicePDF, generateWithdrawalInvoicePDF } from "../utils/helperFunction.js";
 import BankDetails from "../models/bankModel.js";
 import User from "../models/userModel.js";
 import Withdrawal from "../models/withdrawalRequestModel.js";
@@ -82,82 +82,166 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
 export const soGetSingleBookingFromWalletDashboard = asyncHandler(async (req, res) => {
     console.log("Getting single booking from wallet dashboard".cyan);
 
-    const { walletBookingId } = req.body;
-    console.log(walletBookingId);
+    const { walletBookingId, withdrawalId } = req.body;
 
-    try {
-        // Fetch the booking and populate the listing
-        const bookingPayment = await Booking.findById(walletBookingId).populate('listing');
-        
-        if (!bookingPayment) {
-            console.log("Booking payment not found".red);
-            return res.status(404).json({
+    if(!withdrawalId) {
+        try {
+            // Fetch the booking and populate the listing
+            const bookingPayment = await Booking.findById(walletBookingId).populate('listing').populate("user");
+            
+            if (!bookingPayment) {
+                console.log("Booking payment not found".red);
+                return res.status(404).json({
+                    success: false,
+                    message: "Booking payment history not found",
+                });
+            }
+    
+            const formattedData = {
+                id: bookingPayment._id,
+                invoiceId: bookingPayment.invoiceId,  
+                date: formatDate(bookingPayment.createdAt),
+                propertyName: bookingPayment.listing.propertyName,
+                user: bookingPayment.user.firstName + " " + bookingPayment.user.lastName,
+                description: `${bookingPayment.listing.propertyId} - ${bookingPayment.listing.propertyName} (Room ${bookingPayment.listing.propertyLocation.apartmentNumber})`,
+                totalNights: bookingPayment.bookedDays.length,
+                chargePerNight: bookingPayment.chargePerNight,
+                totalIncuredCharge: `${formatAmount(bookingPayment.totalIncuredChargeAfterDiscount)}`
+            };
+    
+            console.log("Booking payment history found".green);
+            return res.status(200).json({
+                success: true,
+                message: "Booking successfully retrieved",
+                data: formattedData
+            });
+    
+        } catch (error) {
+            console.error("Error retrieving booking payment history".red, error);
+            return res.status(500).json({
                 success: false,
-                message: "Booking payment history not found",
+                message: "An error occurred while retrieving the booking",
             });
         }
-
-        const formattedData = {
-            invoiceId: bookingPayment.invoiceId,  
-            date: formatDate(bookingPayment.createdAt),
-            description: `${bookingPayment.listing.propertyId} - ${bookingPayment.listing.propertyName} (Room ${bookingPayment.listing.propertyLocation.apartmentNumber})`,
-            amount: `#${formatAmount(bookingPayment.totalIncuredChargeAfterDiscount)}`
-        };
-
-        console.log("Booking payment history found".green);
-        return res.status(200).json({
-            success: true,
-            message: "Booking successfully retrieved",
-            data: formattedData
-        });
-
-    } catch (error) {
-        console.error("Error retrieving booking payment history".red, error);
-        return res.status(500).json({
-            success: false,
-            message: "An error occurred while retrieving the booking",
-        });
+    } else if(!walletBookingId) {
+        try {
+            // Fetch the booking and populate the listing
+            const withdrawal = await Withdrawal.findById(withdrawalId).populate("user");
+            
+            if (!withdrawal) {
+                console.log("Withdrawal request history not found".red);
+                return res.status(404).json({
+                    success: false,
+                    message: "Withdrawal request history not found",
+                });
+            }
+    
+            // Prepare the data for the PDF
+            const withdrawalData = {
+                id: withdrawal._id,
+                invoiceId: withdrawal.paystack_id,
+                date: formatDate(withdrawal.createdAt),
+                description: `${withdrawal.reason}`,
+                amount: `#${formatAmount(withdrawal.amount)}`,
+                accountName: withdrawal.user.firstName + " " + withdrawal.user.lastName,
+                status: withdrawal.status
+            };
+    
+            console.log("Booking payment history found".green);
+            return res.status(200).json({
+                success: true,
+                message: "Booking successfully retrieved",
+                data: withdrawalData
+            });
+    
+        } catch (error) {
+            console.error("Error retrieving withdrawal request history".red, error);
+            return res.status(500).json({
+                success: false,
+                message: "An error occurred while retrieving the withdrawal request history",
+            });
+        }
     }
+
 });
 
 export const downloadBookingPDF = asyncHandler(async (req, res) => {
-    console.log("Generating invoice pdf".blue);
-    const { walletBookingId } = req.query;
+    const { walletBookingId, withdrawalId } = req.query;
 
-    try {
-        const bookingPayment = await Booking.findById(walletBookingId).populate('listing');
-
-        if (!bookingPayment) {
-            return res.status(404).json({
+    if(walletBookingId) {
+        console.log("Generating booking invoice pdf".cyan)
+        try {
+            const bookingPayment = await Booking.findById(walletBookingId).populate('listing').populate("user");
+    
+            if (!bookingPayment) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Booking payment history not found",
+                });
+            }
+    
+            // Prepare the data for the PDF
+            const bookingData = {
+                invoiceId: bookingPayment.invoiceId,
+                propertyUserName: bookingPayment.user.firstName + " " + bookingPayment.user.lastName,
+                propertyName: bookingPayment.listing.propertyName,
+                date: formatDate(bookingPayment.createdAt),
+                description: `${bookingPayment.listing.propertyId} - ${bookingPayment.listing.propertyName} (Room ${bookingPayment.listing.propertyLocation.apartmentNumber})`,
+                amount: `#${formatAmount(bookingPayment.totalIncuredChargeAfterDiscount)}`
+            };
+    
+            // Set headers to indicate a PDF download
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename="invoice.pdf"');
+    
+            // Call the PDF generation function
+            generateBookingInvoicePDF(bookingData, res);
+    
+        } catch (error) {
+            console.error("Error generating booking PDF:", error);
+            return res.status(500).json({
                 success: false,
-                message: "Booking payment history not found",
+                message: "An error occurred while generating the PDF.",
             });
         }
-
-        // Prepare the data for the PDF
-        const bookingData = {
-            invoiceId: bookingPayment.invoiceId,
-            date: formatDate(bookingPayment.createdAt),
-            description: `${bookingPayment.listing.propertyId} - ${bookingPayment.listing.propertyName} (Room ${bookingPayment.listing.propertyLocation.apartmentNumber})`,
-            amount: `#${formatAmount(bookingPayment.totalIncuredChargeAfterDiscount)}`
-        };
-
-        // Set headers to indicate a PDF download
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="invoice.pdf"');
-
-        // Call the PDF generation function
-        generateBookingInvoicePDF(bookingData, res);
-
-    } catch (error) {
-        console.error("Error generating booking PDF:", error);
-        return res.status(500).json({
-            success: false,
-            message: "An error occurred while generating the PDF.",
-        });
+    } else if (withdrawalId) {
+        console.log("generating withdrawal invoice as pdf".green)
+        try {
+            const withdrawalRequest = await Withdrawal.findById(withdrawalId);
+    
+            if (!withdrawalRequest) {
+                console.log("Withdrawal request not found".red)
+                return res.status(500).json({
+                    success: false,
+                    message: "Withdrawal request not found"
+                })
+            }
+    
+            // Prepare the data for the PDF
+            const withdrawalData = {
+                invoiceId: withdrawalRequest.paystack_id,
+                date: formatDate(withdrawalRequest.createdAt),
+                description: `${withdrawalRequest.reason}`,
+                amount: `#${formatAmount(withdrawalRequest.amount)}`,
+                withdrawalStatus: withdrawalRequest.status
+            };
+    
+            // Set headers to indicate a PDF download
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename="invoice.pdf"');
+    
+            // Call the PDF generation function
+            generateWithdrawalInvoicePDF(withdrawalData, res);
+    
+        } catch (error) {
+            console.error("Error generating booking PDF:", error);
+            return res.status(500).json({
+                success: false,
+                message: "An error occurred while generating the PDF.",
+            });
+        }
     }
 });
-
 
 export const spaceOwnerGetBanksAndSavedAccount = asyncHandler(async (req, res) => {
     console.log("Getting all banks".yellow)

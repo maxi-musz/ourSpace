@@ -522,34 +522,25 @@ export const handleCallback = async (req, res) => {
     }
 }; 
 
-export const adjustRealChargePerNight = asyncHandler(async (req, res) => {
+export const bookWithWallet = asyncHandler(async (req, res) => {
     console.log("Adjusting real charge per night and adding 10%".yellow);
 
-    // Fetch all listings
-    const listings = await Listing.find();
-    
-    if (listings && listings.length > 0) {
-        console.log(`Total of ${listings.length} listings found`.green);
+    const userId = req.user._id
 
-        // Iterate over each listing to update its chargePerNight and add chargePerNightWithout10Percent
-        for (const listing of listings) {
-            
-            // Set the chargePerNightWithout10Percent to the current value of chargePerNight
-            listing.chargePerNightWithout10Percent = Math.round(listing.chargePerNightWithout10Percent);
+    try {
+        const wallet = await Wallet.findOne({user: userId})
 
-            // Update chargePerNight by adding 10%
-            listing.chargePerNight = Math.round(listing.chargePerNight * 1.1)
+        if(!wallet){
+            const newWallet = new Wallet.create()
 
-            // Save the updated listing back to the database
-            await listing.save();
-            
-            console.log(`Updated listing with ID: ${listing._id}`.cyan);
+            console.log("Insufficient wallet funds".red)
+            return res.status(500).json({
+                success: false,
+                message: "Insufficient funds"
+            })
         }
-
-        res.status(200).json({ message: 'Listings updated successfully', totalListingsUpdated: listings.length });
-    } else {
-        console.log("No listings found.".red);
-        res.status(404).json({ message: 'No listings found' });
+    } catch (error) {
+        
     }
 });
 
