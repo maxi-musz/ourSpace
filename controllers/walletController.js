@@ -82,7 +82,7 @@ export const spaceOwnerGetWallet = asyncHandler(async (req, res) => {
 export const soGetSingleBookingFromWalletDashboard = asyncHandler(async (req, res) => {
     console.log("Getting single booking from wallet dashboard".cyan);
 
-    const { walletBookingId, withdrawalId } = req.body;
+    const { walletBookingId, withdrawalId } = req.query;
 
     if(!withdrawalId) {
         try {
