@@ -100,6 +100,13 @@ const listingsSchema = new mongoose.Schema({
       type: String
     },
 
+    chargePerNight: {
+      type: Number
+    },
+    chargePerNightWithout10Percent: {
+      type: Number
+    },
+
     bedroomPictures: [imageSchema],
     livingRoomPictures: [imageSchema],
     bathroomToiletPictures: [imageSchema],
@@ -168,10 +175,6 @@ const listingsSchema = new mongoose.Schema({
     },
 
     otherAcceptedCurrencies: [String],
-
-    chargePerNight: {
-      type: Number
-    },
 
     discount: {
       type: Boolean,

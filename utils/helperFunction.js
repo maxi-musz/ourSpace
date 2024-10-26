@@ -1,5 +1,5 @@
 import pdf from 'html-pdf';
-import { generateBookingPDFHtml } from "../email_templates/invoicePdf.js";
+import { generateBookingPDFHtml, generateWithdrawalPDFHtml } from "../email_templates/invoicePdf.js";
 
 
 // Function to format the date
@@ -31,13 +31,7 @@ export const formatAmount = (amount) => {
 return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
 
-export const generateBookingInvoicePDF = (req, res) => {
-    const bookingData = {
-        invoiceId: "#32711325",
-        date: "Oct 12, 2024, 8:25 PM",
-        description: "OS856738 - James court (Room 12b)",
-        amount: "#500,000"
-    };
+export const generateBookingInvoicePDF = (bookingData, res) => {
 
     const html = generateBookingPDFHtml(bookingData);
 
@@ -53,6 +47,29 @@ export const generateBookingInvoicePDF = (req, res) => {
     };
 
     pdf.create(html, options).toFile(`./invoices/invoice-${bookingData.invoiceId}.pdf`, (err, result) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Error creating PDF' });
+        }
+        res.download(result.filename); // Automatically download the generated PDF
+    });
+};
+
+export const generateWithdrawalInvoicePDF = (withdrawalData, res) => {
+
+    const html = generateWithdrawalPDFHtml(withdrawalData);
+
+    const options = {
+        format: 'A4',
+        orientation: 'portrait',
+        border: {
+            top: "10mm",
+            right: "10mm",
+            bottom: "10mm",
+            left: "10mm"
+        }
+    };
+
+    pdf.create(html, options).toFile(`./invoices/invoice-${withdrawalData.invoiceId}.pdf`, (err, result) => {
         if (err) {
             return res.status(500).json({ success: false, message: 'Error creating PDF' });
         }

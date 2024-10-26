@@ -2,11 +2,11 @@ import mongoose from 'mongoose';
 
 // Bank schema to represent each bank account the user adds
 const bankSchema = new mongoose.Schema({
-    bank_name: { type: String, required: true },  // Bank name (e.g., "First Bank")
-    bank_code: { type: String, required: true },  // Bank code (e.g., "011")
-    account_number: { type: String, required: true },  // Bank account number
-    account_name: { type: String, required: true },  // Name on the bank account
-    recipient_code: { type: String, required: true },  // Paystack recipient code
+    bankName: { type: String, required: true },  // Bank name (e.g., "First Bank")
+    accountNumber: { type: String, required: true },  // Bank account number
+    accountName: { type: String, required: true },  // Name on the bank account
+    bankCode: { type: String, required: true },  // Bank code (e.g., "011")
+    recipientCode: { type: String },  // Paystack recipient code
 });
 
 // Main BankDetails schema, referencing the user and holding an array of bank accounts

@@ -17,6 +17,10 @@ const walletSchema = new mongoose.Schema({
     totalEarned: {
         type: Number,
         default: 0
+    },
+    allTimeFunding: {
+        type: Number,
+        default: 0
     }
 })
 

@@ -128,18 +128,23 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 
+    const uniqueBookedDays = newBookedDays.length === 2 && newBookedDays[0] === newBookedDays[1] 
+    ? [newBookedDays[0]] // Only keep one if both dates are the same
+    : newBookedDays;
+
+    console.log("Final Booked dates: ", uniqueBookedDays);
     
 
     // Retrieve listing from database
     const listing = await Listing.findById(listingId).populate('user');
 
     const listingCharge = listing.chargePerNight
-    const totalNights = newBookedDays.length - 1
+    const totalNights = uniqueBookedDays.length
     const amountIncurred = listingCharge * totalNights
     const totalAmountIncured = amountIncurred + 2000
     const listingDiscount = listing.discount
 
-    console.log("Booked dates: ", newBookedDays)
+    console.log("Booked dates: ", uniqueBookedDays)
 
     const amountInKobo = totalAmountIncured * 100;
 
@@ -151,7 +156,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
         });
     }
 
-    const conflictingDates = listing.calendar.unavailableDays.filter(date => newBookedDays.includes(date));
+    const conflictingDates = listing.calendar.unavailableDays.filter(date => uniqueBookedDays.includes(date));
 
     if (conflictingDates.length > 0) {
         console.log("Some of the selected dates are already booked".red)
@@ -175,7 +180,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
+                    Authorization: `Bearer ${process.env.PAYSTACK_LIVE_SECRET_KEY}`,
                     'Content-Type': 'application/json',
                 },
             }
@@ -198,7 +203,7 @@ export const initializeTransaction = asyncHandler(async (req, res) => {
             email,
             phoneNumber,
             bookingForSomeone,
-            bookedDays: newBookedDays,
+            bookedDays: uniqueBookedDays,
             totalGuest,
             chargePerNight: listingCharge,
             totalNight: totalNights,
@@ -291,7 +296,7 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
             `https://api.paystack.co/transaction/verify/${reference}`,
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`,
+                    Authorization: `Bearer ${process.env.PAYSTACK_LIVE_SECRET_KEY}`,
                 },
             }
         );
@@ -309,10 +314,10 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
         const booking = await Booking.findOne({ paystackReference: reference }).populate('user').populate('listing');
 
         if (!booking) {
-            console.log("Payment was successful, but the booking was not found in the database".red);
+            console.log("Payment was successful, but the booking was not found".red);
             return res.status(404).json({
                 success: false,
-                message: 'Payment was successful, but the booking was not found in the database.',
+                message: 'Payment was successful, but the booking was not found.',
             });
         }
 
@@ -370,6 +375,37 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
 
             const listingOwner = listing.user;
 
+            console.log("Updating wallet".blue) 
+
+            let wallet = await Wallet.findOne({ user: listing.user._id });
+
+            // Subtract 10% and 2000 from the total incurred charge
+            const realListingChargePerNIght = listing.chargePerNightWithout10Percent
+            console.log("type: ", typeof(realListingChargePerNIght))
+
+            // console.log(`Total incured charge: ${booking.totalIncuredCharge} \nsemi final incured charge: ${semiFinalIncuredCharge}\nAfter removing 10%: ${afterRemoving10Percent} \nfinal incured charge: ${newTotalIncuredCharge}`.cyan)
+
+            if (!wallet) {
+                console.log("No wallet info found, creating a new one".yellow);
+                // If no wallet exists, create a new wallet for the user
+                wallet = new Wallet({
+                    user: listing.user._id,
+                    totalEarned: realListingChargePerNIght,  // Use final incurred charge
+                    currentBalance: realListingChargePerNIght, // Use final incurred charge
+                    totalWithdrawn: 0
+                });
+            } else {
+                // Update the existing wallet
+                const newTotalEarned = wallet.totalEarned + realListingChargePerNIght;
+                const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn;
+
+                wallet.totalEarned = newTotalEarned;
+                wallet.currentBalance = newCurrentBalance;
+            }
+
+            await wallet.save();
+            console.log("Wallet successfully updated".green)
+
             // create a new notification
             await Notification.create({
                 user: userId,
@@ -412,36 +448,10 @@ export const verifyTransaction = asyncHandler(async (req, res) => {
                 formattedBookingTotalCharge
             )
 
-            // const wallet = await Wallet.find({user: listing.user._id})
+            
 
-            // if(!wallet || wallet) {
-            //     const newTotalEarned = wallet.totalEarned + booking.totalIncuredCharge
-            //     const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn
 
-            //     wallet.totalEarned = newTotalEarned
-            //     wallet.currentBalance = newCurrentBalance
-            // }
-
-            let wallet = await Wallet.findOne({ user: listing.user._id });
-
-            if (!wallet) {
-                // If no wallet exists, create a new wallet for the user
-                wallet = new Wallet({
-                    user: listing.user._id,
-                    totalEarned: booking.totalIncuredCharge,
-                    currentBalance: booking.totalIncuredCharge,
-                    totalWithdrawn: 0
-                });
-            } else {
-                // Update the existing wallet
-                const newTotalEarned = wallet.totalEarned + booking.totalIncuredCharge;
-                const newCurrentBalance = newTotalEarned - wallet.totalWithdrawn;
-
-                wallet.totalEarned = newTotalEarned;
-                wallet.currentBalance = newCurrentBalance;
-            }
-
-            await wallet.save();
+            console.log("Wallet: ", wallet)
 
             res.status(200).json({
                 success: true,
@@ -511,6 +521,29 @@ export const handleCallback = async (req, res) => {
         });
     }
 }; 
+
+export const bookWithWallet = asyncHandler(async (req, res) => {
+    console.log("Adjusting real charge per night and adding 10%".yellow);
+
+    const userId = req.user._id
+
+    try {
+        const wallet = await Wallet.findOne({user: userId})
+
+        if(!wallet){
+            const newWallet = new Wallet.create()
+
+            console.log("Insufficient wallet funds".red)
+            return res.status(500).json({
+                success: false,
+                message: "Insufficient funds"
+            })
+        }
+    } catch (error) {
+        
+    }
+});
+
 
 export const getBookingsForListingId = asyncHandler(async (req, res) => {
     const { listingId } = req.params;

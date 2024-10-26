@@ -141,6 +141,9 @@ const createListing = asyncHandler(async (req, res) => {
     console.log('Formatting listings'.cyan);
     const formattedData = formatListingData(req);
 
+    const chargePerNightWithout10Percent = formattedData.chargePerNight
+    console.log("pure charge per night: ", chargePerNightWithout10Percent)
+
     formattedData.chargePerNight = Math.round(formattedData.chargePerNight * 1.1);
 
     let latitude, longitude;
@@ -216,6 +219,7 @@ const createListing = asyncHandler(async (req, res) => {
     // Create a new listing in the database
     const newListingData = {
       ...formattedData,
+      chargePerNightWithout10Percent,
       user: userId,
       propertyId: generateListingId(),
       propertyLocation: {
@@ -471,14 +475,14 @@ const saveListingForLater = asyncHandler(async (req, res) => {
 });
 
 const getSingleListing = asyncHandler(async (req, res) => {
-  console.log("Fetching a single listing".blue);
+  console.log("Fetching a single listing for any user".blue);
 
   const { id } = req.params;
 
   try {
       // console.log(`Searching for listing with ID: ${id}`.yellow);
 
-      const listing = await Listing.findById(id);
+      const listing = await Listing.findById(id).populate('user');
 
       if(!listing) {
         const draftListing = await DraftListing.findById(id)
@@ -492,12 +496,26 @@ const getSingleListing = asyncHandler(async (req, res) => {
         }
       }
 
+      const formattedUser = {
+        id: listing.user._id,
+        displayImage: listing.user.profilePic.secure_url,
+        name: listing.user.firstName + " " + listing.user.lastName,
+        kycVerification: listing.user.isKycVerified,
+        totalRatings: listing.user.totalRatings,
+        totalReviews: listing.user.totalReviews
+      }
+
+      listing.user = undefined;
+      
       console.log("Listing found".green);
       
       res.status(200).json({
           success: true,
           message: "Listing retrieved successfully",
-          data: listing,
+          data: {
+            user: formattedUser,
+            listing: listing
+          },
       });
   } catch (error) {
       console.error('Error fetching listing:', error);
